@@ -50,7 +50,7 @@ module AdvancedPS
                 resample_stratified,
                 resample_systematic
 
-        include("interface.jl")
+        include("Interface.jl")
 
         export  report_transition!,
                 report_observation!,

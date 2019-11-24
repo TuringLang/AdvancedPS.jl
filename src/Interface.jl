@@ -17,14 +17,14 @@ function init()
 end
 
 # Th
-function report_observation!(trace, logp::Float64)
+function report_observation(trace, logp::Float64)
     trace.taskinfo.logp += logp
     produce(logp)
-    trace = current_trace()
+    current_trace()
 end
 
 # logγ corresponds to the proposal distributoin we are sampling from.
-function report_transition!(trace,logp::Float64,logγ::Float64)
+function report_transition(trace,logp::Float64,logγ::Float64)
     trace.taskinfo.logp += logp - logγ
     trace.taskinfo.logpseq += logp
 end
