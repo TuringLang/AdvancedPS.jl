@@ -1,13 +1,12 @@
 
 function resample!(
     pc :: ParticleContainer,
-    indx :: Vecotr{Int64} = resample_systematic,
-    ref :: Union{Particle, Nothing} = nothing
-    ancestor_idx :: int = -1
-    new_ancestor_traj :: Union{Particle,Nothing} = nothing
+    indx :: Vector{Int64},
+    ref :: Union{Particle, Nothing} = nothing,
+    new_ref:: Union{Particle, Nothing} = nothing
 )
 
-
+    n = length(pc.vals)
     # count number of children for each particle
     num_children = zeros(Int, n)
     @inbounds for i in indx
@@ -36,16 +35,24 @@ function resample!(
     end
 
     if ref !== nothing
+        @inbounds ancestor_idx = indx[n]
         # Insert the retained particle. This is based on the replaying trick for efficiency
         # reasons. If we implement PG using task copying, we need to store Nx * T particles!
         # This is a rather effcient way of how to solve the ancestor problem.
-        if ancestor_idx == n || ancestor_idx == -1
+        if ancestor_idx == n
             @inbounds children[n] = ref
+        elseif new_ref !== nothing
+            @inbounds children[n] = new_ref
         else
             @assert isa(Particle,new_ancestor_traj) "[AdvancedPS] ($new_ancestor_traj) must be of type particle"
+            try
+                @inbounds chosen_traj = fork(particle[ancestor_idx],  pc.mainpulators["copy"])
+                new_ancestor_traj = pc.manipulators["merge_traj"](chosen_traj,ref)
+            catch e
+                error("[Advanced PS] Ancestor sampling went wrong...")
+            end
             @inbounds children[n] = new_ancestor_traj
-        else
-
+        end
     end
 
     # replace particles and log weights in the container with new particles and weights

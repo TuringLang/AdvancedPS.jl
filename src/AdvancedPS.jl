@@ -6,29 +6,35 @@ module AdvancedPS
 
 
         const DEBUG = Bool(parse(Int, get(ENV, "DEBUG_APS", "0")))
-
-
-
-
-
-        import StatsBase: sample
-
+        using Libtask
+        using StatsFuns: logsumexp, softmax!
+        import Base.copy
 
         abstract type AbstractTaskInfo end
+        abstract type AbstractParticleContainer end
+        abstract type AbstractTrace end
+
+
+        include("tasks.jl")
+
+        export  ParticleContainer,
+                Trace,
+                weights,
+                logZ,
+                current_trace,
+                extend!
+
 
         include("resample.jl")
 
         export resample!
 
 
-        include("tasks.jl")
-
-        export ParticleContainer, Trace
 
 
         include("taskinfo.jl")
 
-        export AbstractTaskInfo, TaskInfo
+        export PGTaskInfo
 
         include("samplers.jl")
 
@@ -44,6 +50,15 @@ module AdvancedPS
                 resample_stratified,
                 resample_systematic
 
+        include("interface.jl")
 
+        export  report_transition!,
+                report_observation!,
+                init,
+                Container,
+                set_x,
+                get_x,
+                copyC,
+                create_task
 
 end # module
