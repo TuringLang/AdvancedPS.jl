@@ -112,6 +112,7 @@ Base.similar(pc :: ParticleContainer{T}) where T = ParticleContainer{T}(0)
 Base.getindex(pc :: ParticleContainer, i :: Real) = pc.vals[i]
 
 
+
 # registers a new x-particle in the container
 function Base.push!(pc::ParticleContainer, p::Particle)
     push!(pc.vals, p)
@@ -141,7 +142,6 @@ function extend!(pc::ParticleContainer, n::Int, varInfo, tasks::Task, taskInfo::
 
     pc
 end
-
 # clears the container but keep params, logweight etc.
 function Base.empty!(pc::ParticleContainer)
     pc.vals  = eltype(pc.vals)[]
@@ -230,9 +230,5 @@ set_logpseg(pc :: ParticleContainer, t :: Int, logp :: Float64) =
 increase_logevidence(pc :: ParticleContainer, logw :: Float64) =
     (pc.logE += logw)
 
-
-    ###
-
-    ### Resample Steps
-
-    ###
+function set_hold(pc::ParticleContainer{Trace{T,W}}) where {T,W<:PGASTaskInfo}
+    for

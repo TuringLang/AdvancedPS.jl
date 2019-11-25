@@ -20,3 +20,27 @@ end
 function copy(info::PGTaskInfo)
     PGTaskInfo(info.logp, info.logpseq)
 end
+
+
+mutable struct PGASTaskInfo <: AbstractTaskInfo
+    # This corresponds to p(y_t | x_t)*p(x_t|x_t-1)/ γ(x_t|x_t-1,y_t),
+    # where γ is the porposal.
+    # We need this variable to compute the weights!
+    logp::Float64
+
+    # This corresponds to p(x_t|x_t-1)*p(x_t-1|x_t-2)*... *p(x_0)
+    # or |x_{0:t-1} for non markovian models, we need this to compute
+    # the ancestor weights.
+
+    logpseq::Float64
+
+
+    hold::Bool
+end
+function PGASTaskInfo(logp::Float64,logpseq::Float64)
+    PGASTaskInfo(logp,logpseq,false)
+end
+
+function copy(info::PGTaskInfo)
+    PGTaskInfo(info.logp, info.logpseq,hold)
+end

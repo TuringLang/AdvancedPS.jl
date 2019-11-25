@@ -43,15 +43,6 @@ function resample!(
             @inbounds children[n] = ref
         elseif new_ref !== nothing
             @inbounds children[n] = new_ref
-        else
-            @assert isa(Particle,new_ancestor_traj) "[AdvancedPS] ($new_ancestor_traj) must be of type particle"
-            try
-                @inbounds chosen_traj = fork(particle[ancestor_idx],  pc.manipulators["copy"])
-                new_ancestor_traj = pc.manipulators["merge_traj"](chosen_traj,ref)
-            catch e
-                error("[Advanced PS] Ancestor sampling went wrong...")
-            end
-            @inbounds children[n] = new_ancestor_traj
         end
     end
 
