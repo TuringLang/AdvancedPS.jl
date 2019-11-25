@@ -48,4 +48,6 @@ task = create_task(task_f)
 
 APS.extend!(particles, 10, vi, task, PGTaskInfo(0.0,0.0))
 ## Do one SMC step.
-APS.sampleSMC!(particles,0.0)
+APS.sampleSMC!(particles)
+
+particles[1]

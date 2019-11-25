@@ -1,6 +1,8 @@
 
 
-function sampleSMC!(pc::ParticleContainer,resampler_threshold::AbstractFloat)
+function sampleSMC!(pc::ParticleContainer,resampler::Function =resample_systematic ,resampler_threshold::AbstractFloat = 0.5)
+    println("Hmmm")
+
     while consume(pc) != Val{:done}
         ess = effectiveSampleSize(pc)
         if ess <= resampler_threshold * length(pc)
@@ -11,13 +13,13 @@ function sampleSMC!(pc::ParticleContainer,resampler_threshold::AbstractFloat)
             # sample ancestor indices
             n = length(pc)
             nresamples = n
-            indx = randcat(Ws, nresamples)
-            resample!(particles, indx)
+            indx = resampler(Ws, nresamples)
+            resample!(pc, indx)
         end
     end
 end
 
-function samplePG!(pc::ParticleContainer,resampler::Function,ref_particle::Union{Particle,}=nothing,resampler_threshold =1)
+function samplePG!(pc::ParticleContainer,resampler::Function = resample_systematic ,ref_particle::Union{Particle,Nothing}=nothing , resampler_threshold =1)
 
     if ref_particle === nothing
         #Do normal SMC
@@ -33,11 +35,11 @@ function samplePG!(pc::ParticleContainer,resampler::Function,ref_particle::Union
             n = length(pc)
             # Ancestor trajectory is not sampled
             nresamples = n-1
-            indx = randcat(Ws, nresamples)
+            indx = resampler(Ws, nresamples)
             # We add ancestor trajectory to the path.
             # For ancestor sampling, we would change n at this point.
             push!(indx,n)
-            resample!(particles, indx,ref= ref_particle)
+            resample!(pc, indx,ref_particle)
         end
     end
 

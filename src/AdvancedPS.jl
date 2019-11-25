@@ -22,7 +22,8 @@ module AdvancedPS
                 weights,
                 logZ,
                 current_trace,
-                extend!
+                extend!,
+                empty!
 
 
         include("resample.jl")

@@ -24,12 +24,12 @@ function resample!(
             # fork first child
             pi = particles[i]
             isref = pi === ref
-            p = isref ? fork(pi,  pc.mainpulators["copy"], isref, pc.mainpulators["set_retained_vns_del_by_spl!"]) : pi
+            p = isref ? fork(pi,  pc.manipulators["copy"], isref, pc.manipulators["set_retained_vns_del_by_spl!"]) : pi
             children[j += 1] = p
 
             # fork additional children
             for _ in 2:ni
-                children[j += 1] = fork(p, pc.mainpulators["copy"], isref, pc.mainpulators["set_retained_vns_del_by_spl!"])
+                children[j += 1] = fork(p, pc.manipulators["copy"], isref, pc.manipulators["set_retained_vns_del_by_spl!"])
             end
         end
     end
@@ -46,7 +46,7 @@ function resample!(
         else
             @assert isa(Particle,new_ancestor_traj) "[AdvancedPS] ($new_ancestor_traj) must be of type particle"
             try
-                @inbounds chosen_traj = fork(particle[ancestor_idx],  pc.mainpulators["copy"])
+                @inbounds chosen_traj = fork(particle[ancestor_idx],  pc.manipulators["copy"])
                 new_ancestor_traj = pc.manipulators["merge_traj"](chosen_traj,ref)
             catch e
                 error("[Advanced PS] Ancestor sampling went wrong...")

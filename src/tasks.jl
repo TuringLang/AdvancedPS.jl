@@ -9,7 +9,7 @@ mutable struct Trace{Tvi, TInfo}  <: AbstractTrace where {Tvi, TInfo <: Abstract
     taskinfo::TInfo
 end
 
-function Base.copy(trace::Trace, copy_vi::Function)
+function Base.copy(trace::Trace{Tvi,TInfo}, copy_vi::Function) where {Tvi, TInfo <: AbstractTaskInfo}
     res = Trace{typeof(trace.vi),typeof(trace.taskinfo)}(copy_vi(trace.vi), copy(trace.task), copy(trace.taskinfo))
     return res
 end
@@ -48,7 +48,7 @@ Libtask.consume(t::Trace) = (t.vi.num_produce += 1; consume(t.task))
 
 # Task copying version of fork for Trace.
 function fork(trace :: Trace, copy_vi::Function, is_ref :: Bool = false, set_retained_vns_del_by_spl!::Union{Function,Nothing} = nothing)
-    newtrace = copy(trace)
+    newtrace = copy(trace,copy_vi)
     if is_ref
         @assert set_retained_vns_del_by_spl! != nothing "[AdvancedPF] set_retained_vns_del_by_spl! is not set."
         set_retained_vns_del_by_spl!(newtrace.vi)
