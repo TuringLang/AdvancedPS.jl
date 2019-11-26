@@ -35,7 +35,8 @@ module AdvancedPS
 
         include("taskinfo.jl")
 
-        export PGTaskInfo
+        export  PGTaskInfo,
+                PGASTaskInfo
 
         include("samplers.jl")
 

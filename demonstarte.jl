@@ -64,15 +64,21 @@ m = 10
 task = create_task(task_f)
 
 
-APS.extend!(particles2, 9, vi, task, PGTaskInfo(0.0,0.0,true))
-APS.extend!(particles2, 1, particles[1].vi, task,  PGASTaskInfo(0.0,0.0,true))
+APS.extend!(particles2, 9, vi, task, PGTaskInfo(0.0,0.0))
+APS.extend!(particles2, 1, particles[1].vi, task,  PGTaskInfo(0.0,0.0))
 
 ## Do one SMC step.
-APS.samplePGAS!(particles2,resample_systematic,particles2[1])
+APS.samplePG!(particles2,resample_systematic,particles2[m])
+
+particles2
 
 
-asdf
 
+
+
+
+
+a
 function task_f_prod()
     var = init()
 

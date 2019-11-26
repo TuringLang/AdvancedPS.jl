@@ -114,7 +114,7 @@ Base.getindex(pc :: ParticleContainer, i :: Real) = pc.vals[i]
 
 
 # registers a new x-particle in the container
-function Base.push!(pc::ParticleContainer, p::Particle)
+function Base.push!(pc::ParticleContainer, p::Particle{Tvi,TInfo}) where {Tvi,TInfo <: AbstractTaskInfo}
     push!(pc.vals, p)
     push!(pc.logWs, 0.0)
     push!(pc.logpseq,0.0)
@@ -188,6 +188,7 @@ function Libtask.consume(pc :: ParticleContainer)
         elseif score == Val{:done}
             num_done += 1
         else
+            println(score)
             error("[consume]: error in running particle filter.")
         end
     end

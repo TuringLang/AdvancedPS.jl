@@ -1,7 +1,6 @@
 
 
 function sampleSMC!(pc::ParticleContainer,resampler::Function =resample_systematic ,resampler_threshold::AbstractFloat = 0.5)
-    println("Hmmm")
 
     while consume(pc) != Val{:done}
         ess = effectiveSampleSize(pc)
@@ -48,10 +47,10 @@ end
 
 # The resampler threshold is only imprtant for the first step!
 function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_systematic ,ref_particle::Union{Particle,Nothing}=nothing ,joint_logp::Union{Tuple{Vector{Symbol},Function},Nothing}=nothing, resampler_threshold =0.5)
-
     if ref_particle === nothing
         # We do not have a reference trajectory yet, therefore, perform normal SMC!
-        sampleSMC!(pc,resamplerresampler_threshold)
+        sampleSMC!(pc,resampler,resampler_threshold)
+
     else
         # Before starting, we need to copute the ancestor weights.
         # Note that there is a inconsistency with the original paper
@@ -65,6 +64,7 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
         # the next state.
         ancestor_index = length(pc)
         ancestor_particle::Union{typeof(pc[1]), Nothing} = nothing
+        n = length(pc)
 
         num_totla_consume = typemax(Int64)
         first_round = true
@@ -77,7 +77,6 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
             # check that weights are not NaN
             @assert !any(isnan, Ws)
             # sample ancestor indices
-            n = length(pc)
             # Ancestor trajectory is not sampled
             nresamples = n-1
             indx = resampler(Ws, nresamples)
@@ -114,7 +113,7 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
                     ancestor_index = randcat(softmax!(logws))
                     # We are one step behind....
                     selected_path = pc[ancestor_index]
-                    new_vi = pc.manipulators["merge_traj"](pc.manipulators["copy"](selected_path),ref_particle,pc.n_consume +1)
+                    new_vi = pc.manipulators["merge_traj"](pc.manipulators["copy"](selected_path.vi),ref_particle.vi,pc.n_consume +1)
                     ancestor_particle = Trace{typeof(new_vi),typeof(selected_path.taskinfo)}(new_vi,copy(selected_path.task),copy(selected_path.taskinfo))
                 else
                     if pc.n_consume <= num_totla_consume-1 #We do not need to sample the last one...
@@ -122,8 +121,8 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
                         pc_ancestor = ParticleContainer{typeof(pc[1].vi),typeof(pc[1].taskinfo)}()
                         pc_ancestor.n_consume = pc.n_consume
                         for i = 1:n
-                            new_vi = pc.manipulators["merge_traj"](pc.manipulators["copy"](pc[i]),ref_particle)
-                            new_particle = Trace{typeof(new_vi),typeof(selected_path.taskinfo)}(new_vi,copy(pc[i].task),copy(pc[i].taskinfo))
+                            new_vi = pc.manipulators["merge_traj"](pc.manipulators["copy"](pc[i].vi),ref_particle.vi)
+                            new_particle = Trace{typeof(new_vi),typeof(pc[i].taskinfo)}(new_vi,copy(pc[i].task),copy(pc[i].taskinfo))
                             push!(pc_ancestor,new_particle)
                         end
 
@@ -136,7 +135,7 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
                         ancestor_index = randcat(softmax!(logws))
                         # We are one step behind....
                         selected_path = pc[ancestor_index]
-                        new_vi = pc.manipulators["merge_traj"](pc.manipulators["copy"](selected_path),ref_particle,pc.n_consume +1)
+                        new_vi = pc.manipulators["merge_traj"](pc.manipulators["copy"](selected_path.vi),ref_particle.vi,pc.n_consume +1)
                         ancestor_particle = Trace{typeof(new_vi),typeof(selected_path.taskinfo)}(new_vi,copy(selected_path.task),copy(selected_path.taskinfo))
                         num_total_consume = pc_ancestor.n_consume
                     end
