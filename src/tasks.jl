@@ -224,11 +224,9 @@ increase_logweight(pc :: ParticleContainer, t :: Int, logw :: Float64) =
     (pc.logWs[t]  += logw)
 
 
+
 set_logpseg(pc :: ParticleContainer, t :: Int, logp :: Float64) =
     (pc.logpseq[t] = logp)
 
 increase_logevidence(pc :: ParticleContainer, logw :: Float64) =
     (pc.logE += logw)
-
-function set_hold(pc::ParticleContainer{Trace{T,W}}) where {T,W<:PGASTaskInfo}
-    for

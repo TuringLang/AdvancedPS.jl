@@ -47,7 +47,7 @@ end
 
 
 # The resampler threshold is only imprtant for the first step!
-function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_systematic ,ref_particle::Union{Particle,Nothing}=nothing ,joint_logp::Union{Tuple{Vector{Symbols},Function},Nothing}=nothing, resampler_threshold =0.5)
+function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_systematic ,ref_particle::Union{Particle,Nothing}=nothing ,joint_logp::Union{Tuple{Vector{Symbol},Function},Nothing}=nothing, resampler_threshold =0.5)
 
     if ref_particle === nothing
         # We do not have a reference trajectory yet, therefore, perform normal SMC!
@@ -73,7 +73,7 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
             Ws = weights(pc)
             # We need them for ancestor sampling...
             logws = copy(pc.logWs)
-            logpseq = [for i in 1:n pc[i].taskinfo.logpseq]
+            logpseq = [pc[i].taskinfo.logpseq for i in 1:n ]
             # check that weights are not NaN
             @assert !any(isnan, Ws)
             # sample ancestor indices
@@ -93,8 +93,8 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
                 if joint_logp !== nothing
                     # We need to create a dictionary with symbol value paris, which we pass
                     # to the joint_logp function.
-                    @assert @inbounds isa(joint_logp[1], Vector{Symbols}) "[AdvancedPS] the first argument of the joint_logp tuble must be a vector of Symbols!"
-                    @assert @inbounds isa(joint_logp[2], Function) "[AdvancedPS] the second argument of the joint_logp tuble must be a function of the for"*
+                    @assert  isa(joint_logp[1], Vector{Symbols}) "[AdvancedPS] the first argument of the joint_logp tuble must be a vector of Symbols!"
+                    @assert  isa(joint_logp[2], Function) "[AdvancedPS] the second argument of the joint_logp tuble must be a function of the for"*
                                                                 " f(num_produce, args...), which returns a value of Float64!"
 
                     # We are executing the joint_logp function as a set of tasks. The idea behind
@@ -144,7 +144,7 @@ function samplePGAS!(pc::ParticleContainer,resampler::Function = resample_system
             end
             # Reactivate the tasks, this is only important for synchorinty.
             for i =1:n
-                @inbounds consume(pc[i].task)
+                consume(pc[i].task)
             end
         end
     end

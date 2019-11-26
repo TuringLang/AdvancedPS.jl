@@ -53,8 +53,8 @@ module AdvancedPS
 
         include("Interface.jl")
 
-        export  report_transition!,
-                report_observation!,
+        export  report_transition,
+                report_observation,
                 init,
                 Container,
                 set_x,
