@@ -114,7 +114,7 @@ Base.@propagate_inbounds Base.getindex(pc::ParticleContainer, i::Int) = pc.vals[
 
 
 # registers a new x-particle in the container
-function Base.push!(pc::ParticleContainer, p::Particle{Tvi,TInfo}) where {Tvi,TInfo <: AbstractTaskInfo}
+function Base.push!(pc::ParticleContainer, p::Particle)
     push!(pc.vals, p)
     push!(pc.logWs, 0.0)
     push!(pc.logpseq,0.0)
