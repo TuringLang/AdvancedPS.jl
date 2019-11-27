@@ -175,7 +175,7 @@ function Libtask.consume(pc :: ParticleContainer)
         score = Libtask.consume(p)
 
         if hasproperty(typeof(p.taskinfo), logpseq)
-            set_logpseg(pc,i,p.taskinfo.logpseq)
+            set_logpseq!(pc, i, p.taskinfo.logpseq)
         end
 
         if score isa Real
