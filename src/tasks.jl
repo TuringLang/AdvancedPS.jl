@@ -221,7 +221,7 @@ function effectiveSampleSize(pc :: ParticleContainer)
     return inv(sum(abs2, Ws))
 end
 
-increase_logweight(pc :: ParticleContainer, t :: Int, logw :: Float64) =
+increase_logweight!(pc::ParticleContainer, t::Int, logw::Float64) =
     (pc.logWs[t]  += logw)
 
 
