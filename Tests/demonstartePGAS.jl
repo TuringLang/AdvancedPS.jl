@@ -1,5 +1,5 @@
 ## It is not yet a package...
-include("AdvancedPS/src/AdvancedPS.jl")
+using AdvancedPS
 using Libtask
 APS = AdvancedPS
 using Distributions
