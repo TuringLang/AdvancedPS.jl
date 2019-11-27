@@ -226,7 +226,7 @@ increase_logweight(pc :: ParticleContainer, t :: Int, logw :: Float64) =
 
 
 
-set_logpseg(pc :: ParticleContainer, t :: Int, logp :: Float64) =
+set_logpseq!(pc::ParticleContainer, t::Int, logp::Float64) =
     (pc.logpseq[t] = logp)
 
 increase_logevidence(pc :: ParticleContainer, logw :: Float64) =
