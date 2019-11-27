@@ -174,7 +174,7 @@ function Libtask.consume(pc :: ParticleContainer)
         p = particles[i]
         score = Libtask.consume(p)
 
-        if in(:logpseq,fieldnames(typeof(p.taskinfo))) && isa(p.taskinfo.logpseq,Float64)
+        if hasproperty(typeof(p.taskinfo), logpseq)
             set_logpseg(pc,i,p.taskinfo.logpseq)
         end
 
