@@ -109,7 +109,7 @@ Base.collect(pc :: ParticleContainer) = pc.vals # prev: Dict, now: Array
 Base.length(pc :: ParticleContainer)  = length(pc.vals)
 Base.similar(pc :: ParticleContainer{T}) where T = ParticleContainer{T}(0)
 # pc[i] returns the i'th particle
-Base.getindex(pc :: ParticleContainer, i :: Real) = pc.vals[i]
+Base.@propagate_inbounds Base.getindex(pc::ParticleContainer, i::Int) = pc.vals[i]
 
 
 
