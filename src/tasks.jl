@@ -121,7 +121,7 @@ function Base.push!(pc::ParticleContainer, p::Particle)
     pc
 end
 
-function extend!(pc::ParticleContainer, n::Int, varInfo, tasks::Task, taskInfo::T) where T <: AbstractTaskInfo
+function extend!(pc::ParticleContainer, n::Int, varInfo, tasks::Task, taskInfo::AbstractTaskInfo)
     # compute total number of particles number of particles
     n0 = length(pc)
     ntotal = n0 + n
