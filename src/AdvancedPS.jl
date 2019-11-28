@@ -21,7 +21,7 @@ module AdvancedPS
 
         include("UtilityFunctions")
         include("ParticleContainer.jl")
-        include("tasks.jl")
+        include("trace.jl")
         include("resample.jl")
         include("taskinfo.jl")
         include("samplers.jl")
