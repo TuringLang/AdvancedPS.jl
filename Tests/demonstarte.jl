@@ -6,7 +6,7 @@ using Libtask
 const APS = AdvancedPS
 using Distributions
 n = 20
-include("testInterface.jl")
+include("AdvancedPS/Tests/testInterface.jl")
 
 
 
@@ -26,7 +26,7 @@ end
 # The trace contains the variables which we want to infer using particle gibbs.
 # Thats all!
 function task_f()
-    var = init()
+    var = initialize()
     set_x(var,1,rand(Normal())) # We sample
     report_transition(var,0.0,0.0)
     for i = 2:n
@@ -46,17 +46,17 @@ function task_f()
     end
 
 end
-
-
-
-particles = APS.ParticleContainer{typeof(vi),APS.PGTaskInfo }()
-
-
+task = create_task(task_f)
 m = 10
+
+particlevec = [Trace(deepcopy(vi), copy(task), PGTaskInfo(0.0,0.0)) for i =1:m]
+ws = [0 for i =1:m]
+particles = APS.ParticleContainer{typeof(vi),APS.PGTaskInfo }(particlevec,)
+
+
 task = create_task(task_f)
 
 
-APS.push!(particles, 10, vi, task, PGTaskInfo(0.0,0.0))
 ## Do one SMC step.
 APS.samplePG!(particles)
 

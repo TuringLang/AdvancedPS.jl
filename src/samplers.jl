@@ -13,7 +13,7 @@ end
 
 
 function sample!(pc::ParticleContainer, spl::SMCAlgorithm)
-    while consume(pc, spl) != Val{:done}
+    while consume(pc) != Val{:done}
         ess = effectiveSampleSize(pc)
         if ess <= spl.resampler_threshold * length(pc)
             # compute weights
@@ -37,7 +37,7 @@ function sample!(pc::ParticleContainer, spl::PGAlgorithm, ref_traj::Union{Partic
         # At this point it is important that we have this hirarchical structure for the utility function struct.
         sampleSMC!(pc, SMCAlgorithm(spl.resampler, spl.resampler_threshold, spl.utility_functions))
     else
-        while consume(pc, spl) != Val{:done}
+        while consume(pc) != Val{:done}
             # compute weights
             Ws = weights(pc)
             # check that weights are not NaN
