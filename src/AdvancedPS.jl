@@ -5,7 +5,6 @@ module AdvancedPS
 
 
 
-        const DEBUG = Bool(parse(Int, get(ENV, "DEBUG_APS", "0")))
         using Libtask
         using StatsFuns: logsumexp, softmax!
         import Base.copy
@@ -13,9 +12,22 @@ module AdvancedPS
         abstract type AbstractTaskInfo end
         abstract type AbstractParticleContainer end
         abstract type AbstractTrace end
+        abstract type AbstractPFAlgorithm end
+        abstract type AbstractPFUtilitFunctions end
+
+        abstract type AbstractSMCUtilitFunctions <: AbstractPFUtilitFunctions end
+        abstract type AbstractPGASUtilityFunctions <: AbstractSMCUtilitFunctions end
 
 
+        include("UtilityFunctions")
+        include("ParticleContainer.jl")
         include("tasks.jl")
+        include("resample.jl")
+        include("taskinfo.jl")
+        include("samplers.jl")
+        include("resample_functions.jl")
+        include("Interface.jl")
+
 
         export  ParticleContainer,
                 Trace,
@@ -23,44 +35,26 @@ module AdvancedPS
                 logZ,
                 current_trace,
                 extend!,
-                empty!
-
-
-        include("resample.jl")
-
-        export resample!
-
-
-
-
-        include("taskinfo.jl")
-
-        export  PGTaskInfo,
+                empty!,
+                resample!,
+                PGTaskInfo,
                 PGASTaskInfo
-
-        include("samplers.jl")
-
-        export sampleSMC!, samplePG!
-
-
-        include("resample_functions.jl")
-
-        export  resample,
+                sample!,
+                resample,
                 randcat,
                 resample_multinomial,
                 resample_residual,
                 resample_stratified,
-                resample_systematic
+                resample_systematic,
+                SMCContainer,
+                PGContainer,
+                PGASContainer,
+                SMCUtilityFunctions,
+                PGUtilityFunctions,
+                PGASUtilityFunctions,
+                SMCAlgorithm,
+                PGAlgorithm
 
-        include("Interface.jl")
 
-        export  report_transition,
-                report_observation,
-                init,
-                Container,
-                set_x,
-                get_x,
-                copyC,
-                create_task
 
 end # module

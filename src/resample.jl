@@ -1,6 +1,7 @@
 
 function resample!(
     pc :: ParticleContainer,
+    utility_functions <: AbstractSMCUtilitFunctions,
     indx :: Vector{Int64},
     ref :: Union{Particle, Nothing} = nothing,
     new_ref:: Union{Particle, Nothing} = nothing
@@ -24,12 +25,12 @@ function resample!(
             # fork first child
             pi = particles[i]
             isref = pi === ref
-            p = isref ? fork(pi,  pc.manipulators["copy"], isref, pc.manipulators["set_retained_vns_del_by_spl!"]) : pi
+            p = isref ? fork(pi,  utility_functions.copy, isref, utility_functions.set_retained_vns_del_by_spl!) : pi
             children[j += 1] = p
 
             # fork additional children
             for _ in 2:ni
-                children[j += 1] = fork(p, pc.manipulators["copy"], isref, pc.manipulators["set_retained_vns_del_by_spl!"])
+                children[j += 1] = fork(p, utility_functions.copy, isref, utility_functions.set_retained_vns_del_by_spl!)
             end
         end
     end

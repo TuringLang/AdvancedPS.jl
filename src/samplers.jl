@@ -1,10 +1,21 @@
 
+struct SMCAlgorithm{RT, UF<:AbstractSMCUtilitFunctions} <: AbstractPFAlgorithm where RT<:AbstractFloat
+    resampler             ::  Function
+    resampler_threshold   ::  RT
+    utility_functiions    ::  UF
+end
 
-function sampleSMC!(pc::ParticleContainer,resampler::Function =resample_systematic ,resampler_threshold::AbstractFloat = 0.5)
+struct PGAlgorithm{RT, UF<:AbstractSMCUtilitFunctions} <: AbstractPFAlgorithm where RT<:AbstractFloat
+    resampler             ::  Function
+    resampler_threshold   ::  RT
+    utility_functiions    ::  UF
+end
 
-    while consume(pc) != Val{:done}
+
+function sample!(pc::ParticleContainer, spl::SMCSampler)
+    while consume(pc, spl) != Val{:done}
         ess = effectiveSampleSize(pc)
-        if ess <= resampler_threshold * length(pc)
+        if ess <= spl.resampler_threshold * length(pc)
             # compute weights
             Ws = weights(pc)
             # check that weights are not NaN
@@ -12,20 +23,21 @@ function sampleSMC!(pc::ParticleContainer,resampler::Function =resample_systemat
             # sample ancestor indices
             n = length(pc)
             nresamples = n
-            indx = resampler(Ws, nresamples)
-            resample!(pc, indx)
+            indx = spl.resampler(Ws, nresamples)
+            resample!(pc, spl.utility_functions, indx)
         end
     end
 end
 
 # The resampler threshold is only imprtant for the first step!
-function samplePG!(pc::ParticleContainer,resampler::Function = resample_systematic ,ref_particle::Union{Particle,Nothing}=nothing , resampler_threshold =0.5)
+function sample!(pc::ParticleContainer{T}, spl::PGAlgorithm, ref_traj::Union{Particle,Nothing}=nothing)
 
-    if ref_particle === nothing
+    if spl.ref_traj === nothing
         # We do not have a reference trajectory yet, therefore, perform normal SMC!
-        sampleSMC!(pc,resampler,resampler_threshold)
+        # At this point it is important that we have this hirarchical structure for the utility function struct.
+        sampleSMC!(pc, SMCAlgorithm(spl.resampler, spl.resampler_threshold, spl.utility_functions))
     else
-        while consume(pc) != Val{:done}
+        while consume(pc, spl) != Val{:done}
             # compute weights
             Ws = weights(pc)
             # check that weights are not NaN
@@ -38,7 +50,7 @@ function samplePG!(pc::ParticleContainer,resampler::Function = resample_systemat
             # We add ancestor trajectory to the path.
             # For ancestor sampling, we would change n at this point.
             push!(indx,n)
-            resample!(pc, indx,ref_particle)
+            resample!(pc, spl.utility_functions, indx, ref_traj)
         end
     end
 
