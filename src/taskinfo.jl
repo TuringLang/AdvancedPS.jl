@@ -28,7 +28,11 @@ function PGASTaskInfo(logp::Float64,logpseq::Float64)
     PGASTaskInfo(logp,logpseq,false)
 end
 
-function Base.copy(info::PGTaskInfo) = (PGTaskInfo(info.logp, info.logpseq)
-function Base.copy(info::PGASTaskInfo) = (PGASTaskInfo(info.logp, info.logpseq,info.hold)
+function Base.copy(info::PGTaskInfo)
+    PGTaskInfo(info.logp, info.logpseq)
+end
+function Base.copy(info::PGASTaskInfo)
+     PGASTaskInfo(info.logp, info.logpseq,info.hold)
+end
 
 reset_logp!(ti::AbstractTaskInfo) = (ti.logp = 0.0)

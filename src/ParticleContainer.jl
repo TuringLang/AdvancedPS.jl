@@ -43,7 +43,7 @@ function Base.empty!(pc::ParticleContainer)
 end
 
 # clones a theta-particle
-function Base.copy(pc::ParticleContainer, utility_functions<:AbstractPFUtilitFunctions)
+function Base.copy(pc::ParticleContainer, utility_functions::AbstractPFUtilitFunctions)
     # fork particles
     vals = eltype(pc.vals)[fork(p, utility_functions.copy) for p in pc.vals]
     # copy weights

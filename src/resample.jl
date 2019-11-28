@@ -1,7 +1,7 @@
 
 function resample!(
     pc :: ParticleContainer,
-    utility_functions <: AbstractSMCUtilitFunctions,
+    utility_functions :: AbstractSMCUtilitFunctions,
     indx :: Vector{Int64},
     ref :: Union{Particle, Nothing} = nothing,
     new_ref:: Union{Particle, Nothing} = nothing

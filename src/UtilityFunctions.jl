@@ -1,6 +1,3 @@
-# Some structure
-abstract type AbstractSMCUtilitFunctions <: AbstractPFUtilitFunctions end
-abstract type AbstractPGASUtilityFunctions <: AbstractSMCUtilitFunctions end
 
 struct SMCUtilityFunctions<:AbstractSMCUtilitFunctions
     copy                         ::  Function
@@ -9,9 +6,9 @@ end
 
 const PGUtilityFunctions = SMCUtilityFunctions
 
-struct PGASUtilityFunctions{Pr}<:AbstractPGASUtilityFunctions where Pr <:Union{Function,Nothing}
+struct PGASUtilityFunctions{AP}<:AbstractPGASUtilityFunctions where AP<:Union{Function,Nothing}
     copy                         ::  Function
     set_retained_vns_del_by_spl  ::  Function
     merge_traj                   ::  Function
-    ancestor_proposal            ::  PR
+    ancestor_proposal            ::  AP
 end

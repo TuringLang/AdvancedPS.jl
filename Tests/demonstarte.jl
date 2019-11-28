@@ -1,9 +1,12 @@
+
 ## It is not yet a package...
+
 using AdvancedPS
 using Libtask
 const APS = AdvancedPS
 using Distributions
 n = 20
+include("testInterface.jl")
 
 
 
@@ -53,7 +56,7 @@ m = 10
 task = create_task(task_f)
 
 
-APS.extend!(particles, 10, vi, task, PGTaskInfo(0.0,0.0))
+APS.push!(particles, 10, vi, task, PGTaskInfo(0.0,0.0))
 ## Do one SMC step.
 APS.samplePG!(particles)
 
@@ -64,8 +67,8 @@ m = 10
 task = create_task(task_f)
 
 
-APS.extend!(particles2, 9, vi, task, PGTaskInfo(0.0,0.0))
-APS.extend!(particles2, 1, particles[1].vi, task,  PGTaskInfo(0.0,0.0))
+APS.push!(particles2, 9, vi, task, PGTaskInfo(0.0,0.0))
+APS.push!(particles2, 1, particles[1].vi, task,  PGTaskInfo(0.0,0.0))
 
 ## Do one SMC step.
 APS.samplePG!(particles2,resample_systematic,particles2[m])

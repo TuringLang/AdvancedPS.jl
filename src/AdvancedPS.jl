@@ -19,14 +19,13 @@ module AdvancedPS
         abstract type AbstractPGASUtilityFunctions <: AbstractSMCUtilitFunctions end
 
 
-        include("UtilityFunctions")
-        include("ParticleContainer.jl")
+        include("UtilityFunctions.jl")
         include("trace.jl")
+        include("ParticleContainer.jl")
         include("resample.jl")
         include("taskinfo.jl")
         include("samplers.jl")
         include("resample_functions.jl")
-        include("Interface.jl")
 
 
         export  ParticleContainer,
@@ -46,9 +45,6 @@ module AdvancedPS
                 resample_residual,
                 resample_stratified,
                 resample_systematic,
-                SMCContainer,
-                PGContainer,
-                PGASContainer,
                 SMCUtilityFunctions,
                 PGUtilityFunctions,
                 PGASUtilityFunctions,

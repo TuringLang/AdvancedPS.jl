@@ -12,7 +12,7 @@ struct PGAlgorithm{RT, UF<:AbstractSMCUtilitFunctions} <: AbstractPFAlgorithm wh
 end
 
 
-function sample!(pc::ParticleContainer, spl::SMCSampler)
+function sample!(pc::ParticleContainer, spl::SMCAlgorithm)
     while consume(pc, spl) != Val{:done}
         ess = effectiveSampleSize(pc)
         if ess <= spl.resampler_threshold * length(pc)
@@ -30,7 +30,7 @@ function sample!(pc::ParticleContainer, spl::SMCSampler)
 end
 
 # The resampler threshold is only imprtant for the first step!
-function sample!(pc::ParticleContainer{T}, spl::PGAlgorithm, ref_traj::Union{Particle,Nothing}=nothing)
+function sample!(pc::ParticleContainer, spl::PGAlgorithm, ref_traj::Union{Particle,Nothing}=nothing)
 
     if spl.ref_traj === nothing
         # We do not have a reference trajectory yet, therefore, perform normal SMC!
