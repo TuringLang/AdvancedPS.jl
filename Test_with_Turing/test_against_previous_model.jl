@@ -21,7 +21,12 @@ end
 y = Vector{Float64}(1:10)
 
 chn1 = Turing.sample(gdemo(y),Turing.SMC(),1000)
+write("tmp.jls", chn1)
 chn2 = Turing.sample(gdemo(y),Turing.PG(100),100)
+write("tmp2.jls",chn2)
 
 chn1_old = read("Old_Model_SMC.jls", Chains)
 chn2_old = read("Old_Model_PG.jls", Chains)
+
+sum(chn1.value.data - chn1_old.value.data)
+sum(chn2.value.data- chn2_old.value.data)

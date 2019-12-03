@@ -10,8 +10,6 @@ include("AdvancedPS/Tests/testInterface.jl")
 
 
 
-
-
 ## Our states
 vi = Container(zeros(n),0)
 ## Our observations
@@ -51,14 +49,11 @@ m = 10
 
 particlevec = [Trace(deepcopy(vi), copy(task), PGTaskInfo(0.0,0.0)) for i =1:m]
 ws = [0 for i =1:m]
-particles = APS.ParticleContainer{typeof(vi),APS.PGTaskInfo }(particlevec,)
+particles = APS.ParticleContainer{typeof(particlevec[1])}(particlevec,deepcopy(ws),deepcopy(ws),0,0)
 
-
-task = create_task(task_f)
-
-
+Algo = APS.SMCAlgorithm(APS.resample_systematic,0.0,APS.SMCUtilityFunctions(deepcopy,(x)-> x))
 ## Do one SMC step.
-APS.samplePG!(particles)
+APS.sample!(particles,Algo)
 
 particles2 = APS.ParticleContainer{typeof(vi),APS.PGTaskInfo }()
 
