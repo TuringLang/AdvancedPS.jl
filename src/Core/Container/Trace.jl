@@ -10,14 +10,13 @@ mutable struct Trace{Tvi, TInfo}  <: AbstractTrace where {Tvi, TInfo <: Abstract
 end
 
 function Base.copy(trace::Trace{Tvi,TInfo}, copy_vi::Function) where {Tvi, TInfo <: AbstractTaskInfo}
-    return Trace(trace.vi, trace.task, trace.taskinfo,copy_vi)
+    return Trace(trace.vi, trace.task, trace.taskinfo, copy_vi)
 end
 
 # The procedure passes a function which is specified by the model.
 
-function Trace( vi, f::Function, taskinfo, copy_vi::Function)
+function Trace(vi, f::Function, taskinfo, copy_vi::Function)
     task = CTask( () -> begin res=f(); produce(Val{:done}); res; end )
-
     res = Trace(copy_vi(vi), task, copy(taskinfo))
     # CTask(()->f());
     if res.task.storage === nothing
@@ -29,8 +28,6 @@ end
 
 ## We need to design the task in the Turing wrapper.
 function Trace(vi, task::Task, taskinfo, copy_vi::Function)
-
-
     res = Trace(copy_vi(vi), Libtask.copy(task), copy(taskinfo))
     # CTask(()->f());
     if res.task.storage === nothing
@@ -41,7 +38,18 @@ function Trace(vi, task::Task, taskinfo, copy_vi::Function)
 end
 
 
+# NOTE: this function is called by `forkr`
 
+function Trace(vi, f::Function, taskinfo, copy_vi::Function)
+    # CTask(()->f());
+    task = CTask( () -> begin res=f(); produce(Val{:done}); res; end )
+    res = Trace(copy_vi(vi), task, copy(taskinfo))
+    if res.task.storage === nothing
+        res.task.storage = IdDict()
+    end
+    res.task.storage[:turing_trace] = res # create a backward reference in task_local_storage
+    return res
+end
 # step to the next observe statement, return log likelihood
 Libtask.consume(t::Trace) = (t.vi.num_produce += 1; consume(t.task))
 
@@ -56,11 +64,9 @@ function fork(trace::Trace, copy_vi::Function, is_ref::Bool = false, set_retaine
     return newtrace
 end
 
-# PG requires keeping all randomness for the reference particle
-# Create new task and copy randomness
-function forkr(trace::Trace, copy_vi::Function)
 
-    newtrace = Trace(trace.vi,trace.task ,trace.taskinfo,copy_vi)
+function forkr(trace::Trace, copy_vi::Function)
+    newtrace = Trace(trace.vi, trace.task.code, trace.taskinfo, copy_vi)
     newtrace.vi.num_produce = 0
     return newtrace
 end

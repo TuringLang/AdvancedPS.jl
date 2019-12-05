@@ -1,5 +1,5 @@
 using Test
-
+using AdvancedPS
 
 
 dir = splitdir(splitdir(pathof(Turing))[1])[1]
@@ -7,6 +7,20 @@ dir = splitdir(splitdir(pathof(Turing))[1])[1]
 include(dir*"/test/test_utils/AllUtils.jl")
 
 
+
+@turing_testset "AdvancedPS/src/Core/Container/Trace.jl" begin
+    vi = Array{Float64}(undef,10)
+    Trace()
+
+
+
+end
+
+
+include("AdvancedPS/src/Core/Container/Trace.jl" )
+
+
+asdf
 @testset "container.jl" begin
     @turing_testset "copy particle container" begin
         pc = ParticleContainer(x -> x * x, Trace[])

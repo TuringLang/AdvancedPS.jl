@@ -4,13 +4,13 @@ using Libtask
 APS = AdvancedPS
 using Distributions
 n = 20
-
+using
 
 
 
 
 ## Our states
-vi =    APS.Container(zeros(n),0)
+vi =    Container(zeros(n),0)
 ## Our observations
 y = Vector{Float64}(undef,n)
 for i = 1:n-1

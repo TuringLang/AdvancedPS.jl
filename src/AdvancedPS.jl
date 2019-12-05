@@ -6,7 +6,7 @@ module AdvancedPS
 
         using Libtask
         using StatsFuns: logsumexp, softmax!
-        using AdvancedMCMC
+        using AbstractMCMC
         import MCMCChains: Chains
         import Base.copy
 
@@ -24,15 +24,24 @@ module AdvancedPS
 
         abstract type AbstractPFModel <: AbstractModel end
 
+        export  AbstractTaskInfo,
+                AbstractParticleContainer,
+                AbstractTrace,
+                AbstractPFAlgorithm,
+                AbstractPFUtilitFunctions,
+                AbstractPFTransition,
+                AbstractPFSampler,
+                AbstractSMCUtilitFunctions,
+                AbstractPGASUtilityFunctions,
+                AbstractPFModel
 
-
-        include("Core/Container/trace.jl")
+        include("Core/Algorithms/Algorithms.jl")
+        include("Core/Container/Trace.jl")
         include("Core/Container/ParticleContainer.jl")
         include("Core/Resample/resample.jl")
-        include("Core/Algorithms/taskinfo.jl")
+        include("Core/Algorithms/Taskinfo.jl")
         include("Core/Algorithms/sample.jl")
         include("Core/Resample/resample_functions.jl")
-        include("Core/Algorithms/Algorithms.jl")
         include("Core/Utilities/UtilityFunctions.jl")
 
         export  ParticleContainer,
@@ -44,6 +53,7 @@ module AdvancedPS
                 empty!,
                 resample!,
                 PGTaskInfo,
+                SMCTaskInfo,
                 PGASTaskInfo
                 sample!,
                 resample,
@@ -56,13 +66,15 @@ module AdvancedPS
                 PGUtilityFunctions,
                 PGASUtilityFunctions,
                 SMCAlgorithm,
-                PGAlgorithm
+                PGAlgorithm,
+                update_task!
+
 
         include("Inference/Model.jl")
-        include("Inference/sample_init.jl")
-        include("Inference/Sampler.jl")
-        inlcude("Inference/step.jl")
         include("Inference/Transitions.jl")
+        include("Inference/Sampler.jl")
+        include("Inference/sample_init.jl")
+        include("Inference/step.jl")
         include("Inference/Inference.jl")
 
         export  PFModel,
@@ -71,6 +83,7 @@ module AdvancedPS
                 sample_init!,
                 step!,
                 Sampler,
-                PFTransition
+                PFTransition,
+                transition_type
 
 end # module

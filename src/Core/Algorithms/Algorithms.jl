@@ -9,8 +9,16 @@ function SMCAlgorithm()
     SMCAlgorithm(resample_systematic, 0.5)
 end
 
+struct PGAlgorithm{RT} <: AbstractPFAlgorithm where RT<:AbstractFloat
+    resampler             ::  Function
+    resampler_threshold   ::  RT
+    n                     ::  Int64
 
-const PGAlgorithm = SMCAlgorithm
+end
+
+function PGAlgorithm(n::Int64)
+    PGAlgorithm(resample_systematic, 0.5, n)
+end
 
 
 struct PGASAlgorithm{RT} <: AbstractPFAlgorithm

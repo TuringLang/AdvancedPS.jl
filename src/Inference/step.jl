@@ -1,46 +1,50 @@
 
 #SMC step
-function step!(
+function AbstractMCMC.step!(
     ::AbstractRNG,
-    model::Turing.Model,
-    spl::T,
-    i::Integer;
+    model::AbstractPFModel,
+    spl::SPL,
+    ::Integer;
+    iteration::Integer,
     kwargs...
-    ) where T <: SMCSampler
+    ) where SPL <: SMCSampler
 
-    particle = spl.pc[i]
-    params = spl.uf.to_named_tuple(spl.pc[i])
-    return PFTransition(params, particle.taskinfo.logp, pc.logE, Ws[i])
+    particle = spl.pc[iteration]
+
+    params = spl.uf.tonamedtuple(particle.vi)
+    return PFTransition(params, particle.taskinfo.logp, spl.pc.logE, weights(spl.pc)[iteration])
 end
 
 
 # PG step
-function step!(
+function AbstractMCMC.step!(
     ::AbstractRNG,
-    model::Turing.Model,
-    spl::T,
+    model::AbstractPFModel,
+    spl::SPL,
     ::Integer;
     kwargs...
-    ) where T <: PGSampler
+    ) where SPL <: PGSampler
 
-    n = alg.n
-    T = Trace{typeof(spl.vi),SMCTaskInfo}
+    n = spl.alg.n
+    T = Trace{typeof(spl.vi), PGTaskInfo{Float64}}
 
-    if hasfield(spl,:ref_traj) && spl.ref_traj !== nothing
-        particles = T[ Trace(vi, task, SMCTaskInfo(), alg.copy) for _ =1:n-1]
-        pc = APS.ParticleContainer{typeof(particles[1])}(particles,zeros(n),zeros(n),0,0)
+    if hasfield(typeof(spl),:ref_traj) && spl.ref_traj !== nothing
+        particles = T[ Trace(spl.vi, model.task, PGTaskInfo(), spl.uf.copy) for _ =1:n-1]
+        pc = ParticleContainer{typeof(particles[1])}(particles,zeros(n),0.0,0)
+        # Reset Task
+        spl.ref_traj = forkr(spl.ref_traj, uf.copy)
         push!(pc, spl.ref_traj)
     else
-        particles = T[ Trace(vi, task, SMCTaskInfo(), alg.copy) for _ =1:n]
-        pc = APS.ParticleContainer{typeof(particles[1])}(particles,zeros(n),zeros(n),0,0)
+        particles = T[ Trace(spl.vi, model.task, PGTaskInfo(), spl.uf.copy) for _ =1:n]
+        pc = ParticleContainer{typeof(particles[1])}(particles,zeros(n),0.0,0)
     end
 
     sample!(pc, spl.alg, spl.uf, spl.ref_traj)
 
     indx = AdvancedPS.randcat(weights(pc))
     particle = spl.ref_traj = pc[indx]
-    params = spl.uf.to_named_tuple(spl.pc[i])
-    return PFTransition(params, particle.taskinfo.logp, pc.logE, Ws[i])
+    params = spl.uf.tonamedtuple(particle.vi)
+    return PFTransition(params, particle.taskinfo.logp, pc.logE, weights(pc)[indx])
 end
 
 #
