@@ -10,12 +10,12 @@ mutable struct Trace{Tvi, TInfo}  <: AbstractTrace where {Tvi, TInfo <: Abstract
 end
 
 function Base.copy(trace::Trace{Tvi,TInfo}, copy_vi::Function) where {Tvi, TInfo <: AbstractTaskInfo}
-    return Trace(copy_vi(trace.vi), copy(trace.task), copy(trace.taskinfo))
+    return Trace(trace.vi, trace.task, trace.taskinfo,copy_vi)
 end
 
 # The procedure passes a function which is specified by the model.
 
-function Trace(f::Function, vi, taskinfo, copy_vi::Function)
+function Trace( vi, f::Function, taskinfo, copy_vi::Function)
     task = CTask( () -> begin res=f(); produce(Val{:done}); res; end )
 
     res = Trace(copy_vi(vi), task, copy(taskinfo))

@@ -4,7 +4,7 @@
 # allows to propagate information trough the computation.
 # This is important because we do not want to
 
-mutable struct PGTaskInfo{T} <: AbstractTaskInfo where {T <:AbstractFloat}
+mutable struct SMCTaskInfo{T} <: AbstractTaskInfo where {T <:AbstractFloat}
     # This corresponds to p(yₜ | xₜ) p(xₜ | xₜ₋₁) / γ(xₜ | xₜ₋₁, yₜ)
     # where γ is the porposal.
     # We need this variable to compute the weights!
@@ -15,24 +15,29 @@ mutable struct PGTaskInfo{T} <: AbstractTaskInfo where {T <:AbstractFloat}
     logpseq::T
 end
 
+SMCTaskInfo() = SMCTaskInfo(0.0, 0.0)
+
+const PGTaskInfo = SMCTaskInfo
 
 
-mutable struct PGASTaskInfo{T} <: AbstractTaskInfo where {T <: AbstractFloat}
+
+mutable struct PGASTaskInfo{T, F} <: AbstractTaskInfo where {T <: AbstractFloat}
     # Same as above
     logp::T
     logpseq::T
-    # This is important for ancesotr sampling to synchronize.
-    hold::Bool
+    # The ancestor weight
+    ancestor_weight::Float64
 end
 function PGASTaskInfo(logp::Float64,logpseq::Float64)
-    PGASTaskInfo(logp,logpseq,false)
+    PGASTaskInfo(logp, logpseq, 0.0)
 end
 
 function Base.copy(info::PGTaskInfo)
     PGTaskInfo(info.logp, info.logpseq)
 end
 function Base.copy(info::PGASTaskInfo)
-     PGASTaskInfo(info.logp, info.logpseq,info.hold)
+     PGASTaskInfo(info.logp, info.logpseq, info.ancestor_weight)
 end
 
 reset_logp!(ti::AbstractTaskInfo) = (ti.logp = 0.0)
+set_ancestor_weight!(ti::PGASTaskInfo, w::Float64) = (ti.ancestor_weight = w)

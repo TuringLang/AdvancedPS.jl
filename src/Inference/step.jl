@@ -1,59 +1,46 @@
 
-struct SMCAlgorithm{RT, UF<:AbstractSMCUtilitFunctions} <: AbstractPFAlgorithm where RT<:AbstractFloat
-    resampler             ::  Function
-    resampler_threshold   ::  RT
-    utility_functiions    ::  UF
+#SMC step
+function step!(
+    ::AbstractRNG,
+    model::Turing.Model,
+    spl::T,
+    i::Integer;
+    kwargs...
+    ) where T <: SMCSampler
+
+    particle = spl.pc[i]
+    params = spl.uf.to_named_tuple(spl.pc[i])
+    return PFTransition(params, particle.taskinfo.logp, pc.logE, Ws[i])
 end
 
-struct PGAlgorithm{RT, UF<:AbstractSMCUtilitFunctions} <: AbstractPFAlgorithm where RT<:AbstractFloat
-    resampler             ::  Function
-    resampler_threshold   ::  RT
-    utility_functiions    ::  UF
-end
 
+# PG step
+function step!(
+    ::AbstractRNG,
+    model::Turing.Model,
+    spl::T,
+    ::Integer;
+    kwargs...
+    ) where T <: PGSampler
 
-function sample!(pc::ParticleContainer, spl::SMCAlgorithm)
-    while consume(pc) != Val{:done}
-        ess = effectiveSampleSize(pc)
-        if ess <= spl.resampler_threshold * length(pc)
-            # compute weights
-            Ws = weights(pc)
-            # check that weights are not NaN
-            @assert !any(isnan, Ws)
-            # sample ancestor indices
-            n = length(pc)
-            nresamples = n
-            indx = spl.resampler(Ws, nresamples)
-            resample!(pc, spl.utility_functions, indx)
-        end
-    end
-end
+    n = alg.n
+    T = Trace{typeof(spl.vi),SMCTaskInfo}
 
-# The resampler threshold is only imprtant for the first step!
-function sample!(pc::ParticleContainer, spl::PGAlgorithm, ref_traj::Union{Particle,Nothing}=nothing)
-
-    if spl.ref_traj === nothing
-        # We do not have a reference trajectory yet, therefore, perform normal SMC!
-        # At this point it is important that we have this hirarchical structure for the utility function struct.
-        sampleSMC!(pc, SMCAlgorithm(spl.resampler, spl.resampler_threshold, spl.utility_functions))
+    if hasfield(spl,:ref_traj) && spl.ref_traj !== nothing
+        particles = T[ Trace(vi, task, SMCTaskInfo(), alg.copy) for _ =1:n-1]
+        pc = APS.ParticleContainer{typeof(particles[1])}(particles,zeros(n),zeros(n),0,0)
+        push!(pc, spl.ref_traj)
     else
-        while consume(pc) != Val{:done}
-            # compute weights
-            Ws = weights(pc)
-            # check that weights are not NaN
-            @assert !any(isnan, Ws)
-            # sample ancestor indices
-            n = length(pc)
-            # Ancestor trajectory is not sampled
-            nresamples = n-1
-            indx = resampler(Ws, nresamples)
-            # We add ancestor trajectory to the path.
-            # For ancestor sampling, we would change n at this point.
-            push!(indx,n)
-            resample!(pc, spl.utility_functions, indx, ref_traj)
-        end
+        particles = T[ Trace(vi, task, SMCTaskInfo(), alg.copy) for _ =1:n]
+        pc = APS.ParticleContainer{typeof(particles[1])}(particles,zeros(n),zeros(n),0,0)
     end
 
+    sample!(pc, spl.alg, spl.uf, spl.ref_traj)
+
+    indx = AdvancedPS.randcat(weights(pc))
+    particle = spl.ref_traj = pc[indx]
+    params = spl.uf.to_named_tuple(spl.pc[i])
+    return PFTransition(params, particle.taskinfo.logp, pc.logE, Ws[i])
 end
 
 #

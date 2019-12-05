@@ -4,9 +4,10 @@
 module AdvancedPS
 
 
-
         using Libtask
         using StatsFuns: logsumexp, softmax!
+        using AdvancedMCMC
+        import MCMCChains: Chains
         import Base.copy
 
         abstract type AbstractTaskInfo end
@@ -15,18 +16,24 @@ module AdvancedPS
         abstract type AbstractPFAlgorithm end
         abstract type AbstractPFUtilitFunctions end
 
+        abstract type AbstractPFTransition <: AbstractTransition end
+        abstract type AbstractPFSampler <: AbstractSampler end
+
         abstract type AbstractSMCUtilitFunctions <: AbstractPFUtilitFunctions end
         abstract type AbstractPGASUtilityFunctions <: AbstractSMCUtilitFunctions end
 
+        abstract type AbstractPFModel <: AbstractModel end
 
-        include("UtilityFunctions.jl")
-        include("trace.jl")
-        include("ParticleContainer.jl")
-        include("resample.jl")
-        include("taskinfo.jl")
-        include("samplers.jl")
-        include("resample_functions.jl")
 
+
+        include("Core/Container/trace.jl")
+        include("Core/Container/ParticleContainer.jl")
+        include("Core/Resample/resample.jl")
+        include("Core/Algorithms/taskinfo.jl")
+        include("Core/Algorithms/sample.jl")
+        include("Core/Resample/resample_functions.jl")
+        include("Core/Algorithms/Algorithms.jl")
+        include("Core/Utilities/UtilityFunctions.jl")
 
         export  ParticleContainer,
                 Trace,
@@ -51,6 +58,19 @@ module AdvancedPS
                 SMCAlgorithm,
                 PGAlgorithm
 
+        include("Inference/Model.jl")
+        include("Inference/sample_init.jl")
+        include("Inference/Sampler.jl")
+        inlcude("Inference/step.jl")
+        include("Inference/Transitions.jl")
+        include("Inference/Inference.jl")
 
+        export  PFModel,
+                sample,
+                bundle_samples,
+                sample_init!,
+                step!,
+                Sampler,
+                PFTransition
 
 end # module
