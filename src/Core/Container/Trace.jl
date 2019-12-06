@@ -15,7 +15,7 @@ end
 
 # The procedure passes a function which is specified by the model.
 
-function Trace(vi, f::Function, taskinfo, copy_vi::Function)
+function Trace(vi::Tvi, f::Function, taskinfo::TInfo, copy_vi::Function) where {Tvi,TInfo<:AbstractTaskInfo}
     task = CTask( () -> begin res=f(); produce(Val{:done}); res; end )
     res = Trace(copy_vi(vi), task, copy(taskinfo))
     # CTask(()->f());
@@ -27,7 +27,7 @@ function Trace(vi, f::Function, taskinfo, copy_vi::Function)
 end
 
 ## We need to design the task in the Turing wrapper.
-function Trace(vi, task::Task, taskinfo, copy_vi::Function)
+function Trace(vi::Tvi, task::Task, taskinfo::TInfo, copy_vi::Function) where {Tvi,TInfo<:AbstractTaskInfo}
     res = Trace(copy_vi(vi), Libtask.copy(task), copy(taskinfo))
     # CTask(()->f());
     if res.task.storage === nothing
@@ -40,7 +40,7 @@ end
 
 # NOTE: this function is called by `forkr`
 
-function Trace(vi, f::Function, taskinfo, copy_vi::Function)
+function Trace(vi::Tvi, f::Function, taskinfo::TInfo, copy_vi::Function) where {Tvi,TInfo<:AbstractTaskInfo}
     # CTask(()->f());
     task = CTask( () -> begin res=f(); produce(Val{:done}); res; end )
     res = Trace(copy_vi(vi), task, copy(taskinfo))

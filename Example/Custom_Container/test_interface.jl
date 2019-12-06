@@ -15,6 +15,11 @@ mutable struct Container
     num_produce::Float64
 end
 
+function Base.deepcopy(vi::Container)
+    return Container(deepcopy(vi.x),deepcopy(vi.marked),deepcopy(vi.produced_at),deepcopy(vi.num_produce))
+end
+
+
 function set_retained_vns_del_by_spl!(container::Container)
     for i in 1:length(container.marked)
         if container.marked[i]
@@ -66,4 +71,13 @@ end
 
 function create_task(f::Function)
     return CTask(() ->  begin new_vi=f(); produce(Val{:done}); new_vi; end )
+end
+
+function tonamedtuple(vi::Container)
+    return NamedTuple()
+end
+function Base.empty!(vi::Container)
+    for i in 1:length(vi.marked)
+        vi.marked[i] = false
+    end
 end

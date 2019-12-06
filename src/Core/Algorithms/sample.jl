@@ -13,12 +13,12 @@ function sample!(pc::PC, alg::ALG, utility_functions::AbstractSMCUtilitFunctions
         if ref_traj !== nothing || ess <= alg.resampler_threshold * length(pc)
             # compute weights
             Ws = weights(pc)
+
             # check that weights are not NaN
             @assert !any(isnan, Ws)
             # sample ancestor indices
             # Ancestor trajectory is not sampled
             ref_traj !== nothing ? nresamples = n-1 : nresamples = n
-
             indx = alg.resampler(Ws, nresamples)
             # We add ancestor trajectory to the path.
             # For ancestor sampling, we would change n at this point.

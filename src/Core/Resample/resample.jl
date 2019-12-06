@@ -10,9 +10,12 @@ function resample!(
     n = length(pc.vals)
     # count number of children for each particle
     num_children = zeros(Int, n)
+
     @inbounds for i in indx
         num_children[i] += 1
     end
+
+
 
     # fork particles
     particles = collect(pc)

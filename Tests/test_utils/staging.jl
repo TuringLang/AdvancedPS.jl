@@ -47,6 +47,6 @@ macro numerical_testset(args...)
     esc(:(@stage_testset "numerical" $(args...)))
 end
 
-macro turing_testset(args...)
+macro apf_testset(args...)
     esc(:(@stage_testset "test" $(args...)))
 end

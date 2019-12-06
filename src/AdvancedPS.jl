@@ -67,8 +67,7 @@ module AdvancedPS
                 PGASUtilityFunctions,
                 SMCAlgorithm,
                 PGAlgorithm,
-                update_task!
-
+                forkr
 
         include("Inference/Model.jl")
         include("Inference/Transitions.jl")

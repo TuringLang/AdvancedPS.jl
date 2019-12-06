@@ -11,9 +11,6 @@ include(dir*"/test/test_utils/AllUtils.jl")
 @turing_testset "AdvancedPS/src/Core/Container/Trace.jl" begin
     vi = Array{Float64}(undef,10)
     Trace()
-
-
-
 end
 
 

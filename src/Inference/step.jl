@@ -26,13 +26,14 @@ function AbstractMCMC.step!(
     ) where SPL <: PGSampler
 
     n = spl.alg.n
+
     T = Trace{typeof(spl.vi), PGTaskInfo{Float64}}
 
-    if hasfield(typeof(spl),:ref_traj) && spl.ref_traj !== nothing
+    if spl.ref_traj !== nothing
         particles = T[ Trace(spl.vi, model.task, PGTaskInfo(), spl.uf.copy) for _ =1:n-1]
-        pc = ParticleContainer{typeof(particles[1])}(particles,zeros(n),0.0,0)
+        pc = ParticleContainer{typeof(particles[1])}(particles,zeros(n-1),0.0,0)
         # Reset Task
-        spl.ref_traj = forkr(spl.ref_traj, uf.copy)
+        spl.ref_traj = forkr(spl.ref_traj, spl.uf.copy)
         push!(pc, spl.ref_traj)
     else
         particles = T[ Trace(spl.vi, model.task, PGTaskInfo(), spl.uf.copy) for _ =1:n]

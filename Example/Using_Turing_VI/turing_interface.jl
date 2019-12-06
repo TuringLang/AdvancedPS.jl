@@ -1,6 +1,8 @@
 # This is important for initalizaiton
 const initialize = AdvancedPS.current_trace
 const TypedVarInfo = VarInfo{<:NamedTuple}
+const Selector = Turing.Selector
+const BASE_SELECTOR = Selector(:PS)
 
 function report_observation!(trace, logp::Float64)
     trace.taskinfo.logp += logp
@@ -23,10 +25,11 @@ function update_var(trace, vn, val, dist= Normal())
         if is_flagged(trace.vi, vn, "del")
             unset_flag!(trace.vi, vn, "del")
             trace.vi[vn] = vectorize(dist,val)
-            setgid!(trace.vi, vn)
+            setgid!(trace.vi, BASE_SELECTOR, vn)
             setorder!(trace.vi, vn, trace.vi.num_produce)
             return val
         else
+            updategid!(trace.vi, BASE_SELECTOR, vn)
             val =  trace.vi[vn]
         end
     else
@@ -56,13 +59,18 @@ end
 #   the SampleFromPrior sampler
 
 
+
+
 """
+
 `getidx(vi::UntypedVarInfo, vn::VarName)`
+
 
 
 Returns the index of `vn` in `vi.metadata.vns`.
 
 """
+
 getidx(vi::UntypedVarInfo, vn::VarName) = vi.idcs[vn]
 
 
@@ -70,29 +78,54 @@ getidx(vi::UntypedVarInfo, vn::VarName) = vi.idcs[vn]
 
 `getidx(vi::TypedVarInfo, vn::VarName{sym})`
 
+
+
 Returns the index of `vn` in `getfield(vi.metadata, sym).vns`.
 
 """
 
 function getidx(vi::TypedVarInfo, vn::VarName{sym}) where sym
+
     getfield(vi.metadata, sym).idcs[vn]
-end
 
-setgid!(vi::UntypedVarInfo, vn::VarName) = push!(vi.gids[getidx(vi, vn)], Turing.Selector(1,:PS))
-
-function setgid!(vi::TypedVarInfo, vn::VarName{sym}) where sym
-    push!(getfield(vi.metadata, sym).gids[getidx(vi, vn)], Turing.Selector(1,:PS))
 end
 
 
-@inline function _getidcs(vi::UntypedVarInfo)
-    return filter(i -> isempty(vi.gids[i]) , 1:length(vi.gids))
+
+"""
+
+`setgid!(vi::VarInfo, gid::Selector, vn::VarName)`
+
+
+
+Adds `gid` to the set of sampler selectors associated with `vn` in `vi`.
+
+"""
+
+setgid!(vi::UntypedVarInfo, gid::Selector, vn::VarName) = push!(vi.gids[getidx(vi, vn)], gid)
+
+function setgid!(vi::TypedVarInfo, gid::Selector, vn::VarName{sym}) where sym
+
+    push!(getfield(vi.metadata, sym).gids[getidx(vi, vn)], gid)
+
 end
 
-# Get a NamedTuple of all the indices belonging to SampleFromPrior, one for each symbol
-@inline function _getidcs(vi::TypedVarInfo)
-    return _getidcs(vi.metadata)
+"""
+
+`updategid!(vi::VarInfo, vn::VarName, spl::Sampler)`
+
+
+
+If `vn` doesn't have a sampler selector linked and `vn`'s symbol is in the space of
+
+`spl`, this function will set `vn`'s `gid` to `Set([spl.selector])`.
+
+"""
+
+function updategid!(vi::AbstractVarInfo, sel::Selector, vn::VarName)
+    setgid!(vi, sel, vn)
 end
+
 
 @generated function _getidcs(metadata::NamedTuple{names}) where {names}
     exprs = []
@@ -103,22 +136,63 @@ end
     return :($(exprs...),)
 end
 
+# Get all indices of variables belonging to a given sampler
 
 
+@inline function _getidcs(vi::UntypedVarInfo, s::Selector)
+    findinds(vi, s)
+end
 
+@inline function _getidcs(vi::TypedVarInfo, s::Selector)
 
+    return _getidcs(vi.metadata, s)
+end
 
+# Get a NamedTuple for all the indices belonging to a given selector for each symbol
+
+@generated function _getidcs(metadata::NamedTuple{names}, s::Selector) where {names}
+    exprs = []
+    # Iterate through each varname in metadata.
+    for f in names
+        # If the varname is in the sampler space
+        # or the sample space is empty (all variables)
+        # then return the indices for that variable.
+        push!(exprs, :($f = findinds(metadata.$f, s)))
+    end
+    length(exprs) == 0 && return :(NamedTuple())
+    return :($(exprs...),)
+end
+
+@inline function findinds(f_meta, s::Selector)
+
+    # Get all the idcs of the vns in `space` and that belong to the selector `s`
+    return filter((i) ->
+        (s in f_meta.gids[i] || isempty(f_meta.gids[i])), 1:length(f_meta.gids))
+end
+
+@inline function findinds(f_meta)
+    # Get all the idcs of the vns
+    return filter((i) -> isempty(f_meta.gids[i]), 1:length(f_meta.gids))
+end
 
 """
+
 `set_retained_vns_del_by_spl!(vi::VarInfo, spl::Sampler)`
+
+
 
 Sets the `"del"` flag of variables in `vi` with `order > vi.num_produce` to `true`.
 
 """
 
-function set_retained_vns_del_by_spl!(vi::UntypedVarInfo)
+function set_retained_vns_del_by_spl!(vi::AbstractVarInfo)
+    return set_retained_vns_del_by_spl!(vi, BASE_SELECTOR)
+end
+
+
+function set_retained_vns_del_by_spl!(vi::UntypedVarInfo, sel::Selector)
     # Get the indices of `vns` that belong to `spl` as a vector
-    gidcs = _getidcs(vi)
+    gidcs = _getidcs(vi, sel)
     if vi.num_produce == 0
         for i = length(gidcs):-1:1
           vi.flags["del"][gidcs[i]] = true
@@ -133,9 +207,9 @@ function set_retained_vns_del_by_spl!(vi::UntypedVarInfo)
     return nothing
 end
 
-function set_retained_vns_del_by_spl!(vi::TypedVarInfo)
+function set_retained_vns_del_by_spl!(vi::TypedVarInfo, sel::Selector)
     # Get the indices of `vns` that belong to `spl` as a NamedTuple, one entry for each symbol
-    gidcs = _getidcs(vi)
+    gidcs = _getidcs(vi, sel)
     return _set_retained_vns_del_by_spl!(vi.metadata, gidcs, vi.num_produce)
 end
 
