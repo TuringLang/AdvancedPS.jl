@@ -9,7 +9,7 @@
 
 # This is a very shallow container solely for testing puropose
 mutable struct Container
-    x::Array{Float64,1}
+    x::Array{Float64,2}
     marked::Vector{Bool}
     produced_at::Vector{Int64}
     num_produce::Float64
@@ -49,35 +49,38 @@ function report_transition!(trace,logp::Float64,logγ::Float64)
     trace.taskinfo.logpseq += logp
 end
 
-function get_x(trace,indx)
-    @assert trace.vi.marked[indx] "[Interface] This should already be marked!"
-    return trace.vi.x[indx]
+function update_var(trace, vn::Int64, r::Vector{Float64})
+    if !trace.vi.marked[vn]
+        trace.vi.x[vn,:] = r
+        trace.vi.marked[vn] = true
+        trace.vi.produced_at[vn] = trace.vi.num_produce
+        return r
+    end
+    return trace.vi.x[vn,:]
 end
 
-# We only set it if it is not yet marked
-function set_x!(trace,indx,val)
-    if !trace.vi.marked[indx]
-        trace.vi.x[indx] = val
-        trace.vi.marked[indx] = true
-        trace.vi.produced_at[indx] = trace.vi.num_produce
-    end
-    trace
-end
 
 # The reason for this is that we need to pass it!
 function copy_container(vi::Container)
     Container(deepcopy(vi.x),deepcopy(vi.marked),deepcopy(vi.produced_at),copy(vi.num_produce))
 end
 
-function create_task(f::Function)
-    return CTask(() ->  begin new_vi=f(); produce(Val{:done}); new_vi; end )
+function create_task(f::Function, args...)
+    return CTask(() ->  begin new_vi=f(args...); produce(Val{:done}); new_vi; end )
 end
 
 function tonamedtuple(vi::Container)
-    return NamedTuple()
+    tnames = Tuple([Symbol("x$i") for i in 1:size(vi.x)[1]])
+    tvalues = Tuple([vi.x[i,:] for i in 1:size(vi.x)[1]])
+    return namedtuple(tnames, tvalues)
 end
 function Base.empty!(vi::Container)
     for i in 1:length(vi.marked)
         vi.marked[i] = false
     end
+    vi
 end
+ind2sub(v, i) = Tuple(CartesianIndices(v)[i])
+vectorize(d::UnivariateDistribution, r::Real) = [r]
+vectorize(d::MultivariateDistribution, r::AbstractVector{<:Real}) = copy(r)
+vectorize(d::MatrixDistribution, r::AbstractMatrix{<:Real}) = copy(vec(r))

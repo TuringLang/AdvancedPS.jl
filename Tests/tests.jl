@@ -2,13 +2,12 @@ using Test
 using AdvancedPS
 
 
-dir = splitdir(splitdir(pathof(Turing))[1])[1]
 
-include(dir*"/test/test_utils/AllUtils.jl")
-
+include("AdvancedPS/Test/test_utils/AllUtils.jl")
 
 
-@turing_testset "AdvancedPS/src/Core/Container/Trace.jl" begin
+
+@apf_testset "AdvancedPS/src/Core/Container/Trace.jl" begin
     vi = Array{Float64}(undef,10)
     Trace()
 end

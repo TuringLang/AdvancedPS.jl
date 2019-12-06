@@ -4,6 +4,8 @@ const TypedVarInfo = VarInfo{<:NamedTuple}
 const Selector = Turing.Selector
 const BASE_SELECTOR = Selector(:PS)
 
+
+
 function report_observation!(trace, logp::Float64)
     trace.taskinfo.logp += logp
     produce(logp)
@@ -40,8 +42,8 @@ function update_var(trace, vn, val, dist= Normal())
 end
 
 # The reason for this is that we need to pass it!
-function create_task(f::Function)
-    return CTask(() ->  begin new_vi=f(); produce(Val{:done}); new_vi; end )
+function create_task(f::Function, args...)
+    return CTask(() ->  begin new_vi=f(args...); produce(Val{:done}); new_vi; end )
 end
 
 
@@ -95,7 +97,6 @@ end
 """
 
 `setgid!(vi::VarInfo, gid::Selector, vn::VarName)`
-
 
 
 Adds `gid` to the set of sampler selectors associated with `vn` in `vi`.

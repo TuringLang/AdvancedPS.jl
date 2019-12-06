@@ -128,3 +128,5 @@ function _params_to_array(ts::Vector{T}) where {T<:AbstractTransition}
     end
     return ordered_names, vals
 end
+
+ind2sub(v, i) = Tuple(CartesianIndices(v)[i])
