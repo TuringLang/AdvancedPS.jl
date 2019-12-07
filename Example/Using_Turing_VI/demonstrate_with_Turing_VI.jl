@@ -1,12 +1,9 @@
 
 ## It is not yet a package...
 using Distributions
-using Turing.Core.RandomVariables
-import Turing.Core:  @varname, tonamedtuple
-import Turing.Utilities: vectorize
-using Turing
-using Revise
 using AdvancedPS
+using BenchmarkTools
+using Libtask
 include("AdvancedPS/Example/Using_Turing_VI/turing_interface.jl")
 # Define a short model.
 # The syntax is rather simple. Observations need to be reported with report_observation.
@@ -22,7 +19,7 @@ end
 
 function task_f(y)
     var = initialize()
-    x = Vector{Float64}(undef,n)
+    x = TArray{Float64}(undef,n)
     vn = @varname x[1]
     x[1] = update_var(var, vn, rand(Normal()))
     report_transition!(var,0.0,0.0)
@@ -48,8 +45,6 @@ end
 
 task = create_task(task_f, y)
 model = PFModel(task)
-tonamedtuple(vi::UntypedVarInfo) = tonamedtuple(TypedVarInfo(vi))
-tonamedtuple(vi::TypedVarInfo) = Turing.tonamedtuple()
 
 
 #################################################################

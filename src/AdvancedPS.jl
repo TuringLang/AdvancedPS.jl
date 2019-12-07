@@ -9,7 +9,8 @@ module AdvancedPS
         using AbstractMCMC
         import MCMCChains: Chains
         import Base.copy
-
+        using Distributions
+        
         abstract type AbstractTaskInfo end
         abstract type AbstractParticleContainer end
         abstract type AbstractTrace end

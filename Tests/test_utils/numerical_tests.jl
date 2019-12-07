@@ -52,11 +52,30 @@ function check_numerical(chain,
     end
 end
 
+# Compare two chains
+function check_numerical(chain1,
+                        chain2,
+                        atol=0.2,
+                        rtol=0.0)
+    for name in zip(chain2.name_map.parameters)
+        sym = Symbol(name[1])
+        val = chain2[sym].value[1] isa Real ?
+            mean(chain2[sym].value) :
+            vec(mean(chain2[sym].value, dims=[1]))
+        E = val isa Real ?
+            mean(chain1[sym].value) :
+            vec(mean(chain1[sym].value, dims=[1]))
+        @info (symbol=sym, exact=val, evaluated=E)
+        @test E ≈ val atol=atol rtol=rtol
+    end
+end
+
+
+
 # Wrapper function to quickly check gdemo accuracy.
 function check_gdemo(chain; atol=0.2, rtol=0.0)
     check_numerical(chain, [:s, :m], [49/24, 7/6], atol=atol, rtol=rtol)
 end
-
 # Wrapper function to check MoGtest.
 function check_MoGtest_default(chain; atol=0.2, rtol=0.0)
     check_numerical(chain,

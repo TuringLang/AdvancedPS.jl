@@ -1,3 +1,10 @@
+
+using Turing.Core.RandomVariables
+import Turing.Core:  @varname
+import Turing.Utilities: vectorize
+using Turing
+using AdvancedPS
+
 # This is important for initalizaiton
 const initialize = AdvancedPS.current_trace
 const TypedVarInfo = VarInfo{<:NamedTuple}
@@ -7,7 +14,6 @@ const BASE_SELECTOR = Selector(:PS)
 
 
 function report_observation!(trace, logp::Float64)
-    trace.taskinfo.logp += logp
     produce(logp)
     trace = AdvancedPS.current_trace()
 end
@@ -60,7 +66,8 @@ end
 
 #   the SampleFromPrior sampler
 
-
+tonamedtuple(vi::TypedVarInfo) = Turing.tonamedtuple(vi)
+tonamedtuple(vi::UntypedVarInfo) = tonamedtuple(TypedVarInfo(vi))
 
 
 """

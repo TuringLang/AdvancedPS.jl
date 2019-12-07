@@ -37,8 +37,6 @@ end
 const initialize = current_trace
 
 function report_observation!(trace, logp::Float64)
-    trace.taskinfo.logp += logp
-    trace.vi.num_produce += 1
     produce(logp)
     trace = current_trace()
 end
@@ -80,7 +78,6 @@ function Base.empty!(vi::Container)
     end
     vi
 end
-ind2sub(v, i) = Tuple(CartesianIndices(v)[i])
 vectorize(d::UnivariateDistribution, r::Real) = [r]
 vectorize(d::MultivariateDistribution, r::AbstractVector{<:Real}) = copy(r)
 vectorize(d::MatrixDistribution, r::AbstractMatrix{<:Real}) = copy(vec(r))

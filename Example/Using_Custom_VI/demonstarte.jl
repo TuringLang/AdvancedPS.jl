@@ -5,7 +5,7 @@ using AdvancedPS
 using Libtask
 using BenchmarkTools
 using NamedTupleTools
-include("AdvancedPS/Example/Custom_Container/test_interface.jl")
+include("AdvancedPS/Example/Using_Custom_VI/test_interface.jl")
 # Define a short model.
 # The syntax is rather simple. Observations need to be reported with report_observation.
 # Transitions must be reported using report_transition.
