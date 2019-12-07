@@ -8,21 +8,17 @@ module AdvancedPS
         using StatsFuns: logsumexp, softmax!
         using AbstractMCMC
         import MCMCChains: Chains
-        import Base.copy
         using Distributions
-        
+
         abstract type AbstractTaskInfo end
         abstract type AbstractParticleContainer end
         abstract type AbstractTrace end
         abstract type AbstractPFAlgorithm end
         abstract type AbstractPFUtilitFunctions end
-
         abstract type AbstractPFTransition <: AbstractTransition end
         abstract type AbstractPFSampler <: AbstractSampler end
-
         abstract type AbstractSMCUtilitFunctions <: AbstractPFUtilitFunctions end
         abstract type AbstractPGASUtilityFunctions <: AbstractSMCUtilitFunctions end
-
         abstract type AbstractPFModel <: AbstractModel end
 
         export  AbstractTaskInfo,

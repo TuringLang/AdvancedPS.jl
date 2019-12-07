@@ -1,17 +1,3 @@
-using Random
-using Test
-using Distributions
-using Turing
-using AdvancedPS
-
-dir = splitdir(splitdir(pathof(AdvancedPS))[1])[1]
-
-include(dir*"/Example/Using_Turing_VI/turing_interface.jl")
-include(dir*"/Tests/test_utils/AllUtils.jl")
-
-import Turing.Core: tonamedtuple
-tonamedtuple(vi::UntypedVarInfo) = tonamedtuple(TypedVarInfo(vi))
-
 
 @testset "apf.jl" begin
     @apf_testset "apf constructor" begin
@@ -42,7 +28,7 @@ tonamedtuple(vi::UntypedVarInfo) = tonamedtuple(TypedVarInfo(vi))
         caps1 = sample(model, alg, uf, tcontainer, N)
         check_gdemo(caps1, atol = 0.1)
 
-        alg = AdvancedPS.PGAlgorithm(5)
+        alg = AdvancedPS.PGAlgorithm(10)
         uf = AdvancedPS.PGUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, N)
         check_gdemo(caps1, atol = 0.1)

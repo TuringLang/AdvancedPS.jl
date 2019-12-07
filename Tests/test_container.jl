@@ -1,27 +1,3 @@
-using Test
-using AdvancedPS
-
-
-using Random
-using Test
-using Distributions
-using Turing
-using AdvancedPS
-
-dir = splitdir(splitdir(pathof(AdvancedPS))[1])[1]
-
-include(dir*"/Example/Using_Turing_VI/turing_interface.jl")
-include(dir*"/Tests/test_utils/AllUtils.jl")
-import Turing.Core: tonamedtuple
-tonamedtuple(vi::UntypedVarInfo) = tonamedtuple(TypedVarInfo(vi))
-
-
-
-
-
-
-
-
 
 @testset "Particle.jl" begin
     @apf_testset "copy particle container" begin
@@ -104,7 +80,7 @@ tonamedtuple(vi::UntypedVarInfo) = tonamedtuple(TypedVarInfo(vi))
                 t[1] = 1 + t[1]
             end
         end
-        task = create_task(fpc)
+        task = create_task(f2)
         model = PFModel(task)
         tr = Trace(Turing.VarInfo(), f2, PGTaskInfo(0.0, 0.0), deepcopy)
         consume(tr); consume(tr)

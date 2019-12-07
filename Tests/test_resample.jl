@@ -1,6 +1,4 @@
 
-
-
 @apf_testset "resample.jl" begin
     D = [0.3, 0.4, 0.3]
     num_samples = Int(1e6)
