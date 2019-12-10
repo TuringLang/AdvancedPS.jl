@@ -1,6 +1,6 @@
 using Turing
 using BenchmarkTools
-n = 500
+n = 200
 
 y = Vector{Float64}(undef,n-1)
 for i =1:n-1
@@ -20,6 +20,6 @@ end
 
 
 #@elapsed sample(demo(),PG(10),5)
-chn = @btime sample(demo(y), SMC(), 100)
+chn = @elapsed sample(demo(y), SMC(), 100)
 
 chn.na.axes

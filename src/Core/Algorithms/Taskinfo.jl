@@ -41,3 +41,14 @@ end
 
 reset_logp!(ti::AbstractTaskInfo) = (ti.logp = 0.0)
 set_ancestor_weight!(ti::PGASTaskInfo, w::Float64) = (ti.ancestor_weight = w)
+
+@inline function reset_task_info!(ti::PGASTaskInfo)
+    ti.logp = 0.0
+    ti.logpseq = 0.0
+    ti.ancestor_weight = 0.0
+end
+
+@inline function reset_task_info!(ti::PGTaskInfo)
+    ti.logp = 0.0
+    ti.logpseq = 0.0
+end

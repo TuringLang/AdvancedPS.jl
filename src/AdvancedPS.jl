@@ -9,14 +9,20 @@ module AdvancedPS
         using AbstractMCMC
         import MCMCChains: Chains
         using Distributions
+        using NamedTupleTools
 
         abstract type AbstractTaskInfo end
         abstract type AbstractParticleContainer end
         abstract type AbstractTrace end
         abstract type AbstractPFAlgorithm end
+        abstract type AbstractPGAlgorithm <: AbstractPFAlgorithm end
+
         abstract type AbstractPFUtilitFunctions end
         abstract type AbstractPFTransition <: AbstractTransition end
         abstract type AbstractPFSampler <: AbstractSampler end
+        abstract type AbstractPGSampler <: AbstractPFSampler end
+
+
         abstract type AbstractSMCUtilitFunctions <: AbstractPFUtilitFunctions end
         abstract type AbstractPGASUtilityFunctions <: AbstractSMCUtilitFunctions end
         abstract type AbstractPFModel <: AbstractModel end
@@ -64,7 +70,8 @@ module AdvancedPS
                 PGASUtilityFunctions,
                 SMCAlgorithm,
                 PGAlgorithm,
-                forkr
+                forkr,
+                get_new_trace
 
         include("Inference/Model.jl")
         include("Inference/Transitions.jl")

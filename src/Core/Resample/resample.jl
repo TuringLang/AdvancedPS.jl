@@ -28,12 +28,12 @@ function resample!(
             # fork first child
             pi = particles[i]
             isref = pi === ref
-            p = isref ? fork(pi,  utility_functions.copy, isref, utility_functions.set_retained_vns_del_by_spl!) : pi
+            p = isref ? fork(pi, isref, utility_functions.set_retained_vns_del_by_spl!) : pi
             children[j += 1] = p
 
             # fork additional children
             for _ in 2:ni
-                children[j += 1] = fork(p, utility_functions.copy, isref, utility_functions.set_retained_vns_del_by_spl!)
+                children[j += 1] = fork(p,  isref, utility_functions.set_retained_vns_del_by_spl!)
             end
         end
     end

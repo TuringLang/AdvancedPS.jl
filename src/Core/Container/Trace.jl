@@ -9,53 +9,45 @@ mutable struct Trace{Tvi, TInfo}  <: AbstractTrace where {Tvi, TInfo <: Abstract
     taskinfo::TInfo
 end
 
-function Base.copy(trace::Trace{Tvi,TInfo}, copy_vi::Function) where {Tvi, TInfo <: AbstractTaskInfo}
-    return Trace(trace.vi, trace.task, trace.taskinfo, copy_vi)
-end
-
-# The procedure passes a function which is specified by the model.
-
-function Trace(vi::Tvi, f::Function, taskinfo::TInfo, copy_vi::Function) where {Tvi,TInfo<:AbstractTaskInfo}
-    task = CTask( () -> begin res=f(); produce(Val{:done}); res; end )
-    res = Trace(copy_vi(vi), task, copy(taskinfo))
-    # CTask(()->f());
-    if res.task.storage === nothing
-        res.task.storage = IdDict()
-    end
-    res.task.storage[:turing_trace] = res # create a backward reference in task_local_storage
-    return res
-end
-
-## We need to design the task in the Turing wrapper.
-function Trace(vi::Tvi, task::Task, taskinfo::TInfo, copy_vi::Function) where {Tvi,TInfo<:AbstractTaskInfo}
-    res = Trace(copy_vi(vi), Libtask.copy(task), copy(taskinfo))
-    # CTask(()->f());
-    if res.task.storage === nothing
-        res.task.storage = IdDict()
-    end
-    res.task.storage[:turing_trace] = res # create a backward reference in task_local_storage
-    return res
-end
-
 
 # NOTE: this function is called by `forkr`
 
-function Trace(vi::Tvi, f::Function, taskinfo::TInfo, copy_vi::Function) where {Tvi,TInfo<:AbstractTaskInfo}
+function Trace(vi::Tvi, f::Function, taskinfo::TInfo) where {Tvi,TInfo<:AbstractTaskInfo}
     # CTask(()->f());
     task = CTask( () -> begin res=f(); produce(Val{:done}); res; end )
-    res = Trace(copy_vi(vi), task, copy(taskinfo))
+    res = Trace(copy(vi), task, copy(taskinfo))
     if res.task.storage === nothing
         res.task.storage = IdDict()
     end
     res.task.storage[:turing_trace] = res # create a backward reference in task_local_storage
     return res
 end
+
+function Base.copy(trace::Trace{Tvi,TInfo}) where {Tvi, TInfo <: AbstractTaskInfo}
+    return get_new_trace(trace.vi, trace.task, trace.taskinfo)
+end
+
+
+# A bit an ugly solution...
+function get_new_trace(vi::Tvi, task::Task, taskinfo::TInfo) where {Tvi,TInfo<:AbstractTaskInfo}
+    res = Trace(copy(vi), Libtask.copy(task), copy(taskinfo))
+    # CTask(()->f());
+    if res.task.storage === nothing
+        res.task.storage = IdDict()
+    end
+    res.task.storage[:turing_trace] = res # create a backward reference in task_local_storage
+
+    return res
+end
+
+
+
 # step to the next observe statement, return log likelihood
 Libtask.consume(t::Trace) = (t.vi.num_produce += 1; consume(t.task))
 
 # Task copying version of fork for Trace.
-function fork(trace::Trace, copy_vi::Function, is_ref::Bool = false, set_retained_vns_del_by_spl!::Union{Function,Nothing} = nothing)
-    newtrace = copy(trace, copy_vi)
+function fork(trace::Trace, is_ref::Bool = false, set_retained_vns_del_by_spl!::Union{Function,Nothing} = nothing)
+    newtrace = copy(trace)
     if is_ref
         @assert set_retained_vns_del_by_spl! !== nothing "[AdvancedPS] set_retained_vns_del_by_spl! is not set."
         set_retained_vns_del_by_spl!(newtrace.vi)
@@ -65,8 +57,9 @@ function fork(trace::Trace, copy_vi::Function, is_ref::Bool = false, set_retaine
 end
 
 
-function forkr(trace::Trace, copy_vi::Function)
-    newtrace = Trace(trace.vi, trace.task.code, trace.taskinfo, copy_vi)
+function forkr(trace::Trace)
+    newtrace = Trace(trace.vi, trace.task.code, trace.taskinfo)
+    reset_task_info!(trace.taskinfo)
     newtrace.vi.num_produce = 0
     return newtrace
 end

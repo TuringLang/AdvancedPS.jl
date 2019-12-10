@@ -1,18 +1,22 @@
 using Random
 using Test
 using Distributions
-using Turing # Compiler3.0 branch!!
 using AdvancedPS
+using BenchmarkTools
+using Libtask
+const APS = AdvancedPS
+using Turing
+using Turing.Core: @varname
 
 dir = splitdir(splitdir(pathof(AdvancedPS))[1])[1]
+push!(LOAD_PATH,dir*"/Example/Using_Turing_VI/" )
+using AdvancedPS_Turing_Container
+const APSTCont = AdvancedPS_Turing_Container
+import AdvancedPS_Turing_Container: tonamedtuple
 
-include(dir*"/Example/Using_Turing_VI/turing_interface.jl")
 include(dir*"/Tests/test_utils/AllUtils.jl")
-
-import Turing.Core: tonamedtuple
-tonamedtuple(vi::UntypedVarInfo) = tonamedtuple(TypedVarInfo(vi))
-
-
+set_retained_vns_del_by_spl!(vi) = APSTCont.set_retained_vns_del_by_spl!(vi)
+tonamedtuple(vi) = AdvancedPS_Turing_Container.tonamedtuple(vi)
 
 include(dir*"/Tests/test_resample.jl")
 include(dir*"/Tests/test_container.jl")

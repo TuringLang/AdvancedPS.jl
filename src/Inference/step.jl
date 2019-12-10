@@ -30,13 +30,13 @@ function AbstractMCMC.step!(
     T = Trace{typeof(spl.vi), PGTaskInfo{Float64}}
 
     if spl.ref_traj !== nothing
-        particles = T[ Trace(spl.vi, model.task, PGTaskInfo(), spl.uf.copy) for _ =1:n-1]
+        particles = T[ get_new_trace(spl.vi, model.task, PGTaskInfo()) for _ =1:n-1]
         pc = ParticleContainer{typeof(particles[1])}(particles,zeros(n-1),0.0,0)
         # Reset Task
-        spl.ref_traj = forkr(spl.ref_traj, spl.uf.copy)
+        spl.ref_traj = forkr(spl.ref_traj)
         push!(pc, spl.ref_traj)
     else
-        particles = T[ Trace(spl.vi, model.task, PGTaskInfo(), spl.uf.copy) for _ =1:n]
+        particles = T[ get_new_trace(spl.vi, model.task, PGTaskInfo()) for _ =1:n]
         pc = ParticleContainer{typeof(particles[1])}(particles,zeros(n),0.0,0)
     end
 
@@ -47,6 +47,7 @@ function AbstractMCMC.step!(
     params = spl.uf.tonamedtuple(particle.vi)
     return PFTransition(params, particle.taskinfo.logp, pc.logE, weights(pc)[indx])
 end
+
 
 #
 # # The resampler threshold is only imprtant for the first step!

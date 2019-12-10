@@ -15,19 +15,18 @@
         # Using a Proposal                          #
         #############################################
         f = large_demo_apf_proposal
-        task = create_task(f,y)
-        model = PFModel(task)
+        model = PFModel(f, (y=y, ))
         tcontainer = VarInfo()
 
         ##SMC
         alg = AdvancedPS.SMCAlgorithm()
-        uf = AdvancedPS.SMCUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.SMCUtilityFunctions( set_retained_vns_del_by_spl!, tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, 5*N)
         check_numerical(caps1,chn_base, 0.1, 0.2)
 
         # PG
         alg = AdvancedPS.PGAlgorithm(20)
-        uf = AdvancedPS.PGUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.PGUtilityFunctions( set_retained_vns_del_by_spl!,  tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, N)
         check_numerical(caps1,chn_base,0.1, 0.2)
 
@@ -37,19 +36,18 @@
         # No Proposal                               #
         #############################################
         f = large_demo_apf
-        task = create_task(f,y)
-        model = PFModel(task)
+        model = PFModel(f, (y=y, ))
         tcontainer = VarInfo()
 
         #SMC
         alg = AdvancedPS.SMCAlgorithm()
-        uf = AdvancedPS.SMCUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.SMCUtilityFunctions( set_retained_vns_del_by_spl!,  tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, 5*N)
         check_numerical(caps1,chn_base, 0.1, 0.2)
 
         # PG
         alg = AdvancedPS.PGAlgorithm(20)
-        uf = AdvancedPS.PGUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.PGUtilityFunctions( set_retained_vns_del_by_spl!,  tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, N)
         check_numerical(caps1,chn_base,0.1, 0.2)
 
@@ -65,19 +63,18 @@
         # Using a Proposal                          #
         #############################################
         f = large_demo_apf_proposal
-        task = create_task(f,y)
-        model = PFModel(task)
+        model = PFModel(f, (y=y, ))
         tcontainer = VarInfo()
 
         #SMC
         alg = AdvancedPS.SMCAlgorithm()
-        uf = AdvancedPS.SMCUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.SMCUtilityFunctions( set_retained_vns_del_by_spl!,  tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, 5*N)
         check_numerical(caps1,chn_base,0.1, 0.2)
 
         # PG
         alg = AdvancedPS.PGAlgorithm(20)
-        uf = AdvancedPS.PGUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.PGUtilityFunctions(set_retained_vns_del_by_spl!,  tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, N)
         check_numerical(caps1,chn_base, 0.1, 0.2)
 
@@ -86,19 +83,18 @@
         # No Proposal                               #
         #############################################
         f = large_demo_apf
-        task = create_task(f,y)
-        model = PFModel(task)
+        model = PFModel(f, (y=y, ))
         tcontainer = VarInfo()
 
         #SMC
         alg = AdvancedPS.SMCAlgorithm()
-        uf = AdvancedPS.SMCUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.SMCUtilityFunctions( set_retained_vns_del_by_spl!, tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, 5*N)
         check_numerical(caps1,chn_base,0.21, 0.2)
 
         # PG
         alg = AdvancedPS.PGAlgorithm(20)
-        uf = AdvancedPS.PGUtilityFunctions(deepcopy, set_retained_vns_del_by_spl!, empty!, tonamedtuple)
+        uf = AdvancedPS.PGUtilityFunctions( set_retained_vns_del_by_spl!,  tonamedtuple)
         caps1 = sample(model, alg, uf, tcontainer, N)
         check_numerical(caps1,chn_base, 0.1, 0.2)
     end

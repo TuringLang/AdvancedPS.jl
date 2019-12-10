@@ -20,13 +20,13 @@ function Sampler(alg:: ALG, uf::UF, vi::C) where {
     UF<: SMCUtilityFunctions,
 }
     pc = ParticleContainer(Trace{typeof(vi),SMCTaskInfo{Float64}}[])
-    SMCSampler(pc, alg, uf, uf.empty!(vi))
+    SMCSampler(pc, alg, uf, vi)
 end
 
 
 
 
-mutable struct PGSampler{T, ALG, UF, C} <: AbstractPFSampler where {
+mutable struct PGSampler{T, ALG, UF, C} <: AbstractPGSampler where {
     T <:Particle,
     ALG<:PGAlgorithm,
     UF<:PGUtilityFunctions
