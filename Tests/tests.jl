@@ -15,8 +15,7 @@ const APSTCont = AdvancedPS_Turing_Container
 import AdvancedPS_Turing_Container: tonamedtuple
 
 include(dir*"/Tests/test_utils/AllUtils.jl")
-set_retained_vns_del_by_spl!(vi) = APSTCont.set_retained_vns_del_by_spl!(vi)
-tonamedtuple(vi) = AdvancedPS_Turing_Container.tonamedtuple(vi)
+
 
 include(dir*"/Tests/test_resample.jl")
 include(dir*"/Tests/test_container.jl")

@@ -12,7 +12,7 @@ module AdvancedPS_SSM_Container
     # This is a very shallow container solely for testing puropose
     abstract type AbstractPFContainer end
     export AbstractPFContainer
-    
+
     const initialize = current_trace
 
     mutable struct Container{M<:AbstractMatrix, I<:Integer} <: AbstractPFContainer
@@ -32,7 +32,7 @@ module AdvancedPS_SSM_Container
     @inline function set_retained_vns_del_by_spl!(container::Container)
         for i in 1:length(container.marked)
             if container.marked[i]
-                if container.produced_at[i] >= container.num_produce
+                if container.produced_at[i] > container.num_produce
                     container.marked[i] = false
                 end
             end
