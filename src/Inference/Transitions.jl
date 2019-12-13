@@ -108,13 +108,15 @@ function _params_to_array(ts::Vector{T}) where {T<:AbstractTransition}
     # Extract the parameter names and values from each transition.
     for t in ts
         nms, vs = flatten_namedtuple(t.θ)
-        push!(names, nms...)
-        # Convert the names and values to a single dictionary.
-        d = Dict{String, Any}()
-        for (k, v) in zip(nms, vs)
-            d[k] = v
+        if length(nms) >0
+            push!(names, nms...)
+            # Convert the names and values to a single dictionary.
+            d = Dict{String, Any}()
+            for (k, v) in zip(nms, vs)
+                d[k] = v
+            end
+            push!(dicts, d)
         end
-        push!(dicts, d)
     end
     # Convert the set to an ordered vector so the parameter ordering
     # is deterministic.
