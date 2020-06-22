@@ -1,3 +1,23 @@
+# TODO: 2 dichotomies between resamplers: 
+#     - whether or not to use thresholds
+#     - whether to use systematic, residual, multinomial, or stratified resampling
+# build a struct for all of this
+# also the use of randcat for an implementation of rand(Categorical()) *and* as the name of the resampler in resample_propagate! is confusing
+
+####
+#### Resample only when ESS ≤ a preset value
+####
+
+
+# modifies dispatch in resample_propagate!
+struct ResampleWithESSThreshold{R, T<:Real}
+    resampler::R
+    threshold::T
+end
+
+function ResampleWithESSThreshold(resampler = resample_systematic)
+    ResampleWithESSThreshold(resampler, 0.5)
+end
 
 ####
 #### Resampling schemes for particle filters
@@ -7,11 +27,6 @@
 #  - http://arxiv.org/pdf/1301.4019.pdf
 #  - http://people.isy.liu.se/rt/schon/Publications/HolSG2006.pdf
 # Code adapted from: http://uk.mathworks.com/matlabcentral/fileexchange/24968-resampling-methods-for-particle-filtering
-
-# Default resampling scheme
-function resample(w::AbstractVector{<:Real}, num_particles::Integer=length(w))
-    return resample_systematic(w, num_particles)
-end
 
 # More stable, faster version of rand(Categorical)
 function randcat(p::AbstractVector{<:Real})
@@ -28,10 +43,26 @@ function randcat(p::AbstractVector{<:Real})
     return s
 end
 
+"""
+    resample(w, num_particles)
+Default resampling scheme: systematic resampling
+"""
+function resample(w::AbstractVector{<:Real}, num_particles::Integer=length(w))
+    return resample_systematic(w, num_particles)
+end
+
+"""
+    resample_multinomial(w, num_particles)
+Multinomial resampling scheme
+"""
 function resample_multinomial(w::AbstractVector{<:Real}, num_particles::Integer)
     return rand(Distributions.sampler(Categorical(w)), num_particles)
 end
 
+"""
+    resample_residual(w, num_particles)
+Residual resampling scheme
+"""
 function resample_residual(w::AbstractVector{<:Real}, num_particles::Integer)
 
     M = length(w)
@@ -57,7 +88,7 @@ function resample_residual(w::AbstractVector{<:Real}, num_particles::Integer)
         end
     end
 
-    # And now draw the stocastic (Multinomial) part:
+    # And now draw the stochastic (Multinomial) part:
     return append!(indx1, rand(Distributions.sampler(Categorical(w)), M_rdn))
 end
 
