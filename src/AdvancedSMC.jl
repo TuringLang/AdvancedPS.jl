@@ -5,6 +5,14 @@ import  Libtask,
 # must I export overloaded Base functions?
 # perhaps: Inference.jl exports overloaded DynamicPPL functions 
 
+include("trace.jl")
+export  Trace,
+        fork,
+        forkr,
+        current_trace,
+        Particle
+   
+
 include("particlecontainer.jl")
 export  ParticleContainer, 
         reset_logweights!,
@@ -13,11 +21,6 @@ export  ParticleContainer,
         getweight,
         logZ,
         effectiveSampleSize
-
-include("sweep.jl")
-export  resample_propagate!,
-        reweight!,
-        sweep!
 
 include("resampling.jl")
 export  ResampleWithESSThreshold,
@@ -28,11 +31,9 @@ export  ResampleWithESSThreshold,
         resample_stratified,
         resample_systematic
 
-include("trace.jl")
-export  Trace,
-        fork,
-        forkr,
-        current_trace,
-        Particle
-   
+include("sweep.jl")
+export  resample_propagate!,
+        reweight!,
+        sweep!
+        
 end
