@@ -1,4 +1,4 @@
-mutable struct Trace{Tspl<:AbstractMCMC.AbstractSampler, Tvi<:AbstractVarInfo, Tmodel<:Model}
+mutable struct Trace{Tspl<:AbstractSampler, Tvi<:AbstractVarInfo, Tmodel<:Model}
     model::Tmodel
     spl::Tspl
     vi::Tvi

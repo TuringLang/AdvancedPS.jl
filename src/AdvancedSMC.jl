@@ -1,7 +1,9 @@
 module AdvancedSMC
-using  Libtask,
-        Random,
-        AbstractMCMC
+using  Libtask
+using Random
+using AbstractMCMC: AbstractSampler
+using DynamicPPL: AbstractVarInfo, Model, SampleFromPrior, Sampler
+
 # must I export overloaded Base functions?
 # perhaps: Inference.jl exports overloaded DynamicPPL functions 
 
