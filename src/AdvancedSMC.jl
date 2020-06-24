@@ -1,7 +1,7 @@
 module AdvancedSMC
 import  Libtask,
-        Random # doesn't seem like there is anything else to import? DynamicPPL and AbstractMCMC interfacing is handled in inference/
-
+        Random,
+        AbstractMCMC
 # must I export overloaded Base functions?
 # perhaps: Inference.jl exports overloaded DynamicPPL functions 
 
@@ -35,5 +35,5 @@ include("sweep.jl")
 export  resample_propagate!,
         reweight!,
         sweep!
-        
+
 end
