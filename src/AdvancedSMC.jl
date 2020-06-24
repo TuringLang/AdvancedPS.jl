@@ -1,5 +1,5 @@
 module AdvancedSMC
-import  Libtask,
+using  Libtask,
         Random,
         AbstractMCMC
 # must I export overloaded Base functions?
