@@ -1,3 +1,10 @@
+# TODO: this doesn't work because:
+#     1. src/particlecontainer.jl doesn't import Turing/src/core/trace.jl well
+#     2. some tests use turing/inference/: eg line 31
+#     ====> decide which tests to move, and what to import
+
+# TODO: this tests functions in particlecontainer.jl but also sweep.jl ====> must rename
+
 using AdvancedSMC
 using Test
 

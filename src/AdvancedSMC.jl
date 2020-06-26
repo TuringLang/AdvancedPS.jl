@@ -6,9 +6,8 @@ using DynamicPPL: AbstractVarInfo, Model, SampleFromPrior, Sampler, reset_num_pr
 using Distributions
 using StatsFuns: softmax, logsumexp
 
-# must I export overloaded Base functions?
-# perhaps: Inference.jl exports overloaded DynamicPPL functions 
 
+# TODO: trace.jl no longer in AdvancedSMC.jl, must import Turing.jl/src/core/trace.jl
 include("trace.jl")
 export  Trace,
         fork,

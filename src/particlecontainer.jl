@@ -1,3 +1,5 @@
+# TODO: find a way to import Turing.jl/src/core/trace.jl
+# maybe do the import in AdvancedSMC.jl
 using Turing.Core
 const Particle = Trace
 
