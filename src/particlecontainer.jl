@@ -1,3 +1,5 @@
+using Turing.Core
+const Particle = Trace
 
 """
 Data structure for particle filters
