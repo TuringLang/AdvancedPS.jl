@@ -1,4 +1,7 @@
-@testset "resample.jl" begin
+using Test
+using AdvancedSMC
+
+@testset "resampling.jl" begin
     D = [0.3, 0.4, 0.3]
     num_samples = Int(1e6)
     resSystematic = resample_systematic(D, num_samples )
