@@ -1,5 +1,4 @@
-# TODO: find a way to import Turing.jl/src/core/trace.jl
-# maybe do the import in AdvancedSMC.jl
+# TODO: Trace not recognized: it is a struct of trace.jl which currently lives in Turing.jl/src/core
 using Turing.Core
 const Particle = Trace
 
