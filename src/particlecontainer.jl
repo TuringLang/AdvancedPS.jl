@@ -1,5 +1,3 @@
-# TODO: Trace not recognized: it is a struct of trace.jl which currently lives in Turing.jl/src/core
-using Turing.Core
 const Particle = Trace
 
 """

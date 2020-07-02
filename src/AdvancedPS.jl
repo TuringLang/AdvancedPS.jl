@@ -6,9 +6,11 @@ using DynamicPPL: AbstractVarInfo, Model, SampleFromPrior, Sampler, reset_num_pr
 using Distributions
 using StatsFuns: softmax, logsumexp
 
-
-# TODO: trace.jl no longer in AdvancedPS.jl package, must import Turing.jl/src/core/trace.jl
-import Turing.Core: Trace, fork, forkr
+include("trace.jl")
+export  Trace,
+        fork,
+        forkr,
+        current_trace
 
 include("particlecontainer.jl")
 export  ParticleContainer, 
