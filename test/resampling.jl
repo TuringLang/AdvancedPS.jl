@@ -1,5 +1,5 @@
 using Test
-using AdvancedSMC
+using AdvancedPS
 
 @testset "resampling.jl" begin
     D = [0.3, 0.4, 0.3]

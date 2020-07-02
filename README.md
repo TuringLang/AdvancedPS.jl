@@ -1,1 +1,1 @@
-# AdvancedSMC.jl
+# AdvancedPS.jl

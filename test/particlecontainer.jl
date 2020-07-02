@@ -5,7 +5,7 @@
 
 # TODO: this tests functions in particlecontainer.jl but also sweep.jl ====> must rename
 
-using AdvancedSMC
+using AdvancedPS
 using Test
 
 @testset "particlecontainer.jl" begin

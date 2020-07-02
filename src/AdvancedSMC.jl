@@ -1,4 +1,4 @@
-module AdvancedSMC
+module AdvancedPS
 using Libtask
 using Random
 using AbstractMCMC: AbstractSampler
@@ -7,7 +7,7 @@ using Distributions
 using StatsFuns: softmax, logsumexp
 
 
-# TODO: trace.jl no longer in AdvancedSMC.jl, must import Turing.jl/src/core/trace.jl
+# TODO: trace.jl no longer in AdvancedPS.jl package, must import Turing.jl/src/core/trace.jl
 import Turing.Core: Trace, fork, forkr
 
 include("particlecontainer.jl")

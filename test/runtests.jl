@@ -1,5 +1,5 @@
 using Test
-using AdvancedSMC
+using AdvancedPS
 
 include("resampling.jl")
 include("particlecontainer.jl")
