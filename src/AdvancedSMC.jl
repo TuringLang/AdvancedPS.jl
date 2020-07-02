@@ -8,7 +8,7 @@ using StatsFuns: softmax, logsumexp
 
 
 # TODO: trace.jl no longer in AdvancedSMC.jl, must import Turing.jl/src/core/trace.jl
-import Turing.Core
+import Turing.Core: Trace, fork, forkr
 
 include("particlecontainer.jl")
 export  ParticleContainer, 
