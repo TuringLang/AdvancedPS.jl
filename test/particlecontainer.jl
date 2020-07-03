@@ -1,8 +1,9 @@
 # TODO: this doesn't work because some tests use turing/inference/: eg line 31
-# TODO: this tests functions in particlecontainer.jl but also sweep.jl ====> must rename
+# TODO: this file tests functions in particlecontainer.jl but also sweep.jl ====> must rename anyway
 
 using AdvancedPS
 using Test
+using DynamicPPL, Turing
 
 @testset "particlecontainer.jl" begin
     @testset "copy particle container" begin
@@ -27,7 +28,8 @@ using Test
         end
 
         # Dummy sampler that is not actually used.
-        sampler = Sampler(PG(5), empty_model())
+        Turing.@model empty_model() = begin x = 1; end
+        sampler = Turing.Sampler(PG(5), empty_model())
 
         # Create particle container.
         logps = [0.0, -1.0, -2.0]
