@@ -1,27 +1,25 @@
-# TODO: 2 dichotomies between resamplers: 
-#     - whether or not to use thresholds
-#     - whether to use systematic, residual, multinomial, or stratified resampling
-# build a struct for all of this
-# also the use of randcat for an implementation of rand(Categorical()) *and* as the name of the resampler in resample_propagate! is confusing
+# 2 dichotomies between resamplers: 
+#     - whether or not to use ESS thresholds
+#     - whether to use systematic, residual, multinomial, or stratified resampling schemes
 
-####
-#### Resample only when ESS ≤ a preset value
-####
+#############################################
+## Resample only when ESS ≤ a preset value ##
+#############################################
 
 
 # modifies dispatch in resample_propagate!
 struct ResampleWithESSThreshold{R, T<:Real}
-    resampler::R
+    scheme::R
     threshold::T
 end
 
-function ResampleWithESSThreshold(resampler = resample_systematic)
-    ResampleWithESSThreshold(resampler, 0.5)
+function ResampleWithESSThreshold(scheme = resample_systematic)
+    ResampleWithESSThreshold(scheme, 0.5)
 end
 
-####
-#### Resampling schemes for particle filters
-####
+#############################################
+## Resampling schemes for particle filters ##
+#############################################
 
 # Some references
 #  - http://arxiv.org/pdf/1301.4019.pdf
@@ -44,7 +42,7 @@ function randcat(p::AbstractVector{<:Real})
 end
 
 """
-    resample(w, num_particles)
+resample(w, num_particles)
 Default resampling scheme: systematic resampling
 """
 function resample(w::AbstractVector{<:Real}, num_particles::Integer=length(w))

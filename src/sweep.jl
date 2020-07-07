@@ -1,14 +1,13 @@
 """
-resample_propagate!(pc::ParticleContainer[, randcat = resample_systematic, ref = nothing;
+resample_propagate!(pc::ParticleContainer[, scheme = resample_systematic, ref = nothing;
                     weights = getweights(pc)])
-Resample and propagate the particles in `pc`.
-Function `randcat` is used for sampling ancestor indices from the categorical distribution
-of the particle `weights`. For Particle Gibbs sampling, one can provide a reference particle
-`ref` that is ensured to survive the resampling step.
+Resample and propagate the particles in `pc`, without ESS thresholding.
+Function `scheme` is the scheme used to resample ancestor indices based on the particle weights. 
+For Particle Gibbs sampling, one can provide a reference particle `ref` that is ensured to survive the resampling step.
 """
 function resample_propagate!(
 pc::ParticleContainer,
-randcat = resample_systematic,
+scheme = resample_systematic,
 ref::Union{Particle, Nothing} = nothing;
 weights = getweights(pc)
 )
@@ -18,7 +17,7 @@ weights = getweights(pc)
 # sample ancestor indices
 n = length(pc)
 nresamples = ref === nothing ? n : n - 1
-indx = randcat(weights, nresamples)
+indx = scheme(weights, nresamples)
 
 # count number of children for each particle
 num_children = zeros(Int, n)
@@ -61,7 +60,12 @@ pc
 end
 
 
-
+"""
+resample_propagate!(pc::ParticleContainer, resampler::ResampleWithESSThreshold[, ref = nothing;
+                    weights = getweights(pc)])
+Resample and propagate the particles in `pc`, with ESS thresholding.
+For Particle Gibbs sampling, one can provide a reference particle `ref` that is ensured to survive the resampling step.
+"""
 function resample_propagate!(
 pc::ParticleContainer,
 resampler::ResampleWithESSThreshold,
@@ -72,7 +76,7 @@ weights = getweights(pc)
 ess = inv(sum(abs2, weights))
 
 if ess ≤ resampler.threshold * length(pc)
-    resample_propagate!(pc, resampler.resampler, ref; weights = weights)
+    resample_propagate!(pc, resampler.scheme, ref; weights = weights)
 end
 
 pc
