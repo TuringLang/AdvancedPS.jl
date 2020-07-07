@@ -1,5 +1,5 @@
 """
-resample_propagate!(pc::ParticleContainer[, scheme = resample_systematic, ref = nothing;
+resample_propagate!(pc::ParticleContainer[, scheme, ref = nothing;
                     weights = getweights(pc)])
 Resample and propagate the particles in `pc`, without ESS thresholding.
 Function `scheme` is the scheme used to resample ancestor indices based on the particle weights. 
@@ -7,7 +7,7 @@ For Particle Gibbs sampling, one can provide a reference particle `ref` that is 
 """
 function resample_propagate!(
 pc::ParticleContainer,
-scheme = resample_systematic,
+scheme,
 ref::Union{Particle, Nothing} = nothing;
 weights = getweights(pc)
 )
