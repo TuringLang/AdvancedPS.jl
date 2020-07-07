@@ -42,14 +42,6 @@ function randcat(p::AbstractVector{<:Real})
 end
 
 """
-resample(w, num_particles)
-Default resampling scheme: systematic resampling
-"""
-function resample(w::AbstractVector{<:Real}, num_particles::Integer=length(w))
-    return resample_systematic(w, num_particles)
-end
-
-"""
     resample_multinomial(w, num_particles)
 Multinomial resampling scheme
 """
