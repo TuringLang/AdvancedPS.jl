@@ -23,7 +23,6 @@ export  ParticleContainer,
 
 include("resampling.jl")
 export  ResampleWithESSThreshold,
-        resample,
         randcat,
         resample_multinomial,
         resample_residual,
