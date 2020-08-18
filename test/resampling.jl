@@ -9,9 +9,8 @@ using AdvancedPS
     resMultinomial= resample_multinomial(D, num_samples )
     resResidual   = resample_residual(D, num_samples )
 
-
-    @test sum(resSystematic .== 2) ≈ (num_samples * 0.4) atol=1e-3*num_samples
-    @test sum(resStratified .== 2) ≈ (num_samples * 0.4) atol=1e-3*num_samples
-    @test sum(resMultinomial .== 2) ≈ (num_samples * 0.4) atol=1e-2*num_samples
-    @test sum(resResidual .== 2) ≈ (num_samples * 0.4) atol=1e-2*num_samples
+    @test count(==(2), resSystematic) ≈ 0.4 * num_samples atol=1e-3*num_samples
+    @test count(==(2), resStratified) ≈ 0.4 * num_samples atol=1e-3*num_samples
+    @test count(==(2), resMultinomial) ≈ 0.4 * num_samples atol=1e-2*num_samples
+    @test count(==(2), resResidual) ≈ 0.4 * num_samples atol=1e-2*num_samples
 end
