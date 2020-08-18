@@ -41,6 +41,7 @@ end
 
 """
     reset_logweights!(pc::ParticleContainer)
+
 Reset all unnormalized logarithmic weights to zero.
 """
 function reset_logweights!(pc::ParticleContainer)
@@ -50,6 +51,7 @@ end
 
 """
     increase_logweight!(pc::ParticleContainer, i::Int, x)
+
 Increase the unnormalized logarithmic weight of the `i`th particle with `x`.
 """
 function increase_logweight!(pc::ParticleContainer, i, logw)
@@ -59,24 +61,28 @@ end
 
 """
     getweights(pc::ParticleContainer)
+
 Compute the normalized weights of the particles.
 """
 getweights(pc::ParticleContainer) = softmax(pc.logWs)
 
 """
     getweight(pc::ParticleContainer, i)
+
 Compute the normalized weight of the `i`th particle.
 """
 getweight(pc::ParticleContainer, i) = exp(pc.logWs[i] - logZ(pc))
 
 """
     logZ(pc::ParticleContainer)
+
 Return the logarithm of the normalizing constant of the unnormalized logarithmic weights.
 """
 logZ(pc::ParticleContainer) = logsumexp(pc.logWs)
 
 """
     effectiveSampleSize(pc::ParticleContainer)
+
 Compute the effective sample size ``1 / ∑ wᵢ²``, where ``wᵢ```are the normalized weights.
 """
 function effectiveSampleSize(pc::ParticleContainer)

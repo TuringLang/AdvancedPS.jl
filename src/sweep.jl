@@ -1,6 +1,6 @@
 """
-resample_propagate!(pc::ParticleContainer[, scheme, ref = nothing;
-                    weights = getweights(pc)])
+    resample_propagate!(pc::ParticleContainer[, scheme, ref = nothing; weights = getweights(pc)])
+
 Resample and propagate the particles in `pc`, without ESS thresholding.
 Function `scheme` is the scheme used to resample ancestor indices based on the particle weights. 
 For Particle Gibbs sampling, one can provide a reference particle `ref` that is ensured to survive the resampling step.
@@ -61,8 +61,9 @@ end
 
 
 """
-resample_propagate!(pc::ParticleContainer, resampler::ResampleWithESSThreshold[, ref = nothing;
-                    weights = getweights(pc)])
+    resample_propagate!(pc::ParticleContainer, resampler::ResampleWithESSThreshold[, 
+                        ref = nothing; weights = getweights(pc)])
+
 Resample and propagate the particles in `pc`, with ESS thresholding.
 For Particle Gibbs sampling, one can provide a reference particle `ref` that is ensured to survive the resampling step.
 """
@@ -84,7 +85,8 @@ end
 
 
 """
-reweight!(pc::ParticleContainer)
+    reweight!(pc::ParticleContainer)
+
 Check if the final time step is reached, and otherwise reweight the particles by
 considering the next observation.
 """
@@ -130,11 +132,11 @@ function reweight!(pc::ParticleContainer)
 end
 
 """
-sweep!(pc::ParticleContainer, resampler)
+    sweep!(pc::ParticleContainer, resampler)
+
 Perform a particle sweep and return an unbiased estimate of the log evidence.
 The resampling steps use the given `resampler`.
-# Reference
-Del Moral, P., Doucet, A., & Jasra, A. (2006). Sequential monte carlo samplers.
+# Reference: Del Moral, P., Doucet, A., & Jasra, A. (2006). Sequential monte carlo samplers.
 Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(3), 411-436.
 """
 function sweep!(pc::ParticleContainer, resampler)
