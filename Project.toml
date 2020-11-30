@@ -1,0 +1,7 @@
+name = "AdvancedPS"
+uuid = "576499cb-2369-40b2-a588-c64705576edc"
+authors = ["TuringLang"]
+version = "0.1.0"
+
+[compat]
+julia = "1.3"
