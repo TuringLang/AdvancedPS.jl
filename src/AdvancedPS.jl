@@ -1,5 +1,6 @@
 module AdvancedPS
 
-# Write your package code here.
+import Distributions
 
+include("resampling.jl")
 end
