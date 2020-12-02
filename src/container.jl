@@ -334,15 +334,6 @@ function sweep!(pc::ParticleContainer, resampler)
     return logevidence
 end
 
-struct ResampleWithESSThreshold{R, T<:Real}
-    resampler::R
-    threshold::T
-end
-
-function ResampleWithESSThreshold(resampler = Turing.Inference.resample_systematic)
-    ResampleWithESSThreshold(resampler, 0.5)
-end
-
 function resample_propagate!(
     pc::ParticleContainer,
     resampler::ResampleWithESSThreshold,
