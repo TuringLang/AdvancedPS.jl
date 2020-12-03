@@ -16,11 +16,6 @@ function ResampleWithESSThreshold(resampler = resample)
     ResampleWithESSThreshold(resampler, 0.5)
 end
 
-# Default resampling scheme
-function resample(w::AbstractVector{<:Real}, num_particles::Integer=length(w))
-    return resample_systematic(w, num_particles)
-end
-
 # More stable, faster version of rand(Categorical)
 function randcat(p::AbstractVector{<:Real})
     T = eltype(p)
@@ -36,11 +31,17 @@ function randcat(p::AbstractVector{<:Real})
     return s
 end
 
-function resample_multinomial(w::AbstractVector{<:Real}, num_particles::Integer)
+function resample_multinomial(
+    w::AbstractVector{<:Real},
+    num_particles::Integer = length(w),
+)
     return rand(Distributions.sampler(Distributions.Categorical(w)), num_particles)
 end
 
-function resample_residual(w::AbstractVector{<:Real}, num_particles::Integer)
+function resample_residual(
+    w::AbstractVector{<:Real},
+    num_particles::Integer = length(weights),
+)
     # Pre-allocate array for resampled particles
     indices = Vector{Int}(undef, num_particles)
 
@@ -79,7 +80,7 @@ are selected according to the multinomial distribution defined by the normalized
 i.e., `xᵢ = j` if and only if
 ``uᵢ \\in [\\sum_{s=1}^{j-1} weights_{s}, \\sum_{s=1}^{j} weights_{s})``.
 """
-function resample_stratified(weights::AbstractVector{<:Real}, n::Integer)
+function resample_stratified(weights::AbstractVector{<:Real}, n::Integer = length(weights))
     # check input
     m = length(weights)
     m > 0 || error("weight vector is empty")
@@ -124,7 +125,7 @@ numbers `u₁`, ..., `uₙ` where ``uₖ = (u + k − 1) / n``. Based on these n
 normalized `weights`, i.e., `xᵢ = j` if and only if
 ``uᵢ \\in [\\sum_{s=1}^{j-1} weights_{s}, \\sum_{s=1}^{j} weights_{s})``.
 """
-function resample_systematic(weights::AbstractVector{<:Real}, n::Integer)
+function resample_systematic(weights::AbstractVector{<:Real}, n::Integer = length(weights))
     # check input
     m = length(weights)
     m > 0 || error("weight vector is empty")
@@ -157,3 +158,6 @@ function resample_systematic(weights::AbstractVector{<:Real}, n::Integer)
 
     return samples
 end
+
+# Default resampling scheme
+const resample = resample_systematic

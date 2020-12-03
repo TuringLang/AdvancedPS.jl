@@ -1,81 +1,79 @@
-mutable struct Trace{Tspl<:AbstractSampler, Tvi<:AbstractVarInfo, Tmodel<:Model}
-    model::Tmodel
-    spl::Tspl
-    vi::Tvi
-    ctask::CTask
-
-    function Trace{SampleFromPrior}(model::Model, spl::AbstractSampler, vi::AbstractVarInfo)
-        return new{SampleFromPrior,typeof(vi),typeof(model)}(model, SampleFromPrior(), vi)
-    end
-    function Trace{S}(model::Model, spl::S, vi::AbstractVarInfo) where S<:Sampler
-        return new{S,typeof(vi),typeof(model)}(model, spl, vi)
-    end
+struct Trace{F}
+    f::F
+    ctask::Libtask.CTask
 end
 
-function Base.copy(trace::Trace)
-    vi = deepcopy(trace.vi)
-    res = Trace{typeof(trace.spl)}(trace.model, trace.spl, vi)
-    res.ctask = copy(trace.ctask)
-    return res
+const Particle = Trace
+
+function Trace(f)
+    ctask = let f=f
+        Libtask.CTask() do
+            res = f()
+            Libtask.produce(nothing)
+            return res
+        end
+    end
+
+    # add backward reference
+    newtrace = Trace(f, ctask)
+    addreference!(ctask.task, newtrace)
+
+    return newtrace
 end
 
-# NOTE: this function is called by `forkr`
-function Trace(f, m::Model, spl::AbstractSampler, vi::AbstractVarInfo)
-    res = Trace{typeof(spl)}(m, spl, deepcopy(vi))
-    ctask = CTask() do
-        res = f()
-        produce(nothing)
-        return res
-    end
-    task = ctask.task
-    if task.storage === nothing
-        task.storage = IdDict()
-    end
-    task.storage[:turing_trace] = res # create a backward reference in task_local_storage
-    res.ctask = ctask
-    return res
-end
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask))
 
-function Trace(m::Model, spl::AbstractSampler, vi::AbstractVarInfo)
-    res = Trace{typeof(spl)}(m, spl, deepcopy(vi))
-    reset_num_produce!(res.vi)
-    ctask = CTask() do
-        res = m(vi, spl)
-        produce(nothing)
-        return res
-    end
-    task = ctask.task
-    if task.storage === nothing
-        task.storage = IdDict()
-    end
-    task.storage[:turing_trace] = res # create a backward reference in task_local_storage
-    res.ctask = ctask
-    return res
-end
+# step to the next observe statement and
+# return the log probability of the transition (or nothing if done)
+advance!(t::Trace) = Libtask.consume(t.ctask)
 
-# step to the next observe statement, return log likelihood
-Libtask.consume(t::Trace) = (increment_num_produce!(t.vi); consume(t.ctask))
+# reset log probability
+reset_logprob!(t::Trace) = nothing
+
+reset_model(f) = nothing
+delete_retained!(f) = nothing
 
 # Task copying version of fork for Trace.
-function fork(trace :: Trace, is_ref :: Bool = false)
+function fork(trace::Trace, isref::Bool = false)
     newtrace = copy(trace)
-    is_ref && set_retained_vns_del_by_spl!(newtrace.vi, newtrace.spl)
-    newtrace.ctask.task.storage[:turing_trace] = newtrace
+    isref && delete_retained!(newtrace.f)
+
+    # add backward reference
+    addreference!(newtrace.ctask.task, newtrace)
+
     return newtrace
 end
 
 # PG requires keeping all randomness for the reference particle
 # Create new task and copy randomness
 function forkr(trace::Trace)
-    newtrace = Trace(trace.ctask.task.code, trace.model, trace.spl, deepcopy(trace.vi))
-    newtrace.spl = trace.spl
-    reset_num_produce!(newtrace.vi)
+    newf = reset_model(trace.f)
+    ctask = let f=trace.ctask.task.code
+        Libtask.CTask() do
+            res = f()
+            Libtask.produce(nothing)
+            return res
+        end
+    end
+
+    # add backward reference
+    newtrace = Trace(newf, ctask)
+    addreference!(ctask.task, newtrace)
+    
     return newtrace
 end
 
-current_trace() = current_task().storage[:turing_trace]
+# create a backward reference in task_local_storage
+function addreference!(task::Task, trace::Trace)
+    if task.storage === nothing
+        task.storage = IdDict()
+    end
+    task.storage[:__trace] = trace
 
-const Particle = Trace
+    return task
+end
+
+current_trace() = current_task().storage[:__trace]
 
 """
 Data structure for particle filters
@@ -141,7 +139,7 @@ end
 
 Compute the normalized weights of the particles.
 """
-getweights(pc::ParticleContainer) = softmax(pc.logWs)
+getweights(pc::ParticleContainer) = StatsFuns.softmax(pc.logWs)
 
 """
     getweight(pc::ParticleContainer, i)
@@ -155,7 +153,7 @@ getweight(pc::ParticleContainer, i) = exp(pc.logWs[i] - logZ(pc))
 
 Return the logarithm of the normalizing constant of the unnormalized logarithmic weights.
 """
-logZ(pc::ParticleContainer) = logsumexp(pc.logWs)
+logZ(pc::ParticleContainer) = StatsFuns.logsumexp(pc.logWs)
 
 """
     effectiveSampleSize(pc::ParticleContainer)
@@ -168,7 +166,7 @@ function effectiveSampleSize(pc::ParticleContainer)
 end
 
 """
-    resample_propagate!(pc::ParticleContainer[, randcat = resample_systematic, ref = nothing;
+    resample_propagate!(pc::ParticleContainer[, randcat = resample, ref = nothing;
                         weights = getweights(pc)])
 
 Resample and propagate the particles in `pc`.
@@ -179,7 +177,7 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 """
 function resample_propagate!(
     pc::ParticleContainer,
-    randcat = Turing.Inference.resample_systematic,
+    randcat = resample,
     ref::Union{Particle, Nothing} = nothing;
     weights = getweights(pc)
 )
@@ -231,6 +229,22 @@ function resample_propagate!(
     pc
 end
 
+function resample_propagate!(
+    pc::ParticleContainer,
+    resampler::ResampleWithESSThreshold,
+    ref::Union{Particle,Nothing} = nothing;
+    weights = getweights(pc)
+)
+    # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
+    ess = inv(sum(abs2, weights))
+
+    if ess ≤ resampler.threshold * length(pc)
+        resample_propagate!(pc, resampler.resampler, ref; weights = weights)
+    end
+
+    pc
+end
+
 """
     reweight!(pc::ParticleContainer)
 
@@ -249,19 +263,18 @@ function reweight!(pc::ParticleContainer)
         # the execution of the model is finished.
         # Here ``yᵢ`` are observations, ``xᵢ`` variables of the particle filter, and
         # ``θᵢ`` are variables of other samplers.
-        score = Libtask.consume(p)
+        score = advance!(p)
 
         if score === nothing
             numdone += 1
         else
-            # Increase the unnormalized logarithmic weights, accounting for the variables
-            # of other samplers.
-            increase_logweight!(pc, i, score + getlogp(p.vi))
+            # Increase the unnormalized logarithmic weights.
+            increase_logweight!(pc, i, score)
 
             # Reset the accumulator of the log probability in the model so that we can
             # accumulate log probabilities of variables of other samplers until the next
             # observation.
-            resetlogp!(p.vi)
+            reset_logprob!(p)
         end
     end
 
@@ -332,20 +345,4 @@ function sweep!(pc::ParticleContainer, resampler)
     end
 
     return logevidence
-end
-
-function resample_propagate!(
-    pc::ParticleContainer,
-    resampler::ResampleWithESSThreshold,
-    ref::Union{Particle,Nothing} = nothing;
-    weights = getweights(pc)
-)
-    # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
-    ess = inv(sum(abs2, weights))
-
-    if ess ≤ resampler.threshold * length(pc)
-        resample_propagate!(pc, resampler.resampler, ref; weights = weights)
-    end
-
-    pc
 end

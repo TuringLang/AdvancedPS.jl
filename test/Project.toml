@@ -1,5 +1,7 @@
 [deps]
+Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+Libtask = "0.5"
 julia = "1.3"
