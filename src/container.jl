@@ -166,8 +166,8 @@ function effectiveSampleSize(pc::ParticleContainer)
 end
 
 """
-    resample_propagate!(pc::ParticleContainer[, randcat = resample, ref = nothing;
-                        weights = getweights(pc)])
+    resample_propagate!(rng, pc::ParticleContainer[, randcat = resample_systematic,
+                        ref = nothing; weights = getweights(pc)])
 
 Resample and propagate the particles in `pc`.
 
@@ -176,8 +176,9 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 `ref` that is ensured to survive the resampling step.
 """
 function resample_propagate!(
+    rng::Random.AbstractRNG,
     pc::ParticleContainer,
-    randcat = resample,
+    randcat = resample_systematic,
     ref::Union{Particle, Nothing} = nothing;
     weights = getweights(pc)
 )
@@ -187,7 +188,7 @@ function resample_propagate!(
     # sample ancestor indices
     n = length(pc)
     nresamples = ref === nothing ? n : n - 1
-    indx = randcat(weights, nresamples)
+    indx = randcat(rng, weights, nresamples)
 
     # count number of children for each particle
     num_children = zeros(Int, n)
@@ -230,6 +231,7 @@ function resample_propagate!(
 end
 
 function resample_propagate!(
+    rng::Random.AbstractRNG,
     pc::ParticleContainer,
     resampler::ResampleWithESSThreshold,
     ref::Union{Particle,Nothing} = nothing;
@@ -239,7 +241,7 @@ function resample_propagate!(
     ess = inv(sum(abs2, weights))
 
     if ess ≤ resampler.threshold * length(pc)
-        resample_propagate!(pc, resampler.resampler, ref; weights = weights)
+        resample_propagate!(rng, pc, resampler.resampler, ref; weights = weights)
     end
 
     pc
@@ -292,7 +294,7 @@ function reweight!(pc::ParticleContainer)
 end
 
 """
-    sweep!(pc::ParticleContainer, resampler)
+    sweep!(rng, pc::ParticleContainer, resampler)
 
 Perform a particle sweep and return an unbiased estimate of the log evidence.
 
@@ -303,11 +305,11 @@ The resampling steps use the given `resampler`.
 Del Moral, P., Doucet, A., & Jasra, A. (2006). Sequential monte carlo samplers.
 Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(3), 411-436.
 """
-function sweep!(pc::ParticleContainer, resampler)
+function sweep!(rng::Random.AbstractRNG, pc::ParticleContainer, resampler)
     # Initial step:
 
     # Resample and propagate particles.
-    resample_propagate!(pc, resampler)
+    resample_propagate!(rng, pc, resampler)
 
     # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
     # weights.
@@ -317,7 +319,7 @@ function sweep!(pc::ParticleContainer, resampler)
     logZ0 = logZ(pc)
 
     # Reweight the particles by including the first observation ``y₁``.
-    isdone = reweight!(pc)
+    isdone = reweight!(rng, pc)
 
     # Compute the normalizing constant ``Z₁`` after reweighting.
     logZ1 = logZ(pc)
@@ -328,14 +330,14 @@ function sweep!(pc::ParticleContainer, resampler)
     # For observations ``y₂, …, yₜ``:
     while !isdone
         # Resample and propagate particles.
-        resample_propagate!(pc, resampler)
+        resample_propagate!(rng, pc, resampler)
 
         # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
         # weights.
         logZ0 = logZ(pc)
 
         # Reweight the particles by including the next observation ``yₜ``.
-        isdone = reweight!(pc)
+        isdone = reweight!(rng, pc)
 
         # Compute the normalizing constant ``Z₁`` after reweighting.
         logZ1 = logZ(pc)
