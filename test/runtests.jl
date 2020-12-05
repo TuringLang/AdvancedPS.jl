@@ -1,5 +1,6 @@
 using AdvancedPS
 using Libtask
+using Random
 using Test
 
 @testset "AdvancedPS.jl" begin

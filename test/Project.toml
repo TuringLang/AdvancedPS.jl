@@ -1,5 +1,6 @@
 [deps]
 Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]

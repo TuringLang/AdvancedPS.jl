@@ -47,7 +47,7 @@
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, 2 .* logps))
 
         # Resample and propagate particles.
-        AdvancedPS.resample_propagate!(pc)
+        AdvancedPS.resample_propagate!(Random.GLOBAL_RNG, pc)
         @test pc.logWs == zeros(3)
         @test AdvancedPS.getweights(pc) == fill(1/3, 3)
         @test all(AdvancedPS.getweight(pc, i) == 1/3 for i in 1:3)
