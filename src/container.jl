@@ -30,7 +30,7 @@ advance!(t::Trace) = Libtask.consume(t.ctask)
 # reset log probability
 reset_logprob!(t::Trace) = nothing
 
-reset_model(f) = nothing
+reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing
 
 # Task copying version of fork for Trace.
@@ -59,7 +59,7 @@ function forkr(trace::Trace)
     # add backward reference
     newtrace = Trace(newf, ctask)
     addreference!(ctask.task, newtrace)
-    
+
     return newtrace
 end
 
@@ -95,6 +95,11 @@ end
 Base.collect(pc::ParticleContainer) = pc.vals
 Base.length(pc::ParticleContainer) = length(pc.vals)
 Base.@propagate_inbounds Base.getindex(pc::ParticleContainer, i::Int) = pc.vals[i]
+
+function Base.rand(rng::Random.AbstractRNG, pc::ParticleContainer)
+    index = randcat(rng, getweights(pc))
+    return pc[index]
+end
 
 # registers a new x-particle in the container
 function Base.push!(pc::ParticleContainer, p::Particle)
@@ -319,7 +324,7 @@ function sweep!(rng::Random.AbstractRNG, pc::ParticleContainer, resampler)
     logZ0 = logZ(pc)
 
     # Reweight the particles by including the first observation ``y₁``.
-    isdone = reweight!(rng, pc)
+    isdone = reweight!(pc)
 
     # Compute the normalizing constant ``Z₁`` after reweighting.
     logZ1 = logZ(pc)
@@ -337,7 +342,7 @@ function sweep!(rng::Random.AbstractRNG, pc::ParticleContainer, resampler)
         logZ0 = logZ(pc)
 
         # Reweight the particles by including the next observation ``yₜ``.
-        isdone = reweight!(rng, pc)
+        isdone = reweight!(pc)
 
         # Compute the normalizing constant ``Z₁`` after reweighting.
         logZ1 = logZ(pc)

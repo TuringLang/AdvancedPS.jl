@@ -1,351 +1,129 @@
-###
-### Particle Filtering and Particle MCMC Samplers.
-###
-
-####
-#### Generic Sequential Monte Carlo sampler.
-####
-
-"""
-$(TYPEDEF)
-
-Sequential Monte Carlo sampler.
-
-# Fields
-
-$(TYPEDFIELDS)
-"""
-struct SMC{space, R} <: ParticleInference
+struct SMC{R} <: AbstractMCMC.AbstractSampler
+    nparticles::Int
     resampler::R
 end
 
 """
-    SMC(space...)
-    SMC([resampler = ResampleWithESSThreshold(), space = ()])
-    SMC([resampler = resample_systematic, ]threshold[, space = ()])
+    SMC(n[, resampler = ResampleWithESSThreshold()])
+    SMC(n[, resampler = resample_systematic, ]threshold)
 
-Create a sequential Monte Carlo sampler of type [`SMC`](@ref) for the variables in `space`.
+Create a sequential Monte Carlo (SMC) sampler with `n` particles.
 
 If the algorithm for the resampling step is not specified explicitly, systematic resampling
 is performed if the estimated effective sample size per particle drops below 0.5.
 """
-function SMC(resampler = Turing.Core.ResampleWithESSThreshold(), space::Tuple = ())
-    return SMC{space, typeof(resampler)}(resampler)
-end
+SMC(nparticles::Int) = SMC(nparticles, ResampleWithESSThreshold())
 
 # Convenient constructors with ESS threshold
-function SMC(resampler, threshold::Real, space::Tuple = ())
-    return SMC(Turing.Core.ResampleWithESSThreshold(resampler, threshold), space)
+function SMC(nparticles::Int, resampler, threshold::Real)
+    return SMC(nparticles, ResampleWithESSThreshold(resampler, threshold))
 end
-SMC(threshold::Real, space::Tuple = ()) = SMC(resample_systematic, threshold, space)
+SMC(nparticles::Int, threshold::Real) = SMC(nparticles, resample_systematic, threshold)
 
-# If only the space is defined
-SMC(space::Symbol...) = SMC(space)
-SMC(space::Tuple) = SMC(Turing.Core.ResampleWithESSThreshold(), space)
-
-struct SMCTransition{T,F<:AbstractFloat}
-    "The parameters for any given sample."
-    θ::T
-    "The joint log probability of the sample (NOTE: does not work, always set to zero)."
-    lp::F
-    "The weight of the particle the sample was retrieved from."
-    weight::F
+struct SMCSample{P,W,L}
+    trajectories::P
+    weights::W
+    logevidence::L
 end
 
-function SMCTransition(vi::AbstractVarInfo, weight)
-    theta = tonamedtuple(vi)
-
-    # This is pretty useless since we reset the log probability continuously in the
-    # particle sweep.
-    lp = getlogp(vi)
-
-    return SMCTransition(theta, lp, weight)
-end
-
-metadata(t::SMCTransition) = (lp = t.lp, weight = t.weight)
-
-DynamicPPL.getlogp(t::SMCTransition) = t.lp
-
-struct SMCState{P,F<:AbstractFloat}
-    particles::P
-    particleindex::Int
-    # The logevidence after aggregating all samples together.
-    average_logevidence::F
-end
-
-function getlogevidence(samples, sampler::Sampler{<:SMC}, state::SMCState)
-    return state.average_logevidence
+function AbstractMCMC.sample(model::AbstractMCMC.AbstractModel, sampler::SMC; kwargs...)
+    return AbstractMCMC.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
 end
 
 function AbstractMCMC.sample(
-    rng::AbstractRNG,
-    model::AbstractModel,
-    sampler::Sampler{<:SMC},
-    N::Integer;
-    chain_type=MCMCChains.Chains,
-    resume_from=nothing,
-    progress=PROGRESS[],
+    rng::Random.AbstractRNG,
+    model::AbstractMCMC.AbstractModel,
+    sampler::SMC;
     kwargs...
 )
-    if resume_from === nothing
-        return AbstractMCMC.mcmcsample(rng, model, sampler, N;
-                                       chain_type=chain_type,
-                                       progress=progress,
-                                       nparticles=N,
-                                       kwargs...)
-    else
-        return resume(resume_from, N;
-                      chain_type=chain_type, progress=progress, nparticles=N, kwargs...)
+    if !isempty(kwargs)
+        @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
     end
-end
 
-function DynamicPPL.initialstep(
-    ::AbstractRNG,
-    model::AbstractModel,
-    spl::Sampler{<:SMC},
-    vi::AbstractVarInfo;
-    nparticles::Int,
-    kwargs...
-)
-    # Reset the VarInfo.
-    reset_num_produce!(vi)
-    set_retained_vns_del_by_spl!(vi, spl)
-    resetlogp!(vi)
-    empty!(vi)
-
-    # Create a new set of particles.
-    T = Trace{typeof(spl),typeof(vi),typeof(model)}
-    particles = ParticleContainer(T[Trace(model, spl, vi) for _ in 1:nparticles])
+    # Create a set of particles.
+    particles = ParticleContainer([Trace(model) for _ in 1:sampler.nparticles])
 
     # Perform particle sweep.
-    logevidence = sweep!(particles, spl.alg.resampler)
+    logevidence = sweep!(rng, particles, sampler.resampler)
 
-    # Extract the first particle and its weight.
-    particle = particles.vals[1]
-    weight = getweight(particles, 1)
-
-    # Compute the first transition and the first state.
-    transition = SMCTransition(particle.vi, weight)
-    state = SMCState(particles, 2, logevidence)
-
-    return transition, state
+    return SMCSample(collect(particles), getweights(particles), logevidence)
 end
 
-function AbstractMCMC.step(
-    ::AbstractRNG,
-    model::AbstractModel,
-    spl::Sampler{<:SMC},
-    state::SMCState;
-    kwargs...
-)
-    # Extract the index of the current particle.
-    index = state.particleindex
-
-    # Extract the current particle and its weight.
-    particles = state.particles
-    particle = particles.vals[index]
-    weight = getweight(particles, index)
-
-    # Compute the transition and the next state.
-    transition = SMCTransition(particle.vi, weight)
-    nextstate = SMCState(state.particles, index + 1, state.average_logevidence)
-
-    return transition, nextstate
-end
-
-####
-#### Particle Gibbs sampler.
-####
-
-"""
-$(TYPEDEF)
-
-Particle Gibbs sampler.
-
-Note that this method is particle-based, and arrays of variables
-must be stored in a [`TArray`](@ref) object.
-
-# Fields
-
-$(TYPEDFIELDS)
-"""
-struct PG{space,R} <: ParticleInference
+struct PG{R} <: AbstractMCMC.AbstractSampler
     """Number of particles."""
     nparticles::Int
     """Resampling algorithm."""
     resampler::R
 end
 
-isgibbscomponent(::PG) = true
-
 """
-    PG(n, space...)
-    PG(n, [resampler = ResampleWithESSThreshold(), space = ()])
-    PG(n, [resampler = resample_systematic, ]threshold[, space = ()])
+    PG(n, [resampler = ResampleWithESSThreshold()])
+    PG(n, [resampler = resample_systematic, ]threshold)
 
-Create a Particle Gibbs sampler of type [`PG`](@ref) with `n` particles for the variables
-in `space`.
+Create a Particle Gibbs sampler with `n` particles.
 
 If the algorithm for the resampling step is not specified explicitly, systematic resampling
 is performed if the estimated effective sample size per particle drops below 0.5.
 """
-function PG(
-    nparticles::Int,
-    resampler = Turing.Core.ResampleWithESSThreshold(),
-    space::Tuple = (),
-)
-    return PG{space, typeof(resampler)}(nparticles, resampler)
-end
+PG(nparticles::Int) = PG(nparticles, ResampleWithESSThreshold())
 
 # Convenient constructors with ESS threshold
-function PG(nparticles::Int, resampler, threshold::Real, space::Tuple = ())
-    return PG(nparticles, Turing.Core.ResampleWithESSThreshold(resampler, threshold), space)
+function PG(nparticles::Int, resampler, threshold::Real)
+    return PG(nparticles, ResampleWithESSThreshold(resampler, threshold))
 end
-function PG(nparticles::Int, threshold::Real, space::Tuple = ())
-    return PG(nparticles, resample_systematic, threshold, space)
-end
+PG(nparticles::Int, threshold::Real) = PG(nparticles, resample_systematic, threshold)
 
-# If only the number of particles and the space is defined
-PG(nparticles::Int, space::Symbol...) = PG(nparticles, space)
-function PG(nparticles::Int, space::Tuple)
-    return PG(nparticles, Turing.Core.ResampleWithESSThreshold(), space)
+struct PGState{T}
+    trajectory::T
 end
 
-const CSMC = PG # type alias of PG as Conditional SMC
-
-struct PGTransition{T,F<:AbstractFloat}
-    "The parameters for any given sample."
-    θ::T
-    "The joint log probability of the sample (NOTE: does not work, always set to zero)."
-    lp::F
-    "The log evidence of the sample."
-    logevidence::F
-end
-
-function PGTransition(vi::AbstractVarInfo, logevidence)
-    theta = tonamedtuple(vi)
-
-    # This is pretty useless since we reset the log probability continuously in the
-    # particle sweep.
-    lp = getlogp(vi)
-
-    return PGTransition(theta, lp, logevidence)
-end
-
-metadata(t::PGTransition) = (lp = t.lp, logevidence = t.logevidence)
-
-DynamicPPL.getlogp(t::PGTransition) = t.lp
-
-function getlogevidence(samples, sampler::Sampler{<:PG}, vi::AbstractVarInfo)
-    return mean(x.logevidence for x in samples)
-end
-
-function DynamicPPL.initialstep(
-    rng::AbstractRNG,
-    model::AbstractModel,
-    spl::Sampler{<:PG},
-    vi::AbstractVarInfo;
-    kwargs...
-)
-    # Reset the VarInfo before new sweep
-    reset_num_produce!(vi)
-    set_retained_vns_del_by_spl!(vi, spl)
-    resetlogp!(vi)
-
-    # Create a new set of particles
-    num_particles = spl.alg.nparticles
-    T = Trace{typeof(spl),typeof(vi),typeof(model)}
-    particles = ParticleContainer(T[Trace(model, spl, vi) for _ in 1:num_particles])
-
-    # Perform a particle sweep.
-    logevidence = sweep!(particles, spl.alg.resampler)
-
-    # Pick a particle to be retained.
-    Ws = getweights(particles)
-    indx = randcat(Ws)
-    reference = particles.vals[indx]
-
-    # Compute the first transition.
-    _vi = reference.vi
-    transition = PGTransition(_vi, logevidence)
-
-    return transition, _vi
+struct PGSample{T,L}
+    trajectory::T
+    logevidence::L
 end
 
 function AbstractMCMC.step(
-    ::AbstractRNG,
-    model::AbstractModel,
-    spl::Sampler{<:PG},
-    vi::AbstractVarInfo;
+    rng::Random.AbstractRNG,
+    model::AbstractMCMC.AbstractModel,
+    sampler::PG;
+    kwargs...,
+)
+    # Create a new set of particles.
+    particles = ParticleContainer([Trace(model) for _ in 1:sampler.nparticles])
+
+    # Perform a particle sweep.
+    logevidence = sweep!(rng, particles, sampler.resampler)
+
+    # Pick a particle to be retained.
+    trajectory = rand(rng, particles)
+
+    return PGSample(trajectory, logevidence), PGState(trajectory)
+end
+
+function AbstractMCMC.step(
+    rng::Random.AbstractRNG,
+    model::AbstractMCMC.AbstractModel,
+    sampler::PG,
+    state::PGState;
     kwargs...
 )
-    # Reset the VarInfo before new sweep.
-    reset_num_produce!(vi)
-    set_retained_vns_del_by_spl!(vi, spl)
-    resetlogp!(vi)
-
     # Create a new set of particles.
-    num_particles = spl.alg.nparticles
-    T = Trace{typeof(spl),typeof(vi),typeof(model)}
-    x = Vector{T}(undef, num_particles)
-    @inbounds for i in 1:(num_particles - 1)
-        x[i] = Trace(model, spl, vi)
+    nparticles = sampler.nparticles
+    x = map(1:nparticles) do i
+        if i == nparticles
+            # Create reference trajectory.
+            forkr(state.trajectory)
+        else
+            Trace(model)
+        end
     end
-    # Create reference particle.
-    @inbounds x[num_particles] = forkr(Trace(model, spl, vi))
     particles = ParticleContainer(x)
 
     # Perform a particle sweep.
-    logevidence = sweep!(particles, spl.alg.resampler)
+    logevidence = sweep!(rng, particles, sampler.resampler)
 
     # Pick a particle to be retained.
-    Ws = getweights(particles)
-    indx = randcat(Ws)
-    newreference = particles.vals[indx]
+    newtrajectory = rand(rng, particles)
 
-    # Compute the transition.
-    _vi = newreference.vi
-    transition = PGTransition(_vi, logevidence)
-
-    return transition, _vi
-end
-
-function DynamicPPL.assume(
-    rng,
-    spl::Sampler{<:Union{PG,SMC}},
-    dist::Distribution,
-    vn::VarName,
-    ::Any
-)
-    vi = current_trace().vi
-    if inspace(vn, spl)
-        if ~haskey(vi, vn)
-            r = rand(rng, dist)
-            push!(vi, vn, r, dist, spl)
-        elseif is_flagged(vi, vn, "del")
-            unset_flag!(vi, vn, "del")
-            r = rand(rng, dist)
-            vi[vn] = vectorize(dist, r)
-            setgid!(vi, spl.selector, vn)
-            setorder!(vi, vn, get_num_produce(vi))
-        else
-            updategid!(vi, vn, spl)
-            r = vi[vn]
-        end
-    else # vn belongs to other sampler <=> conditionning on vn
-        if haskey(vi, vn)
-            r = vi[vn]
-        else
-            r = rand(rng, dist)
-            push!(vi, vn, r, dist, Selector(:invalid))
-        end
-        lp = logpdf_with_trans(dist, r, istrans(vi, vn))
-        acclogp!(vi, lp)
-    end
-    return r, 0
-end
-
-function DynamicPPL.observe(spl::Sampler{<:Union{PG,SMC}}, dist::Distribution, value, vi)
-    produce(logpdf(dist, value))
-    return 0
+    return PGSample(newtrajectory, logevidence), PGState(newtrajectory)
 end
