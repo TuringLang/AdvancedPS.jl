@@ -9,4 +9,5 @@ using Test
     @testset "Resampling tests" begin include("resampling.jl") end
     @testset "Container tests" begin include("container.jl") end
     @testset "SMC and PG tests" begin include("smc.jl") end
+    @testset "RNG tests" begin include("rng.jl") end
 end

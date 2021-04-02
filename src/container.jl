@@ -1,6 +1,7 @@
 struct Trace{F}
     f::F
     ctask::Libtask.CTask
+    rng::TracedRNG
 end
 
 const Particle = Trace
@@ -14,14 +15,16 @@ function Trace(f)
         end
     end
 
+    rng = TracedRNG()
     # add backward reference
-    newtrace = Trace(f, ctask)
+    newtrace = Trace(f, ctask, rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace
 end
 
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask))
+# Copy task but create new RNG ?
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), TracedRNG())
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
@@ -56,8 +59,9 @@ function forkr(trace::Trace)
         end
     end
 
+    rng = trace.rng
     # add backward reference
-    newtrace = Trace(newf, ctask)
+    newtrace = Trace(newf, ctask, rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace
