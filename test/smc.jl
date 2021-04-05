@@ -33,13 +33,13 @@
             m.a = a = rand(Normal(4, 5))
 
             # First observation.
-            produce(logpdf(Normal(a, 2), 3))
+            AdvancedPS.observe(Normal(a, 2), 3)
 
             # Second latent variable.
             m.b = b = rand(Normal(a, 1))
 
             # Second observation.
-            produce(logpdf(Normal(b, 2), 1.5))
+            AdvancedPS.observe(Normal(b, 2), 1.5)
         end
         sample(NormalModel(), AdvancedPS.SMC(100))
 
@@ -55,7 +55,7 @@
             m.a = a = rand(Normal(4, 5))
             m.b = b = rand(Normal(a, 1))
             if a >= 4
-                produce(logpdf(Normal(b, 2), 1.5))
+                AdvancedPS.observe(Normal(b, 2), 1.5)
             end
         end
 
@@ -81,13 +81,13 @@
             m.b = rand(Gamma(2, 3))
 
             # First observation.
-            produce(logpdf(Bernoulli(x / 2), 1))
+            AdvancedPS.observe(Bernoulli(x / 2), 1)
 
             # Second hidden variable.
             m.c = rand(Beta())
 
             # Second observation.
-            produce(logpdf(Bernoulli(x / 2), 0))
+            AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
         chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
@@ -135,13 +135,13 @@
             m.b = rand(Gamma(2, 3))
 
             # First observation.
-            produce(logpdf(Bernoulli(x / 2), 1))
+            AdvancedPS.observe(Bernoulli(x / 2), 1)
 
             # Second hidden variable.
             m.c = rand(Beta())
 
             # Second observation.
-            produce(logpdf(Bernoulli(x / 2), 0))
+            AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
         chains_pg = sample(TestModel(), AdvancedPS.PG(10), 100)

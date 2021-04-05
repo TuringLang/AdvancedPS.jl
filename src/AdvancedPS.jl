@@ -9,5 +9,6 @@ import StatsFuns
 include("resampling.jl")
 include("container.jl")
 include("smc.jl")
+include("model.jl")
 
 end
