@@ -5,7 +5,7 @@ end
 
 """
     SMC(n[, resampler = ResampleWithESSThreshold()])
-    SMC(n[, resampler = resample_systematic, ]threshold)
+    SMC(n, [resampler = resample_systematic, ]threshold)
 
 Create a sequential Monte Carlo (SMC) sampler with `n` particles.
 
