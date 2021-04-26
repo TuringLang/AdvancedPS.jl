@@ -1,179 +1,153 @@
-using Turing, Random, Test
-using Turing.Core: ResampleWithESSThreshold
-using Turing.Inference: getspace, resample_systematic, resample_multinomial
+@testset "smc.jl" begin
+    @testset "SMC constructor" begin
+        sampler = AdvancedPS.SMC(10)
+        @test sampler.nparticles == 10
+        @test sampler.resampler == AdvancedPS.ResampleWithESSThreshold()
 
-using Random
+        sampler = AdvancedPS.SMC(15, 0.6)
+        @test sampler.nparticles == 15
+        @test sampler.resampler ===
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
 
-dir = splitdir(splitdir(pathof(Turing))[1])[1]
-include(dir*"/test/test_utils/AllUtils.jl")
+        sampler = AdvancedPS.SMC(20, AdvancedPS.resample_multinomial, 0.6)
+        @test sampler.nparticles == 20
+        @test sampler.resampler ===
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
 
-@testset "SMC" begin
-    @turing_testset "constructor" begin
-        s = SMC()
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === ()
-
-        s = SMC(:x)
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x,)
-
-        s = SMC((:x,))
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x,)
-
-        s = SMC(:x, :y)
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x, :y)
-
-        s = SMC((:x, :y))
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x, :y)
-
-        s = SMC(0.6)
-        @test s.resampler === ResampleWithESSThreshold(resample_systematic, 0.6)
-        @test getspace(s) === ()
-
-        s = SMC(0.6, (:x,))
-        @test s.resampler === ResampleWithESSThreshold(resample_systematic, 0.6)
-        @test getspace(s) === (:x,)
-
-        s = SMC(resample_multinomial, 0.6)
-        @test s.resampler === ResampleWithESSThreshold(resample_multinomial, 0.6)
-        @test getspace(s) === ()
-
-        s = SMC(resample_multinomial, 0.6, (:x,))
-        @test s.resampler === ResampleWithESSThreshold(resample_multinomial, 0.6)
-        @test getspace(s) === (:x,)
-
-        s = SMC(resample_systematic)
-        @test s.resampler === resample_systematic
-        @test getspace(s) === ()
-
-        s = SMC(resample_systematic, (:x,))
-        @test s.resampler === resample_systematic
-        @test getspace(s) === (:x,)
+        sampler = AdvancedPS.SMC(25, AdvancedPS.resample_systematic)
+        @test sampler.nparticles == 25
+        @test sampler.resampler === AdvancedPS.resample_systematic
     end
 
-    @turing_testset "models" begin
-        @model function normal()
-            a ~ Normal(4,5)
-            3 ~ Normal(a,2)
-            b ~ Normal(a,1)
-            1.5 ~ Normal(b,2)
-            a, b
+    # Smoke tests
+    @testset "models" begin
+        mutable struct NormalModel <: AbstractMCMC.AbstractModel
+            a::Float64
+            b::Float64
+
+            NormalModel() = new()
         end
 
-        tested = sample(normal(), SMC(), 100);
+        function (m::NormalModel)()
+            # First latent variable.
+            m.a = a = rand(Normal(4, 5))
+
+            # First observation.
+            AdvancedPS.observe(Normal(a, 2), 3)
+
+            # Second latent variable.
+            m.b = b = rand(Normal(a, 1))
+
+            # Second observation.
+            AdvancedPS.observe(Normal(b, 2), 1.5)
+        end
+        sample(NormalModel(), AdvancedPS.SMC(100))
 
         # failing test
-        @model function fail_smc()
-            a ~ Normal(4,5)
-            3 ~ Normal(a,2)
-            b ~ Normal(a,1)
-            if a >= 4.0
-                1.5 ~ Normal(b,2)
-            end
-            a, b
+        mutable struct FailSMCModel <: AbstractMCMC.AbstractModel
+            a::Float64
+            b::Float64
+
+            FailSMCModel() = new()
         end
 
-        @test_throws ErrorException sample(fail_smc(), SMC(), 100)
+        function (m::FailSMCModel)()
+            m.a = a = rand(Normal(4, 5))
+            m.b = b = rand(Normal(a, 1))
+            if a >= 4
+                AdvancedPS.observe(Normal(b, 2), 1.5)
+            end
+        end
+
+        @test_throws ErrorException sample(FailSMCModel(), AdvancedPS.SMC(100))
     end
 
-    @turing_testset "logevidence" begin
+    @testset "logevidence" begin
         Random.seed!(100)
 
-        @model function test()
-            a ~ Normal(0, 1)
-            x ~ Bernoulli(1)
-            b ~ Gamma(2, 3)
-            1 ~ Bernoulli(x / 2)
-            c ~ Beta()
-            0 ~ Bernoulli(x / 2)
-            x
+        mutable struct TestModel <: AbstractMCMC.AbstractModel
+            a::Float64
+            x::Bool
+            b::Float64
+            c::Float64
+
+            TestModel() = new()
         end
 
-        chains_smc = sample(test(), SMC(), 100)
+        function (m::TestModel)()
+            # First hidden variables.
+            m.a = rand(Normal(0, 1))
+            m.x = x = rand(Bernoulli(1))
+            m.b = rand(Gamma(2, 3))
 
-        @test all(isone, chains_smc[:x])
+            # First observation.
+            AdvancedPS.observe(Bernoulli(x / 2), 1)
+
+            # Second hidden variable.
+            m.c = rand(Beta())
+
+            # Second observation.
+            AdvancedPS.observe(Bernoulli(x / 2), 0)
+        end
+
+        chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
+
+        @test all(isone(p.f.x) for p in chains_smc.trajectories)
         @test chains_smc.logevidence ≈ -2 * log(2)
     end
-end
 
-@testset "PG" begin
-    @turing_testset "constructor" begin
-        s = PG(10)
-        @test s.nparticles == 10
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === ()
+    @testset "PG constructor" begin
+        sampler = AdvancedPS.PG(10)
+        @test sampler.nparticles == 10
+        @test sampler.resampler == AdvancedPS.ResampleWithESSThreshold()
 
-        s = PG(20, :x)
-        @test s.nparticles == 20
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x,)
+        sampler = AdvancedPS.PG(60, 0.6)
+        @test sampler.nparticles == 60
+        @test sampler.resampler ===
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
 
-        s = PG(30, (:x,))
-        @test s.nparticles == 30
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x,)
+        sampler = AdvancedPS.PG(80, AdvancedPS.resample_multinomial, 0.6)
+        @test sampler.nparticles == 80
+        @test sampler.resampler ===
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
 
-        s = PG(40, :x, :y)
-        @test s.nparticles == 40
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x, :y)
-
-        s = PG(50, (:x, :y))
-        @test s.nparticles == 50
-        @test s.resampler == ResampleWithESSThreshold()
-        @test getspace(s) === (:x, :y)
-
-        s = PG(60, 0.6)
-        @test s.nparticles == 60
-        @test s.resampler === ResampleWithESSThreshold(resample_systematic, 0.6)
-        @test getspace(s) === ()
-
-        s = PG(70, 0.6, (:x,))
-        @test s.nparticles == 70
-        @test s.resampler === ResampleWithESSThreshold(resample_systematic, 0.6)
-        @test getspace(s) === (:x,)
-
-        s = PG(80, resample_multinomial, 0.6)
-        @test s.nparticles == 80
-        @test s.resampler === ResampleWithESSThreshold(resample_multinomial, 0.6)
-        @test getspace(s) === ()
-
-        s = PG(90, resample_multinomial, 0.6, (:x,))
-        @test s.nparticles == 90
-        @test s.resampler === ResampleWithESSThreshold(resample_multinomial, 0.6)
-        @test getspace(s) === (:x,)
-
-        s = PG(100, resample_systematic)
-        @test s.nparticles == 100
-        @test s.resampler === resample_systematic
-        @test getspace(s) === ()
-
-        s = PG(110, resample_systematic, (:x,))
-        @test s.nparticles == 110
-        @test s.resampler === resample_systematic
-        @test getspace(s) === (:x,)
+        sampler = AdvancedPS.PG(100, AdvancedPS.resample_systematic)
+        @test sampler.nparticles == 100
+        @test sampler.resampler === AdvancedPS.resample_systematic
     end
 
-    @turing_testset "logevidence" begin
+    @testset "logevidence" begin
         Random.seed!(100)
 
-        @model function test()
-            a ~ Normal(0, 1)
-            x ~ Bernoulli(1)
-            b ~ Gamma(2, 3)
-            1 ~ Bernoulli(x / 2)
-            c ~ Beta()
-            0 ~ Bernoulli(x / 2)
-            x
+        mutable struct TestModel <: AbstractMCMC.AbstractModel
+            a::Float64
+            x::Bool
+            b::Float64
+            c::Float64
+
+            TestModel() = new()
         end
 
-        chains_pg = sample(test(), PG(10), 100)
+        function (m::TestModel)()
+            # First hidden variables.
+            m.a = rand(Normal(0, 1))
+            m.x = x = rand(Bernoulli(1))
+            m.b = rand(Gamma(2, 3))
 
-        @test all(isone, chains_pg[:x])
-        @test chains_pg.logevidence ≈ -2 * log(2) atol = 0.01
+            # First observation.
+            AdvancedPS.observe(Bernoulli(x / 2), 1)
+
+            # Second hidden variable.
+            m.c = rand(Beta())
+
+            # Second observation.
+            AdvancedPS.observe(Bernoulli(x / 2), 0)
+        end
+
+        chains_pg = sample(TestModel(), AdvancedPS.PG(10), 100)
+
+        @test all(isone(p.trajectory.f.x) for p in chains_pg)
+        @test mean(x.logevidence for x in chains_pg) ≈ -2 * log(2) atol = 0.01
     end
 end
 
