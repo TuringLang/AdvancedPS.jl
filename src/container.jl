@@ -24,7 +24,7 @@ function Trace(f)
 end
 
 # Copy task but create new RNG ?
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), TracedRNG())
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), trace.rng)
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
