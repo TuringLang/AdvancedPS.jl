@@ -1,13 +1,13 @@
 @testset "rng.jl" begin
     @testset "sample distribution" begin
         rng = AdvancedPS.TracedRNG()
-        vns = rand!(rng, Distributions.Normal())
+        vns = rand(rng, Distributions.Normal())
 
         @test AdvancedPS.curr_count(rng) === 1
 
-        rand!(rng, Distributions.Normal())
+        rand(rng, Distributions.Normal())
         Random.seed!(rng)
-        new_vns = rand!(rng, Distributions.Normal())
+        new_vns = rand(rng, Distributions.Normal())
         @test new_vns ≈ vns
     end
 

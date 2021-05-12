@@ -7,7 +7,7 @@ end
 const Particle = Trace
 
 function Trace(f, rng)
-	  trng = TracedRNG(rng)
+	trng = TracedRNG(rng)
 
     ctask = let f=f
         Libtask.CTask() do
@@ -24,8 +24,8 @@ function Trace(f, rng)
     return newtrace
 end
 
-# Copy task but create new RNG ?
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), trace.rng)
+# Copy task and RNG
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), deepcopy(trace.rng))
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
@@ -52,17 +52,17 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
+
     ctask = let f=trace.ctask.task.code
         Libtask.CTask() do
-            res = f()
+            res = f(trace.rng)
             Libtask.produce(nothing)
             return res
         end
     end
 
-    rng = trace.rng
     # add backward reference
-    newtrace = Trace(newf, ctask, rng)
+    newtrace = Trace(newf, ctask, trace.rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace

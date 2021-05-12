@@ -16,12 +16,14 @@ Random.seed!(rng::TracedRNG) = Random.seed!(rng.rng, rng.seed)
 TracedRNG() = TracedRNG(Random.seed!()) # Pick up an explicit RNG from Random
 TracedRNG(rng::Random.AbstractRNG) = TracedRNG(Ref(0), rng, rng.seed)
 
-# Dispatch to Random, keep track of numbers generated
-function Random.rand!(rng::TracedRNG, values...)
-    res = Random.rand(rng.rng, values...)
-    n = length(res)
-    inc_count!(rng, n)
-    return res
+# Intercept rand
+# https://github.com/JuliaLang/julia/issues/30732
+Random.rng_native_52(r::TracedRNG) = UInt64
+
+function Base.rand(rng::TracedRNG, ::Type{T}) where {T}
+	res = Base.rand(rng.rng, T)
+	inc_count!(rng, length(res))
+	return res
 end
 
 inc_count!(rng::TracedRNG) = inc_count!(rng, 1)

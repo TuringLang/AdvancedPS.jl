@@ -38,10 +38,13 @@ function AbstractMCMC.sample(
 )
     if !isempty(kwargs)
         @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
-			end
+	end
+
+	# Fork rng
+	trng = deepcopy(rng)
 
     # Create a set of particles.
-    particles = ParticleContainer([Trace(model, rng) for _ in 1:sampler.nparticles])
+    particles = ParticleContainer([Trace(model, trng) for _ in 1:sampler.nparticles])
 
     # Perform particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -88,8 +91,10 @@ function AbstractMCMC.step(
     sampler::PG;
     kwargs...,
 )
-    # Create a new set of particles.
-    particles = ParticleContainer([Trace(model) for _ in 1:sampler.nparticles])
+	trng = deepcopy(rng)
+
+	# Create a new set of particles.
+    particles = ParticleContainer([Trace(model, trng) for _ in 1:sampler.nparticles])
 
     # Perform a particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -107,6 +112,8 @@ function AbstractMCMC.step(
     state::PGState;
     kwargs...
 )
+	trng = deepcopy(rng)
+
     # Create a new set of particles.
     nparticles = sampler.nparticles
     x = map(1:nparticles) do i
@@ -114,7 +121,7 @@ function AbstractMCMC.step(
             # Create reference trajectory.
             forkr(state.trajectory)
         else
-            Trace(model)
+            Trace(model, trng)
         end
     end
     particles = ParticleContainer(x)

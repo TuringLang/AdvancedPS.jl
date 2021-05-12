@@ -28,38 +28,40 @@
             NormalModel() = new()
         end
 
-        function (m::NormalModel)()
+        function (m::NormalModel)(rng::Random.AbstractRNG)
             # First latent variable.
-            m.a = a = rand(Normal(4, 5))
+            m.a = a = rand(rng, Normal(4, 5))
 
             # First observation.
             AdvancedPS.observe(Normal(a, 2), 3)
 
             # Second latent variable.
-            m.b = b = rand(Normal(a, 1))
+            m.b = b = rand(rng, Normal(a, 1))
 
             # Second observation.
             AdvancedPS.observe(Normal(b, 2), 1.5)
         end
-        sample(NormalModel(), AdvancedPS.SMC(100))
+
+        rng = Random.MersenneTwister()
+        sample(rng, NormalModel(), AdvancedPS.SMC(100))
 
         # failing test
-        mutable struct FailSMCModel <: AbstractMCMC.AbstractModel
-            a::Float64
-            b::Float64
+        #mutable struct FailSMCModel <: AbstractMCMC.AbstractModel
+        #    a::Float64
+        #    b::Float64
 
-            FailSMCModel() = new()
-        end
+        #    FailSMCModel() = new()
+        #end
 
-        function (m::FailSMCModel)()
-            m.a = a = rand(Normal(4, 5))
-            m.b = b = rand(Normal(a, 1))
-            if a >= 4
-                AdvancedPS.observe(Normal(b, 2), 1.5)
-            end
-        end
+        #function (m::FailSMCModel)(rng::Random.AbstractRNG)
+        #    m.a = a = rand(rng, Normal(4, 5))
+        #    m.b = b = rand(rng, Normal(a, 1))
+        #    if a >= 4
+        #        AdvancedPS.observe(Normal(b, 2), 1.5)
+        #    end
+        #end
 
-        @test_throws ErrorException sample(FailSMCModel(), AdvancedPS.SMC(100))
+        @test_throws ErrorException sample(rng, FailSMCModel(), AdvancedPS.SMC(100))
     end
 
     @testset "logevidence" begin
@@ -74,23 +76,24 @@
             TestModel() = new()
         end
 
-        function (m::TestModel)()
+        function (m::TestModel)(rng::Random.AbstractRNG)
             # First hidden variables.
-            m.a = rand(Normal(0, 1))
-            m.x = x = rand(Bernoulli(1))
-            m.b = rand(Gamma(2, 3))
+            m.a = rand(rng, Normal(0, 1))
+            m.x = x = rand(rng, Bernoulli(1))
+            m.b = rand(rng, Gamma(2, 3))
 
             # First observation.
             AdvancedPS.observe(Bernoulli(x / 2), 1)
 
             # Second hidden variable.
-            m.c = rand(Beta())
+            m.c = rand(rng, Beta())
 
             # Second observation.
             AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
-        chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
+        rng = Random.MersenneTwister()
+        chains_smc = sample(rng, TestModel(), AdvancedPS.SMC(100))
 
         @test all(isone(p.f.x) for p in chains_smc.trajectories)
         @test chains_smc.logevidence ≈ -2 * log(2)
@@ -128,23 +131,24 @@
             TestModel() = new()
         end
 
-        function (m::TestModel)()
+        function (m::TestModel)(rng::Random.AbstractRNG)
             # First hidden variables.
-            m.a = rand(Normal(0, 1))
-            m.x = x = rand(Bernoulli(1))
-            m.b = rand(Gamma(2, 3))
+            m.a = rand(rng, Normal(0, 1))
+            m.x = x = rand(rng, Bernoulli(1))
+            m.b = rand(rng, Gamma(2, 3))
 
             # First observation.
             AdvancedPS.observe(Bernoulli(x / 2), 1)
 
             # Second hidden variable.
-            m.c = rand(Beta())
+            m.c = rand(rng, Beta())
 
             # Second observation.
             AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
-        chains_pg = sample(TestModel(), AdvancedPS.PG(10), 100)
+        rng = Random.MersenneTwister()
+        chains_pg = sample(rng, TestModel(), AdvancedPS.PG(10), 100)
 
         @test all(isone(p.trajectory.f.x) for p in chains_pg)
         @test mean(x.logevidence for x in chains_pg) ≈ -2 * log(2) atol = 0.01
@@ -208,4 +212,3 @@ end
 #         check_MoGtest_default(chain2, atol = 0.2)
 #     end
 # end
-
