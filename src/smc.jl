@@ -91,9 +91,9 @@ function AbstractMCMC.step(
     sampler::PG;
     kwargs...,
 )
-	trng = deepcopy(rng)
+	  trng = deepcopy(rng)
 
-	# Create a new set of particles.
+	  # Create a new set of particles.
     particles = ParticleContainer([Trace(model, trng) for _ in 1:sampler.nparticles])
 
     # Perform a particle sweep.
@@ -112,7 +112,7 @@ function AbstractMCMC.step(
     state::PGState;
     kwargs...
 )
-	trng = deepcopy(rng)
+	  trng = deepcopy(rng)
 
     # Create a new set of particles.
     nparticles = sampler.nparticles

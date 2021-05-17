@@ -7,7 +7,7 @@ end
 const Particle = Trace
 
 function Trace(f, rng)
-	trng = TracedRNG(rng)
+  trng = TracedRNG(rng)
 
     ctask = let f=f
         Libtask.CTask() do
@@ -55,7 +55,7 @@ function forkr(trace::Trace)
 
     ctask = let f=trace.ctask.task.code
         Libtask.CTask() do
-            res = f(trace.rng)
+            res = f()(trace.rng)
             Libtask.produce(nothing)
             return res
         end
