@@ -42,8 +42,7 @@
             AdvancedPS.observe(Normal(b, 2), 1.5)
         end
 
-        rng = Random.MersenneTwister()
-        sample(rng, NormalModel(), AdvancedPS.SMC(100))
+        sample(NormalModel(), AdvancedPS.SMC(100))
 
         # failing test
         mutable struct FailSMCModel <: AbstractMCMC.AbstractModel
@@ -61,7 +60,7 @@
             end
         end
 
-        @test_throws ErrorException sample(rng, FailSMCModel(), AdvancedPS.SMC(100))
+        @test_throws ErrorException sample(FailSMCModel(), AdvancedPS.SMC(100))
     end
 
     @testset "logevidence" begin
@@ -92,8 +91,7 @@
             AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
-        rng = Random.MersenneTwister()
-        chains_smc = sample(rng, TestModel(), AdvancedPS.SMC(100))
+        chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
 
         @test all(isone(p.f.x) for p in chains_smc.trajectories)
         @test chains_smc.logevidence ≈ -2 * log(2)
@@ -147,8 +145,7 @@
             AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
-        rng = Random.MersenneTwister()
-        chains_pg = sample(rng, TestModel(), AdvancedPS.PG(10), 100)
+        chains_pg = sample(TestModel(), AdvancedPS.PG(10), 100)
 
         @test all(isone(p.trajectory.f.x) for p in chains_pg)
         @test mean(x.logevidence for x in chains_pg) ≈ -2 * log(2) atol = 0.01

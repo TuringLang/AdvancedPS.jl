@@ -8,6 +8,11 @@ struct TracedRNG{T} <: Random.AbstractRNG where T <: Random.AbstractRNG
     seed
 end
 
+
+struct VectorOfTracedRNG <: Random.AbstractRNG
+end
+
+
 # Set seed manually, for init ?
 Random.seed!(rng::TracedRNG, seed) = Random.seed!(rng.rng, seed)
 # Reset the rng to the initial seed
@@ -15,6 +20,7 @@ Random.seed!(rng::TracedRNG) = Random.seed!(rng.rng, rng.seed)
 
 TracedRNG() = TracedRNG(Random.seed!()) # Pick up an explicit RNG from Random
 TracedRNG(rng::Random.AbstractRNG) = TracedRNG(Ref(0), rng, rng.seed)
+TracedRNG(rng::Random._GLOBAL_RNG) = TracedRNG(Random.default_rng())
 
 # Intercept rand
 # https://github.com/JuliaLang/julia/issues/30732
