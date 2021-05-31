@@ -7,13 +7,13 @@
 #  - http://people.isy.liu.se/rt/schon/Publications/HolSG2006.pdf
 # Code adapted from: http://uk.mathworks.com/matlabcentral/fileexchange/24968-resampling-methods-for-particle-filtering
 
-struct ResampleWithESSThreshold{R, T<:Real}
+struct ResampleWithESSThreshold{R,T<:Real}
     resampler::R
     threshold::T
 end
 
-function ResampleWithESSThreshold(resampler = resample_systematic)
-    ResampleWithESSThreshold(resampler, 0.5)
+function ResampleWithESSThreshold(resampler=resample_systematic)
+    return ResampleWithESSThreshold(resampler, 0.5)
 end
 
 # More stable, faster version of rand(Categorical)
@@ -30,9 +30,7 @@ function randcat(rng::Random.AbstractRNG, p::AbstractVector{<:Real})
 end
 
 function resample_multinomial(
-    rng::Random.AbstractRNG,
-    w::AbstractVector{<:Real},
-    num_particles::Integer = length(w),
+    rng::Random.AbstractRNG, w::AbstractVector{<:Real}, num_particles::Integer=length(w)
 )
     return rand(rng, Distributions.sampler(Distributions.Categorical(w)), num_particles)
 end
@@ -40,7 +38,7 @@ end
 function resample_residual(
     rng::Random.AbstractRNG,
     w::AbstractVector{<:Real},
-    num_particles::Integer = length(weights),
+    num_particles::Integer=length(weights),
 )
     # Pre-allocate array for resampled particles
     indices = Vector{Int}(undef, num_particles)
@@ -67,7 +65,6 @@ function resample_residual(
     return indices
 end
 
-
 """
     resample_stratified(rng, weights, n)
 
@@ -81,9 +78,7 @@ i.e., `xᵢ = j` if and only if
 ``uᵢ \\in [\\sum_{s=1}^{j-1} weights_{s}, \\sum_{s=1}^{j} weights_{s})``.
 """
 function resample_stratified(
-    rng::Random.AbstractRNG,
-    weights::AbstractVector{<:Real},
-    n::Integer = length(weights),
+    rng::Random.AbstractRNG, weights::AbstractVector{<:Real}, n::Integer=length(weights)
 )
     # check input
     m = length(weights)
@@ -130,9 +125,7 @@ normalized `weights`, i.e., `xᵢ = j` if and only if
 ``uᵢ \\in [\\sum_{s=1}^{j-1} weights_{s}, \\sum_{s=1}^{j} weights_{s})``.
 """
 function resample_systematic(
-    rng::Random.AbstractRNG,
-    weights::AbstractVector{<:Real},
-    n::Integer = length(weights),
+    rng::Random.AbstractRNG, weights::AbstractVector{<:Real}, n::Integer=length(weights)
 )
     # check input
     m = length(weights)
