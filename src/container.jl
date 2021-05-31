@@ -6,10 +6,10 @@ end
 
 const Particle = Trace
 
-function Trace(f, rng)
-  trng = TracedRNG(rng)
+function Trace(f, rng::Random.AbstractRNG)
+    trng = TracedRNG(rng)
 
-    ctask = let f=f
+    ctask = let f = f
         Libtask.CTask() do
             res = f(trng)
             Libtask.produce(nothing)
@@ -24,8 +24,13 @@ function Trace(f, rng)
     return newtrace
 end
 
+function Trace(f, ctask::Libtask.CTask)
+    rng = TracedRNG()
+    return Trace(f, ctask, rng)
+end
+
 # Copy task and RNG
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), deepcopy(trace.rng))
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask))
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
