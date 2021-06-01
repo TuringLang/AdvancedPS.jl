@@ -1,10 +1,10 @@
 module AdvancedPS
 
-import AbstractMCMC
-import Distributions
-import Libtask
-import Random
-import StatsFuns
+using AbstractMCMC: AbstractMCMC
+using Distributions: Distributions
+using Libtask: Libtask
+using Random: Random
+using StatsFuns: StatsFuns
 
 include("resampling.jl")
 include("container.jl")

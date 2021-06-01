@@ -31,17 +31,14 @@ function AbstractMCMC.sample(model::AbstractMCMC.AbstractModel, sampler::SMC; kw
 end
 
 function AbstractMCMC.sample(
-    rng::Random.AbstractRNG,
-    model::AbstractMCMC.AbstractModel,
-    sampler::SMC;
-    kwargs...
+    rng::Random.AbstractRNG, model::AbstractMCMC.AbstractModel, sampler::SMC; kwargs...
 )
     if !isempty(kwargs)
         @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
     end
 
     # Create a set of particles.
-    particles = ParticleContainer([Trace(model) for _ in 1:sampler.nparticles])
+    particles = ParticleContainer([Trace(model) for _ in 1:(sampler.nparticles)])
 
     # Perform particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -83,13 +80,10 @@ struct PGSample{T,L}
 end
 
 function AbstractMCMC.step(
-    rng::Random.AbstractRNG,
-    model::AbstractMCMC.AbstractModel,
-    sampler::PG;
-    kwargs...,
+    rng::Random.AbstractRNG, model::AbstractMCMC.AbstractModel, sampler::PG; kwargs...
 )
     # Create a new set of particles.
-    particles = ParticleContainer([Trace(model) for _ in 1:sampler.nparticles])
+    particles = ParticleContainer([Trace(model) for _ in 1:(sampler.nparticles)])
 
     # Perform a particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -105,7 +99,7 @@ function AbstractMCMC.step(
     model::AbstractMCMC.AbstractModel,
     sampler::PG,
     state::PGState;
-    kwargs...
+    kwargs...,
 )
     # Create a new set of particles.
     nparticles = sampler.nparticles
