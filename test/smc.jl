@@ -7,12 +7,12 @@
         sampler = AdvancedPS.SMC(15, 0.6)
         @test sampler.nparticles == 15
         @test sampler.resampler ===
-            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
+              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
 
         sampler = AdvancedPS.SMC(20, AdvancedPS.resample_multinomial, 0.6)
         @test sampler.nparticles == 20
         @test sampler.resampler ===
-            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
+              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
 
         sampler = AdvancedPS.SMC(25, AdvancedPS.resample_systematic)
         @test sampler.nparticles == 25
@@ -39,7 +39,7 @@
             m.b = b = rand(rng, Normal(a, 1))
 
             # Second observation.
-            AdvancedPS.observe(Normal(b, 2), 1.5)
+            return AdvancedPS.observe(Normal(b, 2), 1.5)
         end
 
         sample(NormalModel(), AdvancedPS.SMC(100))
@@ -88,7 +88,7 @@
             m.c = rand(rng, Beta())
 
             # Second observation.
-            AdvancedPS.observe(Bernoulli(x / 2), 0)
+            return AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
         chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
@@ -105,12 +105,12 @@
         sampler = AdvancedPS.PG(60, 0.6)
         @test sampler.nparticles == 60
         @test sampler.resampler ===
-            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
+              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
 
         sampler = AdvancedPS.PG(80, AdvancedPS.resample_multinomial, 0.6)
         @test sampler.nparticles == 80
         @test sampler.resampler ===
-            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
+              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
 
         sampler = AdvancedPS.PG(100, AdvancedPS.resample_systematic)
         @test sampler.nparticles == 100
@@ -142,7 +142,7 @@
             m.c = rand(rng, Beta())
 
             # Second observation.
-            AdvancedPS.observe(Bernoulli(x / 2), 0)
+            return AdvancedPS.observe(Bernoulli(x / 2), 0)
         end
 
         chains_pg = sample(TestModel(), AdvancedPS.PG(10), 100)

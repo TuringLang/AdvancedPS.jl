@@ -43,7 +43,7 @@ reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing
 
 # Task copying version of fork for Trace.
-function fork(trace::Trace, isref::Bool = false)
+function fork(trace::Trace, isref::Bool=false)
     newtrace = copy(trace)
     isref && delete_retained!(newtrace.f)
 
@@ -58,7 +58,7 @@ end
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
 
-    ctask = let f=trace.ctask.task.code
+    ctask = let f = trace.ctask.task.code
         Libtask.CTask() do
             res = f()(trace.rng)
             Libtask.produce(nothing)
@@ -115,7 +115,7 @@ end
 function Base.push!(pc::ParticleContainer, p::Particle)
     push!(pc.vals, p)
     push!(pc.logWs, 0.0)
-    pc
+    return pc
 end
 
 # clones a theta-particle
@@ -126,7 +126,7 @@ function Base.copy(pc::ParticleContainer)
     # copy weights
     logWs = copy(pc.logWs)
 
-    ParticleContainer(vals, logWs)
+    return ParticleContainer(vals, logWs)
 end
 
 """
@@ -193,9 +193,9 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 function resample_propagate!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
-    randcat = resample_systematic,
-    ref::Union{Particle, Nothing} = nothing;
-    weights = getweights(pc)
+    randcat=resample_systematic,
+    ref::Union{Particle,Nothing}=nothing;
+    weights=getweights(pc),
 )
     # check that weights are not NaN
     @assert !any(isnan, weights)
@@ -242,24 +242,24 @@ function resample_propagate!(
     pc.vals = children
     reset_logweights!(pc)
 
-    pc
+    return pc
 end
 
 function resample_propagate!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
     resampler::ResampleWithESSThreshold,
-    ref::Union{Particle,Nothing} = nothing;
-    weights = getweights(pc)
+    ref::Union{Particle,Nothing}=nothing;
+    weights=getweights(pc),
 )
     # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
     ess = inv(sum(abs2, weights))
 
     if ess ≤ resampler.threshold * length(pc)
-        resample_propagate!(rng, pc, resampler.resampler, ref; weights = weights)
+        resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
     end
 
-    pc
+    return pc
 end
 
 """
@@ -300,9 +300,13 @@ function reweight!(pc::ParticleContainer)
 
     # The posterior for models with random number of observations is not well-defined.
     if numdone != 0
-        error("mis-aligned execution traces: # particles = ", n,
-              " # completed trajectories = ", numdone,
-              ". Please make sure the number of observations is NOT random.")
+        error(
+            "mis-aligned execution traces: # particles = ",
+            n,
+            " # completed trajectories = ",
+            numdone,
+            ". Please make sure the number of observations is NOT random.",
+        )
     end
 
     return false

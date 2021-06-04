@@ -27,8 +27,8 @@
 
         # Initial state.
         @test pc.logWs == zeros(3)
-        @test AdvancedPS.getweights(pc) == fill(1/3, 3)
-        @test all(AdvancedPS.getweight(pc, i) == 1/3 for i in 1:3)
+        @test AdvancedPS.getweights(pc) == fill(1 / 3, 3)
+        @test all(AdvancedPS.getweight(pc, i) == 1 / 3 for i in 1:3)
         @test AdvancedPS.logZ(pc) ≈ log(3)
         @test AdvancedPS.effectiveSampleSize(pc) == 3
 
@@ -36,21 +36,26 @@
         AdvancedPS.reweight!(pc)
         @test pc.logWs == logps
         @test AdvancedPS.getweights(pc) ≈ exp.(logps) ./ sum(exp, logps)
-        @test all(AdvancedPS.getweight(pc, i) ≈ exp(logps[i]) / sum(exp, logps) for i in 1:3)
+        @test all(
+            AdvancedPS.getweight(pc, i) ≈ exp(logps[i]) / sum(exp, logps) for i in 1:3
+        )
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, logps))
 
         # Reweight particles.
         AdvancedPS.reweight!(pc)
         @test pc.logWs == 2 .* logps
         @test AdvancedPS.getweights(pc) == exp.(2 .* logps) ./ sum(exp, 2 .* logps)
-        @test all(AdvancedPS.getweight(pc, i) ≈ exp(2 * logps[i]) / sum(exp, 2 .* logps) for i in 1:3)
+        @test all(
+            AdvancedPS.getweight(pc, i) ≈ exp(2 * logps[i]) / sum(exp, 2 .* logps) for
+            i in 1:3
+        )
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, 2 .* logps))
 
         # Resample and propagate particles.
         AdvancedPS.resample_propagate!(Random.GLOBAL_RNG, pc)
         @test pc.logWs == zeros(3)
-        @test AdvancedPS.getweights(pc) == fill(1/3, 3)
-        @test all(AdvancedPS.getweight(pc, i) == 1/3 for i in 1:3)
+        @test AdvancedPS.getweights(pc) == fill(1 / 3, 3)
+        @test all(AdvancedPS.getweight(pc, i) == 1 / 3 for i in 1:3)
         @test AdvancedPS.logZ(pc) ≈ log(3)
         @test AdvancedPS.effectiveSampleSize(pc) == 3
 
@@ -58,7 +63,9 @@
         AdvancedPS.reweight!(pc)
         @test pc.logWs ⊆ logps
         @test AdvancedPS.getweights(pc) == exp.(pc.logWs) ./ sum(exp, pc.logWs)
-        @test all(AdvancedPS.getweight(pc, i) ≈ exp(pc.logWs[i]) / sum(exp, pc.logWs) for i in 1:3)
+        @test all(
+            AdvancedPS.getweight(pc, i) ≈ exp(pc.logWs[i]) / sum(exp, pc.logWs) for i in 1:3
+        )
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, pc.logWs))
 
         # Increase unnormalized logarithmic weights.
