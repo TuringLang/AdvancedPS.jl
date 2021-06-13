@@ -8,9 +8,12 @@ struct TracedRNG{T} <: Random.AbstractRNG where {T<:Random.AbstractRNG}
     seed::Any
 end
 
-
 # Set seed manually, for init ?
-Random.seed!(rng::TracedRNG, seed) = Random.seed!(rng.rng, seed)
+function Random.seed!(rng::TracedRNG, seed)
+    rng.rng.seed = seed
+    return Random.seed!(rng.rng, seed)
+end
+
 # Reset the rng to the initial seed
 Random.seed!(rng::TracedRNG) = Random.seed!(rng.rng, rng.seed)
 

@@ -22,7 +22,7 @@
 
         # Create particle container.
         logps = [0.0, -1.0, -2.0]
-		particles = [AdvancedPS.Trace(fpc(logp), Random.MersenneTwister()) for logp in logps]
+        particles = [AdvancedPS.Trace(fpc(logp), AdvancedPS.TracedRNG()) for logp in logps]
         pc = AdvancedPS.ParticleContainer(particles)
 
         # Initial state.
@@ -94,7 +94,7 @@
         end
 
         # Test task copy version of trace
-		tr = AdvancedPS.Trace(f2, Random.MersenneTwister())
+        tr = AdvancedPS.Trace(f2, AdvancedPS.TracedRNG())
 
         consume(tr.ctask)
         consume(tr.ctask)

@@ -35,10 +35,12 @@ function AbstractMCMC.sample(
 )
     if !isempty(kwargs)
         @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
-	end
+    end
 
     # Create a set of particles.
-    particles = ParticleContainer([Trace(model, TracedRNG()) for _ in 1:sampler.nparticles])
+    particles = ParticleContainer([
+        Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)
+    ])
 
     # Perform particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -83,7 +85,9 @@ function AbstractMCMC.step(
     rng::Random.AbstractRNG, model::AbstractMCMC.AbstractModel, sampler::PG; kwargs...
 )
     # Create a new set of particles.
-    particles = ParticleContainer([Trace(model, TracedRNG()) for _ in 1:sampler.nparticles])
+    particles = ParticleContainer([
+        Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)
+    ])
 
     # Perform a particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)

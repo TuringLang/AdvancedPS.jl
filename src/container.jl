@@ -6,19 +6,17 @@ end
 
 const Particle = Trace
 
-function Trace(f, rng::Random.AbstractRNG)
-    trng = TracedRNG(rng)
-
+function Trace(f, rng::TracedRNG)
     ctask = let f = f
         Libtask.CTask() do
-            res = f(trng)
+            res = f(rng)
             Libtask.produce(nothing)
             return res
         end
     end
 
     # add backward reference
-    newtrace = Trace(f, ctask, trng)
+    newtrace = Trace(f, ctask, rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace
