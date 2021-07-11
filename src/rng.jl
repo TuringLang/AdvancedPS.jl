@@ -2,10 +2,11 @@
 Data structure to keep track of the history of the random stream
 produced by RNG.
 """
-struct TracedRNG{T} <: Random.AbstractRNG where {T<:Random.AbstractRNG}
+mutable struct TracedRNG{T} <: Random.AbstractRNG where {T<:Random.AbstractRNG}
     count::Base.RefValue{Int}
     rng::T
-    seed::Any
+    seed::Array
+    states::Array{T}
 end
 
 # Set seed manually, for init ?
@@ -18,7 +19,7 @@ end
 Random.seed!(rng::TracedRNG) = Random.seed!(rng.rng, rng.seed)
 
 TracedRNG() = TracedRNG(Random.MersenneTwister()) # Pick up an explicit RNG from Random
-TracedRNG(rng::Random.AbstractRNG) = TracedRNG(Ref(0), rng, rng.seed)
+TracedRNG(rng::Random.AbstractRNG) = TracedRNG(Ref(0), rng, rng.seed, [rng])
 TracedRNG(rng::Random._GLOBAL_RNG) = TracedRNG(Random.default_rng())
 
 # Intercept rand
@@ -28,6 +29,7 @@ Random.rng_native_52(r::TracedRNG) = UInt64
 function Base.rand(rng::TracedRNG, ::Type{T}) where {T}
     res = Base.rand(rng.rng, T)
     inc_count!(rng, length(res))
+    push!(rng.states, copy(rng.rng))
     return res
 end
 
