@@ -11,7 +11,7 @@
         # Create a resumable function that always returns the same log probability.
         function fpc(logp)
             f = let logp = logp
-                () -> begin
+                (rng) -> begin
                     while true
                         produce(logp)
                     end
@@ -22,7 +22,7 @@
 
         # Create particle container.
         logps = [0.0, -1.0, -2.0]
-        particles = [AdvancedPS.Trace(fpc(logp)) for logp in logps]
+        particles = [AdvancedPS.Trace(fpc(logp), AdvancedPS.TracedRNG()) for logp in logps]
         pc = AdvancedPS.ParticleContainer(particles)
 
         # Initial state.
@@ -52,7 +52,9 @@
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, 2 .* logps))
 
         # Resample and propagate particles with reference particle
-        particles_ref = [AdvancedPS.Trace(fpc(logp)) for logp in logps]
+        particles_ref = [
+            AdvancedPS.Trace(fpc(logp), AdvancedPS.TracedRNG()) for logp in logps
+        ]
         pc_ref = AdvancedPS.ParticleContainer(particles_ref)
         AdvancedPS.resample_propagate!(
             Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, particles_ref[end]
@@ -95,7 +97,7 @@
 
     @testset "trace" begin
         n = Ref(0)
-        function f2()
+        function f2(rng)
             t = TArray(Int, 1)
             t[1] = 0
             while true
@@ -107,7 +109,7 @@
         end
 
         # Test task copy version of trace
-        tr = AdvancedPS.Trace(f2)
+        tr = AdvancedPS.Trace(f2, AdvancedPS.TracedRNG())
 
         consume(tr.ctask)
         consume(tr.ctask)

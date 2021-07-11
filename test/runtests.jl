@@ -15,4 +15,7 @@ using Test
     @testset "SMC and PG tests" begin
         include("smc.jl")
     end
+    @testset "RNG tests" begin
+        include("rng.jl")
+    end
 end

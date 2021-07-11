@@ -7,6 +7,7 @@ using Random: Random
 using StatsFuns: StatsFuns
 
 include("resampling.jl")
+include("rng.jl")
 include("container.jl")
 include("smc.jl")
 include("model.jl")

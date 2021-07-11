@@ -1,26 +1,33 @@
 struct Trace{F}
     f::F
     ctask::Libtask.CTask
+    rng::TracedRNG
 end
 
 const Particle = Trace
 
-function Trace(f)
+function Trace(f, rng::TracedRNG)
     ctask = let f = f
         Libtask.CTask() do
-            res = f()
+            res = f(rng)
             Libtask.produce(nothing)
             return res
         end
     end
 
     # add backward reference
-    newtrace = Trace(f, ctask)
+    newtrace = Trace(f, ctask, rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace
 end
 
+function Trace(f, ctask::Libtask.CTask)
+    rng = TracedRNG()
+    return Trace(f, ctask, rng)
+end
+
+# Copy task and RNG
 Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask))
 
 # step to the next observe statement and
@@ -48,16 +55,17 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
+
     ctask = let f = trace.ctask.task.code
         Libtask.CTask() do
-            res = f()
+            res = f()(trace.rng)
             Libtask.produce(nothing)
             return res
         end
     end
 
     # add backward reference
-    newtrace = Trace(newf, ctask)
+    newtrace = Trace(newf, ctask, trace.rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace
@@ -81,15 +89,23 @@ Data structure for particle filters
 - normalise!(pc::ParticleContainer)
 - consume(pc::ParticleContainer): return incremental likelihood
 """
-mutable struct ParticleContainer{T<:Particle}
+mutable struct ParticleContainer{T<:Particle,R<:Random.AbstractRNG}
     "Particles."
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
+    "TracedRNG to track the resampling step"
+    rng::TracedRNG{R}
 end
 
 function ParticleContainer(particles::Vector{<:Particle})
-    return ParticleContainer(particles, zeros(length(particles)))
+    return ParticleContainer(particles, zeros(length(particles)), TracedRNG())
+end
+
+function ParticleContainer(
+    particles::Vector{<:Particle}, rng::T
+) where {T<:Random.AbstractRNG}
+    return ParticleContainer(particles, zeros(length(particles)), TracedRNG(rng))
 end
 
 Base.collect(pc::ParticleContainer) = pc.vals
@@ -116,7 +132,7 @@ function Base.copy(pc::ParticleContainer)
     # copy weights
     logWs = copy(pc.logWs)
 
-    return ParticleContainer(vals, logWs)
+    return ParticleContainer(vals, logWs, pc.rng)
 end
 
 """
