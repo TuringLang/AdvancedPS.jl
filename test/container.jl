@@ -52,7 +52,9 @@
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, 2 .* logps))
 
         # Resample and propagate particles with reference particle
-        particles_ref = [AdvancedPS.Trace(fpc(logp)) for logp in logps]
+        particles_ref = [
+            AdvancedPS.Trace(fpc(logp), AdvancedPS.TracedRNG()) for logp in logps
+        ]
         pc_ref = AdvancedPS.ParticleContainer(particles_ref)
         AdvancedPS.resample_propagate!(
             Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, particles_ref[end]
