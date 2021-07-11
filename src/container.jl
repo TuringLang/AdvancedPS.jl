@@ -330,11 +330,16 @@ The resampling steps use the given `resampler`.
 Del Moral, P., Doucet, A., & Jasra, A. (2006). Sequential monte carlo samplers.
 Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(3), 411-436.
 """
-function sweep!(rng::Random.AbstractRNG, pc::ParticleContainer, resampler)
+function sweep!(
+    rng::Random.AbstractRNG,
+    pc::ParticleContainer,
+    resampler,
+    ref::Union{Particle,Nothing}=nothing,
+)
     # Initial step:
 
     # Resample and propagate particles.
-    resample_propagate!(rng, pc, resampler)
+    resample_propagate!(rng, pc, resampler, ref)
 
     # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
     # weights.
@@ -355,7 +360,7 @@ function sweep!(rng::Random.AbstractRNG, pc::ParticleContainer, resampler)
     # For observations ``y₂, …, yₜ``:
     while !isdone
         # Resample and propagate particles.
-        resample_propagate!(rng, pc, resampler)
+        resample_propagate!(rng, pc, resampler, ref)
 
         # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
         # weights.

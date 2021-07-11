@@ -51,6 +51,19 @@
         )
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, 2 .* logps))
 
+        # Resample and propagate particles with reference particle
+        particles_ref = [AdvancedPS.Trace(fpc(logp)) for logp in logps]
+        pc_ref = AdvancedPS.ParticleContainer(particles_ref)
+        AdvancedPS.resample_propagate!(
+            Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, particles_ref[end]
+        )
+        @test pc_ref.logWs == zeros(3)
+        @test AdvancedPS.getweights(pc_ref) == fill(1 / 3, 3)
+        @test all(AdvancedPS.getweight(pc_ref, i) == 1 / 3 for i in 1:3)
+        @test AdvancedPS.logZ(pc_ref) ≈ log(3)
+        @test AdvancedPS.effectiveSampleSize(pc_ref) == 3
+        @test pc_ref.vals[end] === particles_ref[end]
+
         # Resample and propagate particles.
         AdvancedPS.resample_propagate!(Random.GLOBAL_RNG, pc)
         @test pc.logWs == zeros(3)
