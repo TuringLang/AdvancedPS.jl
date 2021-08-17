@@ -46,7 +46,7 @@ Split keys of the internal Philox2x into n distinct seeds
 """
 function split(r::TracedRNG{T}, n::Integer) where {T}
     n == 1 && return [r.rng.key]
-    return map(i -> hash(r.rng.key, r.rng.ctr1 + i), 1:n)
+    return map(i -> hash(r.rng.key, convert(UInt, r.rng.ctr1 + i)), 1:n)
 end
 
 """
