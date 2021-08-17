@@ -1,40 +1,88 @@
+using Random123
+using Random
+using Distributions
+
+import Base.rand
+import Random.seed!
+
+# Use Philox2x for now
+BASE_RNG = Philox2x
+
 """
-Data structure to keep track of the history of the random stream
-produced by RNG.
+    TracedRNG{R,T}
+
+Wrapped random number generator from Random123 to keep track of random streams during model evaluation
 """
-mutable struct TracedRNG{T} <: Random.AbstractRNG where {T<:Random.AbstractRNG}
-    count::Base.RefValue{Int}
+mutable struct TracedRNG{T} <:
+               Random.AbstractRNG where {T<:(Random123.AbstractR123{R} where {R})}
+    count::Int
     rng::T
-    seed::Array
-    states::Array{T}
+    keys
+    counters
 end
 
-# Set seed manually, for init ?
-function Random.seed!(rng::TracedRNG, seed)
-    rng.rng.seed = seed
-    return Random.seed!(rng.rng, seed)
+function TracedRNG(r::Random123.AbstractR123)
+    return TracedRNG(1, r, typeof(r.key)[], typeof(r.ctr1)[])
 end
 
-# Reset the rng to the initial seed
-Random.seed!(rng::TracedRNG) = Random.seed!(rng.rng, rng.seed)
+"""
+    TracedRNG()
 
-TracedRNG() = TracedRNG(Random.MersenneTwister()) # Pick up an explicit RNG from Random
-TracedRNG(rng::Random.AbstractRNG) = TracedRNG(Ref(0), rng, rng.seed, [rng])
-TracedRNG(rng::Random._GLOBAL_RNG) = TracedRNG(Random.default_rng())
-
-# Intercept rand
-# https://github.com/JuliaLang/julia/issues/30732
-Random.rng_native_52(r::TracedRNG) = UInt64
-
-function Base.rand(rng::TracedRNG, ::Type{T}) where {T}
-    res = Base.rand(rng.rng, T)
-    inc_count!(rng, length(res))
-    push!(rng.states, copy(rng.rng))
-    return res
+Create a default TracedRNG
+"""
+function TracedRNG()
+    r = BASE_RNG()
+    return TracedRNG(r)
 end
 
-inc_count!(rng::TracedRNG) = inc_count!(rng, 1)
+# Plug into Random
+Random.rng_native_52(rng::TracedRNG{U}) where {U} = Random.rng_native_52(rng.rng)
+Base.rand(rng::TracedRNG{U}, ::Type{T}) where {U,T} = Base.rand(rng.rng, T)
 
-inc_count!(rng::TracedRNG, n::Int) = rng.count[] += n
+"""
+    split(r::TracedRNG, n::Integer)
 
-curr_count(t::TracedRNG) = t.count[]
+Split keys of the internal Philox2x into n distinct seeds
+"""
+function split(r::TracedRNG{T}, n::Integer) where {T}
+    n == 1 && return [r.rng.key]
+    return map(i -> hash(r.rng.key, convert(UInt, r.rng.ctr1 + i)), 1:n)
+end
+
+"""
+    update_rng!(r::TracedRNG, seed::Number)
+
+Set the key of the wrapped Philox2x rng
+"""
+function seed!(r::TracedRNG{T}, seed) where {T}
+    return seed!(r.rng, seed)
+end
+
+"""
+    reset_rng(r::TracedRNG, seed)
+
+Reset the rng to the running model step
+"""
+function reset_rng!(rng::TracedRNG{T}) where {T}
+    key = rng.keys[rng.count]
+    ctr = rng.counters[rng.count]
+    Random.seed!(rng.rng, key)
+    return set_counter!(rng.rng, ctr)
+end
+
+function save_state!(r::TracedRNG{T}) where {T}
+    push!(r.keys, r.rng.key)
+    return push!(r.counters, r.rng.ctr1)
+end
+
+Base.copy(r::TracedRNG{T}) where {T} = TracedRNG(r.count, copy(r.rng), copy(r.keys))
+
+"""
+    set_count!(r::TracedRNG, n::Integer)
+
+Set the counter of the TracedRNG, used to keep track of the current model step
+"""
+set_count!(r::TracedRNG, n::Integer) = r.count = n
+
+inc_count!(r::TracedRNG, n::Integer) = r.count += n
+inc_count!(r::TracedRNG) = inc_count!(r, 1)

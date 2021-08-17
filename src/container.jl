@@ -23,16 +23,21 @@ function Trace(f, rng::TracedRNG)
 end
 
 function Trace(f, ctask::Libtask.CTask)
-    rng = TracedRNG()
-    return Trace(f, ctask, rng)
+    return Trace(f, ctask, TracedRNG())
 end
 
-# Copy task and RNG
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask))
+# Copy task
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), deepcopy(trace.rng))
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
-advance!(t::Trace) = Libtask.consume(t.ctask)
+function advance!(t::Trace, isref::Bool)
+    isref ? reset_rng!(t.rng) : save_state!(t.rng)
+    inc_count!(t.rng)
+
+    # Move to next step
+    return Libtask.consume(t.ctask)
+end
 
 # reset log probability
 reset_logprob!(t::Trace) = nothing
@@ -55,6 +60,7 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
+    set_count!(trace.rng, 1)
 
     ctask = let f = trace.ctask.task.code
         Libtask.CTask() do
@@ -89,23 +95,15 @@ Data structure for particle filters
 - normalise!(pc::ParticleContainer)
 - consume(pc::ParticleContainer): return incremental likelihood
 """
-mutable struct ParticleContainer{T<:Particle,R<:Random.AbstractRNG}
+mutable struct ParticleContainer{T<:Particle}
     "Particles."
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
-    "TracedRNG to track the resampling step"
-    rng::TracedRNG{R}
 end
 
 function ParticleContainer(particles::Vector{<:Particle})
-    return ParticleContainer(particles, zeros(length(particles)), TracedRNG())
-end
-
-function ParticleContainer(
-    particles::Vector{<:Particle}, rng::T
-) where {T<:Random.AbstractRNG}
-    return ParticleContainer(particles, zeros(length(particles)), TracedRNG(rng))
+    return ParticleContainer(particles, zeros(length(particles)))
 end
 
 Base.collect(pc::ParticleContainer) = pc.vals
@@ -132,7 +130,7 @@ function Base.copy(pc::ParticleContainer)
     # copy weights
     logWs = copy(pc.logWs)
 
-    return ParticleContainer(vals, logWs, pc.rng)
+    return ParticleContainer(vals, logWs)
 end
 
 """
@@ -231,9 +229,12 @@ function resample_propagate!(
             p = isref ? fork(pi, isref) : pi
             children[j += 1] = p
 
+            seeds = split(pi.rng, ni)
             # fork additional children
-            for _ in 2:ni
-                children[j += 1] = fork(p, isref)
+            for k in 2:ni
+                part = fork(p, isref)
+                seed!(part.rng, seeds[k])
+                children[j += 1] = part
             end
         end
     end
@@ -274,7 +275,7 @@ end
 Check if the final time step is reached, and otherwise reweight the particles by
 considering the next observation.
 """
-function reweight!(pc::ParticleContainer)
+function reweight!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
     n = length(pc)
 
     particles = collect(pc)
@@ -286,7 +287,8 @@ function reweight!(pc::ParticleContainer)
         # the execution of the model is finished.
         # Here ``yᵢ`` are observations, ``xᵢ`` variables of the particle filter, and
         # ``θᵢ`` are variables of other samplers.
-        score = advance!(p)
+        isref = p === ref
+        score = advance!(p, isref)
 
         if score === nothing
             numdone += 1
@@ -337,7 +339,6 @@ function sweep!(
     ref::Union{Particle,Nothing}=nothing,
 )
     # Initial step:
-
     # Resample and propagate particles.
     resample_propagate!(rng, pc, resampler, ref)
 
@@ -349,7 +350,7 @@ function sweep!(
     logZ0 = logZ(pc)
 
     # Reweight the particles by including the first observation ``y₁``.
-    isdone = reweight!(pc)
+    isdone = reweight!(pc, ref)
 
     # Compute the normalizing constant ``Z₁`` after reweighting.
     logZ1 = logZ(pc)
@@ -367,7 +368,7 @@ function sweep!(
         logZ0 = logZ(pc)
 
         # Reweight the particles by including the next observation ``yₜ``.
-        isdone = reweight!(pc)
+        isdone = reweight!(pc, ref)
 
         # Compute the normalizing constant ``Z₁`` after reweighting.
         logZ1 = logZ(pc)
