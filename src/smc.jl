@@ -38,12 +38,12 @@ function AbstractMCMC.sample(
     end
 
     # Create a set of particles.
-    particles = ParticleContainer(
-        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], rng
-    )
+    particles = ParticleContainer([
+        Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)
+    ])
 
     # Perform particle sweep.
-    logevidence = sweep!(particles.rng, particles, sampler.resampler)
+    logevidence = sweep!(rng, particles, sampler.resampler)
 
     return SMCSample(collect(particles), getweights(particles), logevidence)
 end
@@ -85,12 +85,12 @@ function AbstractMCMC.step(
     rng::Random.AbstractRNG, model::AbstractMCMC.AbstractModel, sampler::PG; kwargs...
 )
     # Create a new set of particles.
-    particles = ParticleContainer(
-        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], rng
-    )
+    particles = ParticleContainer([
+        Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)
+    ])
 
     # Perform a particle sweep.
-    logevidence = sweep!(particles.rng, particles, sampler.resampler)
+    logevidence = sweep!(rng, particles, sampler.resampler)
 
     # Pick a particle to be retained.
     trajectory = rand(rng, particles)
@@ -115,12 +115,10 @@ function AbstractMCMC.step(
             Trace(model, TracedRNG())
         end
     end
-    particles = ParticleContainer(x, rng)
+    particles = ParticleContainer(x)
 
     # Perform a particle sweep.
-    logevidence = sweep!(
-        particles.rng, particles, sampler.resampler, particles.vals[nparticles]
-    )
+    logevidence = sweep!(rng, particles, sampler.resampler, particles.vals[nparticles])
 
     # Pick a particle to be retained.
     newtrajectory = rand(rng, particles)
