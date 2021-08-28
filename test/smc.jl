@@ -150,7 +150,7 @@
         @test all(isone(p.trajectory.f.x) for p in chains_pg)
         @test mean(x.logevidence for x in chains_pg) ≈ -2 * log(2) atol = 0.01
     end
-    
+
     @testset "Replay reference" begin
         mutable struct Model <: AbstractMCMC.AbstractModel
             a::Float64
@@ -158,17 +158,17 @@
 
             Model() = new()
         end
-        
+
         function (m::Model)(rng)
             m.a = rand(rng, Normal())
             AdvancedPS.observe(Normal(), m.a)
 
             m.b = rand(rng, Normal())
-            AdvancedPS.observe(Normal(), m.b)
+            return AdvancedPS.observe(Normal(), m.b)
         end
 
         pg = AdvancedPS.PG(1)
-        first, second = sample(Model(), pg, 2);
+        first, second = sample(Model(), pg, 2)
 
         first_model = first.trajectory.f
         second_model = second.trajectory.f
