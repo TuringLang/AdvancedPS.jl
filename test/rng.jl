@@ -6,7 +6,7 @@
 
         rand(rng, Distributions.Normal())
 
-        AdvancedPS.reset_rng!(rng)
+        AdvancedPS.load_state(rng)
         new_vns = rand(rng, Distributions.Normal())
         @test new_vns ≈ vns
     end

@@ -5,8 +5,8 @@ using Distributions
 import Base.rand
 import Random.seed!
 
-# Use Philox2x for now
-BASE_RNG = Philox2x
+# Default RNG type for when nothing is specified
+_BASE_RNG = Philox2x
 
 """
     TracedRNG{R,T}
@@ -15,14 +15,22 @@ Wrapped random number generator from Random123 to keep track of random streams d
 """
 mutable struct TracedRNG{T} <:
                Random.AbstractRNG where {T<:(Random123.AbstractR123{R} where {R})}
+    "Model step counter"
     count::Int
+    "Inner RNG"
     rng::T
+    "Array of keys"
     keys
-    counters
 end
 
+"""
+    TracedRNG(r::Random123.AbstractR123)
+
+Initialize TracedRNG with r as the inner RNG 
+"""
 function TracedRNG(r::Random123.AbstractR123)
-    return TracedRNG(1, r, typeof(r.key)[], typeof(r.ctr1)[])
+    set_counter!(r, 1)
+    return TracedRNG(1, r, typeof(r.key)[])
 end
 
 """
@@ -31,48 +39,50 @@ end
 Create a default TracedRNG
 """
 function TracedRNG()
-    r = BASE_RNG()
+    r = _BASE_RNG()
     return TracedRNG(r)
 end
 
-# Plug into Random
+# Connect to the Random API
 Random.rng_native_52(rng::TracedRNG{U}) where {U} = Random.rng_native_52(rng.rng)
 Base.rand(rng::TracedRNG{U}, ::Type{T}) where {U,T} = Base.rand(rng.rng, T)
 
 """
     split(r::TracedRNG, n::Integer)
 
-Split keys of the internal Philox2x into n distinct seeds
+Split inner RNG into n new TracedRNG
 """
 function split(r::TracedRNG{T}, n::Integer) where {T}
-    n == 1 && return [r.rng.key]
     return map(i -> hash(r.rng.key, convert(UInt, r.rng.ctr1 + i)), 1:n)
 end
 
 """
-    update_rng!(r::TracedRNG, seed::Number)
+    seed!(r::TracedRNG, seed::Number)
 
-Set the key of the wrapped Philox2x rng
+Set the key of the inner RNG as `seed`
 """
 function seed!(r::TracedRNG{T}, seed) where {T}
     return seed!(r.rng, seed)
 end
 
 """
-    reset_rng(r::TracedRNG, seed)
+    load_state(r::TracedRNG, seed)
 
-Reset the rng to the running model step
+Load state from current model iteration. Random streams are now replayed
 """
-function reset_rng!(rng::TracedRNG{T}) where {T}
+function load_state(rng::TracedRNG{T}) where {T}
     key = rng.keys[rng.count]
-    ctr = rng.counters[rng.count]
     Random.seed!(rng.rng, key)
-    return set_counter!(rng.rng, ctr)
+    return set_counter!(rng.rng, rng.count)
 end
 
+""" 
+    save_state!(r::TracedRNG)
+
+Track current key of the inner RNG
+"""
 function save_state!(r::TracedRNG{T}) where {T}
-    push!(r.keys, r.rng.key)
-    return push!(r.counters, r.rng.ctr1)
+    return push!(r.keys, r.rng.key)
 end
 
 Base.copy(r::TracedRNG{T}) where {T} = TracedRNG(r.count, copy(r.rng), copy(r.keys))
