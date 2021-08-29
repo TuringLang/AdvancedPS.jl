@@ -289,8 +289,7 @@ function resample_propagate!(
     # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
     ess = inv(sum(abs2, weights))
 
-    #if ess ≤ resampler.threshold * length(pc)
-    if true
+    if ess ≤ resampler.threshold * length(pc)
         resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
     else
         update_keys!(pc, ref)
