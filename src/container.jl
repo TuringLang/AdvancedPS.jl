@@ -32,7 +32,7 @@ Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), deepcopy(trace.rng))
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
 function advance!(t::Trace, isref::Bool)
-    isref ? reset_rng!(t.rng) : save_state!(t.rng)
+    isref ? load_state(t.rng) : save_state!(t.rng)
     inc_count!(t.rng)
 
     # Move to next step
@@ -100,10 +100,16 @@ mutable struct ParticleContainer{T<:Particle}
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
+    "Traced RNG"
+    rng::TracedRNG
 end
 
 function ParticleContainer(particles::Vector{<:Particle})
-    return ParticleContainer(particles, zeros(length(particles)))
+    return ParticleContainer(particles, zeros(length(particles)), TracedRNG())
+end
+
+function ParticleContainer(particles::Vector{<:Particle}, r::TracedRNG)
+    return ParticleContainer(particles, zeros(length(particles)), r)
 end
 
 Base.collect(pc::ParticleContainer) = pc.vals
@@ -130,7 +136,10 @@ function Base.copy(pc::ParticleContainer)
     # copy weights
     logWs = copy(pc.logWs)
 
-    return ParticleContainer(vals, logWs)
+    # Copy rng and states
+    rng = copy(pc.rng)
+
+    return ParticleContainer(vals, logWs, rng)
 end
 
 """
@@ -185,6 +194,22 @@ function effectiveSampleSize(pc::ParticleContainer)
 end
 
 """
+    update_keys!(pc::ParticleContainer)
+
+Create new unique keys for the particles in the ParticleContainer
+"""
+function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
+    # Update keys to new particle ids
+    nparticles = length(pc)
+    n = ref === nothing ? nparticles : nparticles - 1
+    for i in 1:n
+        pi = pc.vals[i]
+        k = split(pi.rng, 1)
+        update_rng!(pi.rng, k[1])
+    end
+end
+
+"""
     resample_propagate!(rng, pc::ParticleContainer[, randcat = resample_systematic,
                         ref = nothing; weights = getweights(pc)])
 
@@ -227,13 +252,15 @@ function resample_propagate!(
             pi = particles[i]
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
-            children[j += 1] = p
 
-            seeds = split(pi.rng, ni)
+            seeds = split(p.rng, ni)
+            !isref && update_rng!(p.rng, seeds[1])
+
+            children[j += 1] = p
             # fork additional children
             for k in 2:ni
                 part = fork(p, isref)
-                seed!(part.rng, seeds[k])
+                update_rng!(part.rng, seeds[k])
                 children[j += 1] = part
             end
         end
@@ -264,6 +291,8 @@ function resample_propagate!(
 
     if ess ≤ resampler.threshold * length(pc)
         resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
+    else
+        update_keys!(pc, ref)
     end
 
     return pc
