@@ -76,6 +76,16 @@ function load_state(rng::TracedRNG{T}) where {T}
     return set_counter!(rng.rng, rng.count)
 end
 
+"""
+    update_rng!(rng::TracedRNG)
+
+Set key and counter of inner RNG to key and the running model step
+"""
+function update_rng!(rng::TracedRNG{T}, key) where {T}
+    seed!(rng, key)
+    return set_counter!(rng.rng, rng.count)
+end
+
 """ 
     save_state!(r::TracedRNG)
 

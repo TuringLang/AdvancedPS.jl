@@ -198,13 +198,14 @@ end
 
 Create new unique keys for the particles in the ParticleContainer
 """
-function update_keys!(pc::ParticleContainer)
+function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
     # Update keys to new particle ids
-    for i in 1:length(pc)
+    nparticles = length(pc)
+    n = ref === nothing ? nparticles : nparticles - 1
+    for i in 1:n
         pi = pc.vals[i]
         k = split(pi.rng, 1)
-        seed!(pi.rng, k[1])
-        set_counter!(pi.rng.rng, pi.rng.count)
+        update_rng!(pi.rng, k[1])
     end
 end
 
@@ -253,13 +254,13 @@ function resample_propagate!(
             p = isref ? fork(pi, isref) : pi
 
             seeds = split(p.rng, ni)
-            seed!(p.rng, seeds[1])
+            !isref && update_rng!(p.rng, seeds[1])
 
             children[j += 1] = p
             # fork additional children
             for k in 2:ni
                 part = fork(p, isref)
-                seed!(part.rng, seeds[k])
+                update_rng!(part.rng, seeds[k])
                 children[j += 1] = part
             end
         end
@@ -288,10 +289,11 @@ function resample_propagate!(
     # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
     ess = inv(sum(abs2, weights))
 
-    if ess ≤ resampler.threshold * length(pc)
+    #if ess ≤ resampler.threshold * length(pc)
+    if true
         resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
     else
-        update_keys!(pc)
+        update_keys!(pc, ref)
     end
 
     return pc
