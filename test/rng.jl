@@ -18,7 +18,7 @@
 
         @test key ≠ new_key
 
-        seed!(rng)
-        @test rng.rng.key === new_seed
+        AdvancedPS.seed!(rng, new_key)
+        @test rng.rng.key === new_key
     end
 end
