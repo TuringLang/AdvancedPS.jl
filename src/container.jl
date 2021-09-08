@@ -32,8 +32,8 @@ Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), deepcopy(trace.rng))
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
 function advance!(t::Trace, isref::Bool)
-    isref ? load_state(t.rng) : save_state!(t.rng)
-    inc_count!(t.rng)
+    isref ? load_state!(t.rng) : save_state!(t.rng)
+    inc_counter!(t.rng)
 
     # Move to next step
     return Libtask.consume(t.ctask)
@@ -60,7 +60,7 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
-    set_count!(trace.rng, 1)
+    set_counter!(trace.rng, 1)
 
     ctask = let f = trace.ctask.task.code
         Libtask.CTask() do
@@ -100,7 +100,7 @@ mutable struct ParticleContainer{T<:Particle}
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
-    "Traced RNG"
+    "Traced RNG to replay the resampling step"
     rng::TracedRNG
 end
 
@@ -204,8 +204,8 @@ function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothin
     n = ref === nothing ? nparticles : nparticles - 1
     for i in 1:n
         pi = pc.vals[i]
-        k = split(pi.rng, 1)
-        update_rng!(pi.rng, k[1])
+        k = split(pi.rng.rng.key)
+        seed!(pi.rng, k[1])
     end
 end
 
@@ -252,15 +252,16 @@ function resample_propagate!(
             pi = particles[i]
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
+            nseeds = isref ? ni - 1 : ni
 
-            seeds = split(p.rng, ni)
-            !isref && update_rng!(p.rng, seeds[1])
+            seeds = split(p.rng.rng.key, nseeds)
+            !isref && seed!(p.rng, seeds[1])
 
             children[j += 1] = p
             # fork additional children
             for k in 2:ni
                 part = fork(p, isref)
-                update_rng!(part.rng, seeds[k])
+                seed!(part.rng, seeds[k])
                 children[j += 1] = part
             end
         end
