@@ -100,7 +100,7 @@ mutable struct ParticleContainer{T<:Particle}
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
-    "Traced RNG"
+    "Traced RNG to replay the resampling step"
     rng::TracedRNG
 end
 
