@@ -1,7 +1,7 @@
-struct Trace{F}
+struct Trace{F,U,N,V<:Random123.AbstractR123{U}}
     f::F
     ctask::Libtask.CTask
-    rng::TracedRNG
+    rng::TracedRNG{U,N,V}
 end
 
 const Particle = Trace
@@ -60,7 +60,7 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
-    set_counter!(trace.rng, 1)
+    Random123.set_counter!(trace.rng, 1)
 
     ctask = let f = trace.ctask.task.code
         Libtask.CTask() do
@@ -95,13 +95,13 @@ Data structure for particle filters
 - normalise!(pc::ParticleContainer)
 - consume(pc::ParticleContainer): return incremental likelihood
 """
-mutable struct ParticleContainer{T<:Particle}
+mutable struct ParticleContainer{T<:Particle,U,N,V<:Random123.AbstractR123{U}}
     "Particles."
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
     "Traced RNG to replay the resampling step"
-    rng::TracedRNG
+    rng::TracedRNG{U,N,V}
 end
 
 function ParticleContainer(particles::Vector{<:Particle})
@@ -205,7 +205,7 @@ function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothin
     for i in 1:n
         pi = pc.vals[i]
         k = split(pi.rng.rng.key)
-        seed!(pi.rng, k[1])
+        Random.seed!(pi.rng, k[1])
     end
 end
 
@@ -255,13 +255,13 @@ function resample_propagate!(
             nseeds = isref ? ni - 1 : ni
 
             seeds = split(p.rng.rng.key, nseeds)
-            !isref && seed!(p.rng, seeds[1])
+            !isref && Random.seed!(p.rng, seeds[1])
 
             children[j += 1] = p
             # fork additional children
             for k in 2:ni
                 part = fork(p, isref)
-                seed!(part.rng, seeds[k])
+                Random.seed!(part.rng, seeds[k])
                 children[j += 1] = part
             end
         end
