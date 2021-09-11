@@ -18,7 +18,7 @@
 
         @test key ≠ new_key
 
-        AdvancedPS.seed!(rng, new_key)
+        Random.seed!(rng, new_key)
         @test rng.rng.key === new_key
     end
 end
