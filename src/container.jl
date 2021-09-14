@@ -1,31 +1,43 @@
-struct Trace{F}
+struct Trace{F,U,N,V<:Random123.AbstractR123{U}}
     f::F
     ctask::Libtask.CTask
+    rng::TracedRNG{U,N,V}
 end
 
 const Particle = Trace
 
-function Trace(f)
+function Trace(f, rng::TracedRNG)
     ctask = let f = f
         Libtask.CTask() do
-            res = f()
+            res = f(rng)
             Libtask.produce(nothing)
             return res
         end
     end
 
     # add backward reference
-    newtrace = Trace(f, ctask)
+    newtrace = Trace(f, ctask, rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace
 end
 
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask))
+function Trace(f, ctask::Libtask.CTask)
+    return Trace(f, ctask, TracedRNG())
+end
+
+# Copy task
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), deepcopy(trace.rng))
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
-advance!(t::Trace) = Libtask.consume(t.ctask)
+function advance!(t::Trace, isref::Bool)
+    isref ? load_state!(t.rng) : save_state!(t.rng)
+    inc_counter!(t.rng)
+
+    # Move to next step
+    return Libtask.consume(t.ctask)
+end
 
 # reset log probability
 reset_logprob!(t::Trace) = nothing
@@ -48,16 +60,18 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
+    Random123.set_counter!(trace.rng, 1)
+
     ctask = let f = trace.ctask.task.code
         Libtask.CTask() do
-            res = f()
+            res = f()(trace.rng)
             Libtask.produce(nothing)
             return res
         end
     end
 
     # add backward reference
-    newtrace = Trace(newf, ctask)
+    newtrace = Trace(newf, ctask, trace.rng)
     addreference!(ctask.task, newtrace)
 
     return newtrace
@@ -81,15 +95,21 @@ Data structure for particle filters
 - normalise!(pc::ParticleContainer)
 - consume(pc::ParticleContainer): return incremental likelihood
 """
-mutable struct ParticleContainer{T<:Particle}
+mutable struct ParticleContainer{T<:Particle,U,N,V<:Random123.AbstractR123{U}}
     "Particles."
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
+    "Traced RNG to replay the resampling step"
+    rng::TracedRNG{U,N,V}
 end
 
 function ParticleContainer(particles::Vector{<:Particle})
-    return ParticleContainer(particles, zeros(length(particles)))
+    return ParticleContainer(particles, zeros(length(particles)), TracedRNG())
+end
+
+function ParticleContainer(particles::Vector{<:Particle}, r::TracedRNG)
+    return ParticleContainer(particles, zeros(length(particles)), r)
 end
 
 Base.collect(pc::ParticleContainer) = pc.vals
@@ -116,7 +136,10 @@ function Base.copy(pc::ParticleContainer)
     # copy weights
     logWs = copy(pc.logWs)
 
-    return ParticleContainer(vals, logWs)
+    # Copy rng and states
+    rng = copy(pc.rng)
+
+    return ParticleContainer(vals, logWs, rng)
 end
 
 """
@@ -171,6 +194,22 @@ function effectiveSampleSize(pc::ParticleContainer)
 end
 
 """
+    update_keys!(pc::ParticleContainer)
+
+Create new unique keys for the particles in the ParticleContainer
+"""
+function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
+    # Update keys to new particle ids
+    nparticles = length(pc)
+    n = ref === nothing ? nparticles : nparticles - 1
+    for i in 1:n
+        pi = pc.vals[i]
+        k = split(pi.rng.rng.key)
+        Random.seed!(pi.rng, k[1])
+    end
+end
+
+"""
     resample_propagate!(rng, pc::ParticleContainer[, randcat = resample_systematic,
                         ref = nothing; weights = getweights(pc)])
 
@@ -213,11 +252,17 @@ function resample_propagate!(
             pi = particles[i]
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
-            children[j += 1] = p
+            nseeds = isref ? ni - 1 : ni
 
+            seeds = split(p.rng.rng.key, nseeds)
+            !isref && Random.seed!(p.rng, seeds[1])
+
+            children[j += 1] = p
             # fork additional children
-            for _ in 2:ni
-                children[j += 1] = fork(p, isref)
+            for k in 2:ni
+                part = fork(p, isref)
+                Random.seed!(part.rng, seeds[k])
+                children[j += 1] = part
             end
         end
     end
@@ -247,6 +292,8 @@ function resample_propagate!(
 
     if ess ≤ resampler.threshold * length(pc)
         resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
+    else
+        update_keys!(pc, ref)
     end
 
     return pc
@@ -258,7 +305,7 @@ end
 Check if the final time step is reached, and otherwise reweight the particles by
 considering the next observation.
 """
-function reweight!(pc::ParticleContainer)
+function reweight!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
     n = length(pc)
 
     particles = collect(pc)
@@ -270,7 +317,8 @@ function reweight!(pc::ParticleContainer)
         # the execution of the model is finished.
         # Here ``yᵢ`` are observations, ``xᵢ`` variables of the particle filter, and
         # ``θᵢ`` are variables of other samplers.
-        score = advance!(p)
+        isref = p === ref
+        score = advance!(p, isref)
 
         if score === nothing
             numdone += 1
@@ -321,7 +369,6 @@ function sweep!(
     ref::Union{Particle,Nothing}=nothing,
 )
     # Initial step:
-
     # Resample and propagate particles.
     resample_propagate!(rng, pc, resampler, ref)
 
@@ -333,7 +380,7 @@ function sweep!(
     logZ0 = logZ(pc)
 
     # Reweight the particles by including the first observation ``y₁``.
-    isdone = reweight!(pc)
+    isdone = reweight!(pc, ref)
 
     # Compute the normalizing constant ``Z₁`` after reweighting.
     logZ1 = logZ(pc)
@@ -351,7 +398,7 @@ function sweep!(
         logZ0 = logZ(pc)
 
         # Reweight the particles by including the next observation ``yₜ``.
-        isdone = reweight!(pc)
+        isdone = reweight!(pc, ref)
 
         # Compute the normalizing constant ``Z₁`` after reweighting.
         logZ1 = logZ(pc)

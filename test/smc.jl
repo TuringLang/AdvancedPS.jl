@@ -28,19 +28,20 @@
             NormalModel() = new()
         end
 
-        function (m::NormalModel)()
+        function (m::NormalModel)(rng::Random.AbstractRNG)
             # First latent variable.
-            m.a = a = rand(Normal(4, 5))
+            m.a = a = rand(rng, Normal(4, 5))
 
             # First observation.
             AdvancedPS.observe(Normal(a, 2), 3)
 
             # Second latent variable.
-            m.b = b = rand(Normal(a, 1))
+            m.b = b = rand(rng, Normal(a, 1))
 
             # Second observation.
             return AdvancedPS.observe(Normal(b, 2), 1.5)
         end
+
         sample(NormalModel(), AdvancedPS.SMC(100))
 
         # failing test
@@ -51,9 +52,9 @@
             FailSMCModel() = new()
         end
 
-        function (m::FailSMCModel)()
-            m.a = a = rand(Normal(4, 5))
-            m.b = b = rand(Normal(a, 1))
+        function (m::FailSMCModel)(rng::Random.AbstractRNG)
+            m.a = a = rand(rng, Normal(4, 5))
+            m.b = b = rand(rng, Normal(a, 1))
             if a >= 4
                 AdvancedPS.observe(Normal(b, 2), 1.5)
             end
@@ -74,17 +75,17 @@
             TestModel() = new()
         end
 
-        function (m::TestModel)()
+        function (m::TestModel)(rng::Random.AbstractRNG)
             # First hidden variables.
-            m.a = rand(Normal(0, 1))
-            m.x = x = rand(Bernoulli(1))
-            m.b = rand(Gamma(2, 3))
+            m.a = rand(rng, Normal(0, 1))
+            m.x = x = rand(rng, Bernoulli(1))
+            m.b = rand(rng, Gamma(2, 3))
 
             # First observation.
             AdvancedPS.observe(Bernoulli(x / 2), 1)
 
             # Second hidden variable.
-            m.c = rand(Beta())
+            m.c = rand(rng, Beta())
 
             # Second observation.
             return AdvancedPS.observe(Bernoulli(x / 2), 0)
@@ -128,17 +129,17 @@
             TestModel() = new()
         end
 
-        function (m::TestModel)()
+        function (m::TestModel)(rng::Random.AbstractRNG)
             # First hidden variables.
-            m.a = rand(Normal(0, 1))
-            m.x = x = rand(Bernoulli(1))
-            m.b = rand(Gamma(2, 3))
+            m.a = rand(rng, Normal(0, 1))
+            m.x = x = rand(rng, Bernoulli(1))
+            m.b = rand(rng, Gamma(2, 3))
 
             # First observation.
             AdvancedPS.observe(Bernoulli(x / 2), 1)
 
             # Second hidden variable.
-            m.c = rand(Beta())
+            m.c = rand(rng, Beta())
 
             # Second observation.
             return AdvancedPS.observe(Bernoulli(x / 2), 0)
@@ -148,6 +149,34 @@
 
         @test all(isone(p.trajectory.f.x) for p in chains_pg)
         @test mean(x.logevidence for x in chains_pg) ≈ -2 * log(2) atol = 0.01
+    end
+
+    @testset "Replay reference" begin
+        mutable struct Model <: AbstractMCMC.AbstractModel
+            a::Float64
+            b::Float64
+
+            Model() = new()
+        end
+
+        function (m::Model)(rng)
+            m.a = rand(rng, Normal())
+            AdvancedPS.observe(Normal(), m.a)
+
+            m.b = rand(rng, Normal())
+            return AdvancedPS.observe(Normal(), m.b)
+        end
+
+        pg = AdvancedPS.PG(1)
+        first, second = sample(Model(), pg, 2)
+
+        first_model = first.trajectory.f
+        second_model = second.trajectory.f
+
+        # Single Particle - must be replaying
+        @test first_model.a ≈ second_model.a
+        @test first_model.b ≈ second_model.b
+        @test first.logevidence ≈ second.logevidence
     end
 end
 
