@@ -1,7 +1,7 @@
-struct Trace{F,U,N,V<:Random123.AbstractR123{U}}
+struct Trace{F,R<:TracedRNG}
     f::F
     ctask::Libtask.CTask
-    rng::TracedRNG{U,N,V}
+    rng::R
 end
 
 const Particle = Trace
@@ -95,13 +95,13 @@ Data structure for particle filters
 - normalise!(pc::ParticleContainer)
 - consume(pc::ParticleContainer): return incremental likelihood
 """
-mutable struct ParticleContainer{T<:Particle,U,N,V<:Random123.AbstractR123{U}}
+mutable struct ParticleContainer{T<:Particle,R<:TracedRNG}
     "Particles."
     vals::Vector{T}
     "Unnormalized logarithmic weights."
     logWs::Vector{Float64}
     "Traced RNG to replay the resampling step"
-    rng::TracedRNG{U,N,V}
+    rng::R
 end
 
 function ParticleContainer(particles::Vector{<:Particle})
@@ -207,6 +207,7 @@ function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothin
         k = split(pi.rng.rng.key)
         Random.seed!(pi.rng, k[1])
     end
+    return nothing
 end
 
 """
