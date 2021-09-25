@@ -11,7 +11,7 @@
         # Create a resumable function that always returns the same log probability.
         function fpc(logp)
             f = let logp = logp
-                (rng) -> begin
+                rng -> begin
                     while true
                         produce(logp)
                     end
