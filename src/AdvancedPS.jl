@@ -9,8 +9,9 @@ using Random123: Random123
 
 include("resampling.jl")
 include("rng.jl")
-include("container.jl")
-include("smc.jl")
 include("model.jl")
+include("container.jl")
+include("pgas.jl")
+include("smc.jl")
 
 end
