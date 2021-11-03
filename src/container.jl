@@ -1,11 +1,3 @@
-struct Trace{F,R<:TracedRNG}
-    f::F
-    ctask::Libtask.CTask
-    rng::R
-end
-
-const Particle = Trace
-
 function Trace(f, rng::TracedRNG)
     ctask = let f = f
         Libtask.CTask() do
@@ -40,7 +32,7 @@ function advance!(t::Trace, isref::Bool)
 end
 
 # reset log probability
-reset_logprob!(t::Trace) = nothing
+reset_logprob!(t::Particle) = nothing
 
 reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing
@@ -289,7 +281,7 @@ function resample_propagate!(
     # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
     ess = inv(sum(abs2, weights))
 
-    if ess ≤ resampler.threshold * length(pc)
+    if ess ≤ resampler.threshold * length(pc) # If threshold == 1, we resample at timestep one, potentially duplicating the ref part.
         resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
     else
         update_keys!(pc, ref)

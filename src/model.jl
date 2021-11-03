@@ -1,3 +1,20 @@
+""" Abstract type for an abstract model formulated in the state space form
+"""
+abstract type AbstractStateSpaceModel <: AbstractMCMC.AbstractModel end
+
+struct Trace{F,R<:TracedRNG}
+    f::F
+    ctask::Libtask.CTask
+    rng::R
+end
+
+struct SSMTrace{F<:AdvancedPS.AbstractStateSpaceModel,R<:TracedRNG}
+    f::F
+    rng::R
+end
+
+const Particle = Union{Trace,SSMTrace}
+
 """
     observe(dist::Distribution, x)
 
