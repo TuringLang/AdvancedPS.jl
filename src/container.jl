@@ -91,9 +91,7 @@ current_trace() = current_task().storage[:__trace]
 
 """
 Data structure for particle filters
-- effectiveSampleSize(pc :: ParticleContainer)
-- normalise!(pc::ParticleContainer)
-- consume(pc::ParticleContainer): return incremental likelihood
+- `effectiveSampleSize(pc :: ParticleContainer)`: Return the effective sample size of the particles in `pc`
 """
 mutable struct ParticleContainer{T<:Particle,R<:TracedRNG}
     "Particles."

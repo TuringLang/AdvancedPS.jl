@@ -5,6 +5,20 @@
 [![Coverage](https://coveralls.io/repos/github/TuringLang/AdvancedPS.jl/badge.svg?branch=master)](https://coveralls.io/github/TuringLang/AdvancedPS.jl?branch=master)
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
+AdvancedPS provides and efficient implementation of common particle based Monte Carlo samplers using the [AbstractMCMC](https://github.com/TuringLang/AbstractMCMC.jl) interface.
+AdvancedPS is part of the [Turing](https://turing.ml/stable/) ecosystem.
+
+### Installation
+
+Inside the julia REPL
+```julia
+julia>] add AdvancedPS
+```
+
+### Examples
+
+Detailed examples are available in the [documentation](https://turinglang.github.io/AdvancedPS.jl/stable/)
+
 ### Reference
 
 1. Doucet, Arnaud, and Adam M. Johansen. "A tutorial on particle filtering and smoothing: Fifteen years later." Handbook of nonlinear filtering 12, no. 656-704 (2009): 3.
@@ -20,7 +34,4 @@
 6. Doucet, Arnaud, Nando de Freitas, and Neil Gordon. "Sequential Monte Carlo Methods in Practice."
 
 7. Del Moral, Pierre, Arnaud Doucet, and Ajay Jasra. "Sequential Monte Carlo samplers." Journal of the Royal Statistical Society: Series B (Statistical Methodology) 68, no. 3 (2006): 411-436.
-
-
-
 
