@@ -41,12 +41,6 @@ isempty(processes) || success(processes) || error("some examples were not run su
 
 # Building Documenter
 using Documenter
-
-# Print `@debug` statements (https://github.com/JuliaDocs/Documenter.jl/issues/955)
-if haskey(ENV, "GITHUB_ACTIONS")
-    ENV["JULIA_DEBUG"] = "Documenter"
-end
-
 using AdvancedPS
 
 DocMeta.setdocmeta!(AdvancedPS, :DocTestSetup, :(using AdvancedPS); recursive=true)
@@ -66,6 +60,7 @@ makedocs(;
             )...,
         ],
     ],
+    strict=true,
     checkdocs=:exports,
     doctestfilters=[
         # Older versions will show "0 element Array" instead of "Type[]".

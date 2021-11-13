@@ -5,12 +5,13 @@
 [![Coverage](https://coveralls.io/repos/github/TuringLang/AdvancedPS.jl/badge.svg?branch=master)](https://coveralls.io/github/TuringLang/AdvancedPS.jl?branch=master)
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
-AdvancedPS provides and efficient implementation of common particle based Monte Carlo samplers using the [AbstractMCMC](https://github.com/TuringLang/AbstractMCMC.jl) interface.
+AdvancedPS provides an efficient implementation of common particle based Monte Carlo samplers using the [AbstractMCMC](https://github.com/TuringLang/AbstractMCMC.jl) interface.
+The package also relies on [Libtask](https://github.com/TuringLang/Libtask.jl) for task manipulation.
 AdvancedPS is part of the [Turing](https://turing.ml/stable/) ecosystem.
 
 ### Installation
 
-Inside the julia REPL
+Inside the Julia REPL
 ```julia
 julia>] add AdvancedPS
 ```
