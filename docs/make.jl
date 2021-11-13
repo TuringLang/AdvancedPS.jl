@@ -77,4 +77,4 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo="github.com/FredericWantiez/AdvancedPS.jl.git", push_preview=true)
+deploydocs(; repo="github.com/TuringLang/AdvancedPS.jl.git", push_preview=true)
