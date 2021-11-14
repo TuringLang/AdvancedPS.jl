@@ -18,7 +18,7 @@ julia>] add AdvancedPS
 
 ### Examples
 
-Detailed examples are available in the [documentation](https://turinglang.github.io/AdvancedPS.jl/stable/)
+Detailed examples are available in the [documentation](https://turinglang.github.io/AdvancedPS.jl/dev/)
 
 ### Reference
 
