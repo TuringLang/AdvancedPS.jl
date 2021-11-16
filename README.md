@@ -1,5 +1,7 @@
 # AdvancedPS
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://turinglang.github.io/AdvancedPS.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://turinglang.github.io/AdvancedPS.jl/dev)
 [![Build Status](https://github.com/TuringLang/AdvancedPS.jl/workflows/CI/badge.svg?branch=master)](https://github.com/TuringLang/AdvancedPS.jl/actions?query=workflow%3ACI%20branch%3Amaster)
 [![Coverage](https://codecov.io/gh/TuringLang/AdvancedPS.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/TuringLang/AdvancedPS.jl)
 [![Coverage](https://coveralls.io/repos/github/TuringLang/AdvancedPS.jl/badge.svg?branch=master)](https://coveralls.io/github/TuringLang/AdvancedPS.jl?branch=master)
