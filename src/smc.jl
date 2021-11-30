@@ -18,7 +18,7 @@ SMC(nparticles::Int) = SMC(nparticles, ResampleWithESSThreshold())
 function SMC(nparticles::Int, resampler, threshold::Real)
     return SMC(nparticles, ResampleWithESSThreshold(resampler, threshold))
 end
-SMC(nparticles::Int, threshold::Real) = SMC(nparticles, resample_systematic, threshold)
+SMC(nparticles::Int, threshold::Real) = SMC(nparticles, DEFAULT_RESAMPLER, threshold)
 
 struct SMCSample{P,W,L}
     trajectories::P
@@ -70,7 +70,7 @@ PG(nparticles::Int) = PG(nparticles, ResampleWithESSThreshold())
 function PG(nparticles::Int, resampler, threshold::Real)
     return PG(nparticles, ResampleWithESSThreshold(resampler, threshold))
 end
-PG(nparticles::Int, threshold::Real) = PG(nparticles, resample_systematic, threshold)
+PG(nparticles::Int, threshold::Real) = PG(nparticles, DEFAULT_RESAMPLER, threshold)
 
 struct PGState{T}
     trajectory::T
@@ -88,13 +88,7 @@ struct PGAS{R} <: AbstractMCMC.AbstractSampler
     resampler::R
 end
 
-PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold())
-
-# Convenient constructors with ESS threshold
-function PGAS(nparticles::Int, resampler, threshold::Real)
-    return PGAS(nparticles, ResampleWithESSThreshold(resampler, threshold))
-end
-PGAS(nparticles::Int, threshold::Real) = PGAS(nparticles, resample_systematic, threshold)
+PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold(1.0))
 
 function AbstractMCMC.step(
     rng::Random.AbstractRNG, model::AbstractMCMC.AbstractModel, sampler::PG; kwargs...

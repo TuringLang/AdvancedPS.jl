@@ -135,6 +135,13 @@ function Base.copy(pc::ParticleContainer)
 end
 
 """
+    update_ref!(particle::Trace, pc::ParticleContainer)
+
+Update reference trajectory. Defaults to `nothing`
+"""
+update_ref!(particle::Trace, pc::ParticleContainer, weights) = nothing
+
+"""
     reset_logweights!(pc::ParticleContainer)
 
 Reset all unnormalized logarithmic weights to zero.
@@ -215,13 +222,10 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 function resample_propagate!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
-    randcat=resample_systematic,
+    randcat=DEFAULT_RESAMPLER,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
 )
-    # check that weights are not NaN
-    @assert !any(isnan, weights)
-
     # sample ancestor indices
     n = length(pc)
     nresamples = ref === nothing ? n : n - 1
@@ -263,6 +267,7 @@ function resample_propagate!(
     if ref !== nothing
         # Insert the retained particle. This is based on the replaying trick for efficiency
         # reasons. If we implement PG using task copying, we need to store Nx * T particles!
+        update_ref!(ref, pc, weights)
         @inbounds children[n] = ref
     end
 
@@ -283,7 +288,7 @@ function resample_propagate!(
     # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
     ess = inv(sum(abs2, weights))
 
-    if ess ≤ resampler.threshold * length(pc) # If threshold == 1, we resample at timestep one, potentially duplicating the ref part.
+    if ess ≤ resampler.threshold * length(pc)
         resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
     else
         update_keys!(pc, ref)

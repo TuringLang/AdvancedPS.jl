@@ -7,15 +7,6 @@
 #  - http://people.isy.liu.se/rt/schon/Publications/HolSG2006.pdf
 # Code adapted from: http://uk.mathworks.com/matlabcentral/fileexchange/24968-resampling-methods-for-particle-filtering
 
-struct ResampleWithESSThreshold{R,T<:Real}
-    resampler::R
-    threshold::T
-end
-
-function ResampleWithESSThreshold(resampler=resample_systematic)
-    return ResampleWithESSThreshold(resampler, 0.5)
-end
-
 # More stable, faster version of rand(Categorical)
 function randcat(rng::Random.AbstractRNG, p::AbstractVector{<:Real})
     T = eltype(p)
@@ -158,4 +149,19 @@ function resample_systematic(
     end
 
     return samples
+end
+
+const DEFAULT_RESAMPLER = resample_systematic
+
+struct ResampleWithESSThreshold{R,T<:Real}
+    resampler::R
+    threshold::T
+end
+
+function ResampleWithESSThreshold(resampler=DEFAULT_RESAMPLER)
+    return ResampleWithESSThreshold(resampler, 0.5)
+end
+
+function ResampleWithESSThreshold(threshold::T) where {T<:Real}
+    return ResampleWithESSThreshold(DEFAULT_RESAMPLER, threshold)
 end
