@@ -1,7 +1,3 @@
-""" Abstract type for an abstract model formulated in the state space form
-"""
-abstract type AbstractStateSpaceModel <: AbstractMCMC.AbstractModel end
-
 struct Trace{F,R<:TracedRNG}
     f::F
     ctask::Libtask.CTask
