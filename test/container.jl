@@ -12,7 +12,7 @@
         function fpc(logp)
             f = let logp = logp
                 rng -> begin
-                    while true
+                    for _ in 1:100
                         produce(logp)
                     end
                 end
@@ -100,7 +100,7 @@
         function f2(rng)
             t = TArray(Int, 1)
             t[1] = 0
-            while true
+            for _ in 1:100
                 n[] += 1
                 produce(t[1])
                 n[] += 1
