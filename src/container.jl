@@ -10,8 +10,6 @@ function Trace(f)
         ctask = Libtask.CTask(f)
     else
         # println(f.evaluator)
-        # CTask(f, args) seems buggy, so we still use CTask(f::TracedModel) for now.
-        # TODO: fix this after Libtask bug is resolved.
         ctask = Libtask.CTask(f.evaluator[1], f.evaluator[2:end]...)
         # ctask = Libtask.CTask(f)
     end
