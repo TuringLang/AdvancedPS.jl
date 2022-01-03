@@ -5,7 +5,7 @@ end
 
 const Particle = Trace
 
-function AdvancedPS.Trace(f)
+function Trace(f)
     if f isa Function
         ctask = Libtask.CTask(f)
     else
@@ -17,8 +17,8 @@ function AdvancedPS.Trace(f)
     end
 
     # add backward reference
-    newtrace = AdvancedPS.Trace(f, ctask)
-    AdvancedPS.addreference!(ctask.task, newtrace)
+    newtrace = Trace(f, ctask)
+    addreference!(ctask.task, newtrace)
 
     return newtrace
 end
