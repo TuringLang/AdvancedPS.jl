@@ -5,12 +5,20 @@ end
 
 const Particle = Trace
 
-function Trace(f)
-    ctask = Libtask.CTask(f)
+function AdvancedPS.Trace(f)
+    if f isa Function
+        ctask = Libtask.CTask(f)
+    else
+        # println(f.evaluator)
+        # CTask(f, args) seems buggy, so we still use CTask(f::TracedModel) for now.
+        # TODO: fix this after Libtask bug is resolved.
+        ctask = Libtask.CTask(f.evaluator[1], f.evaluator[2:end]...)
+        # ctask = Libtask.CTask(f)
+    end
 
     # add backward reference
-    newtrace = Trace(f, ctask)
-    addreference!(ctask.task, newtrace)
+    newtrace = AdvancedPS.Trace(f, ctask)
+    AdvancedPS.addreference!(ctask.task, newtrace)
 
     return newtrace
 end
@@ -42,7 +50,8 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
-    ctask = Libtask.CTask(trace.ctask)
+    # ctask = Libtask.CTask(trace.ctask)
+    ctask = Libtask.CTask(newf.evaluator[1], newf.evaluator[2:end]...)
 
     # add backward reference
     newtrace = Trace(newf, ctask)
