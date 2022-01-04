@@ -48,8 +48,12 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
-    # ctask = Libtask.CTask(trace.ctask)
-    ctask = Libtask.CTask(newf.evaluator[1], newf.evaluator[2:end]...)
+    # ctask = Libtask.CTask(trace.ctask)    
+    if newf isa Function
+        ctask = Libtask.CTask(newf)
+    else
+        ctask = Libtask.CTask(newf.evaluator[1], newf.evaluator[2:end]...)
+    end
 
     # add backward reference
     newtrace = Trace(newf, ctask)
