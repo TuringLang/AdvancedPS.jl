@@ -6,7 +6,12 @@ end
 const Particle = Trace
 
 function Trace(f)
-    ctask = Libtask.CTask(f)
+    if hasfield(typeof(f), :evaluator) # Test whether f is a Turing.TracedModel
+        # println(f.evaluator)
+        ctask = Libtask.CTask(f.evaluator[1], f.evaluator[2:end]...)
+    else # f is a Function, or AdavncedPS.Model
+        ctask = Libtask.CTask(f)
+    end
 
     # add backward reference
     newtrace = Trace(f, ctask)
@@ -42,7 +47,12 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
-    ctask = Libtask.CTask(trace.ctask)
+    # ctask = Libtask.CTask(trace.ctask)    
+    if hasfield(typeof(newf), :evaluator) # Test whether f is a Turing.TracedModel
+        ctask = Libtask.CTask(newf.evaluator[1], newf.evaluator[2:end]...)
+    else # f is a Function, or AdavncedPS.Model
+        ctask = Libtask.CTask(newf)
+    end
 
     # add backward reference
     newtrace = Trace(newf, ctask)
