@@ -6,12 +6,11 @@ end
 const Particle = Trace
 
 function Trace(f)
-    if f isa Function
-        ctask = Libtask.CTask(f)
-    else
+    if hasfield(typeof(f), :evaluator) # Test whether f is a Turing.TracedModel
         # println(f.evaluator)
         ctask = Libtask.CTask(f.evaluator[1], f.evaluator[2:end]...)
-        # ctask = Libtask.CTask(f)
+    else # f is a Function, or AdavncedPS.Model
+        ctask = Libtask.CTask(f)
     end
 
     # add backward reference
@@ -49,10 +48,10 @@ end
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
     # ctask = Libtask.CTask(trace.ctask)    
-    if newf isa Function
-        ctask = Libtask.CTask(newf)
-    else
+    if hasfield(typeof(newf), :evaluator) # Test whether f is a Turing.TracedModel
         ctask = Libtask.CTask(newf.evaluator[1], newf.evaluator[2:end]...)
+    else # f is a Function, or AdavncedPS.Model
+        ctask = Libtask.CTask(newf)
     end
 
     # add backward reference
