@@ -50,13 +50,22 @@ function load_state!(rng::TracedRNG)
 end
 
 """
-    update_rng!(rng::TracedRNG)
+    Random.seed!(rng::TracedRNG, key)
 
 Set key and counter of inner rng in `rng` to `key` and the running model step to 0
 """
 function Random.seed!(rng::TracedRNG, key)
     Random.seed!(rng.rng, key)
     return Random123.set_counter!(rng.rng, 0)
+end
+
+"""
+    gen_seeds(trng::TracedRNG, other::Random.AbstractRNG)
+
+Seed a TracedRNG from another 
+"""
+function gen_seeds(::Type{T}, other::Random.AbstractRNG, n::Integer=1) where {T}
+    return Tuple(rand(other, T, n))
 end
 
 """ 

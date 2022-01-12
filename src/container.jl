@@ -209,6 +209,29 @@ function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothin
 end
 
 """
+    seed_from_rng!(pc::ParticleContainer, rng::Random.AbstractRNG, ref::Union{Particle,Nothing}=nothing)
+
+Set seeds of particle rng from user-provided `rng`
+"""
+function seed_from_rng!(
+    pc::ParticleContainer, rng::Random.AbstractRNG, ref::Union{Particle,Nothing}=nothing
+)
+    n = length(pc.vals)
+    isref = isnothing(ref)
+
+    nseeds = isref ? n + 1 : n
+    seeds = gen_seeds(eltype(pc.vals[1].rng.keys), rng, nseeds)
+
+    for i in 1:(nseeds - 1)
+        part = pc.vals[i]
+        Random.seed!(part.rng, seeds[i])
+    end
+
+    Random.seed!(pc.rng, seeds[end])
+    return pc
+end
+
+"""
     resample_propagate!(rng, pc::ParticleContainer[, randcat = resample_systematic,
                         ref = nothing; weights = getweights(pc)])
 
