@@ -39,9 +39,8 @@ function AbstractMCMC.sample(
 
     # Create a set of particles.
     particles = ParticleContainer(
-        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], TracedRNG()
+        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], TracedRNG(), rng
     )
-    seed_from_rng!(particles, rng)
 
     # Perform particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -87,9 +86,8 @@ function AbstractMCMC.step(
 )
     # Create a new set of particles.
     particles = ParticleContainer(
-        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], TracedRNG()
+        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], TracedRNG(), rng
     )
-    seed_from_rng!(particles, rng)
 
     # Perform a particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -120,8 +118,7 @@ function AbstractMCMC.step(
     end
 
     reference = x[end]
-    particles = ParticleContainer(x, TracedRNG())
-    seed_from_rng!(particles, rng, reference)
+    particles = ParticleContainer(x, TracedRNG(), rng)
 
     # Perform a particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler, reference)
