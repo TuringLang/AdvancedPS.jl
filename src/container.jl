@@ -7,13 +7,7 @@ end
 const Particle = Trace
 
 function Trace(f, rng::TracedRNG)
-    ctask = let f = f
-        Libtask.CTask() do
-            res = f(rng)
-            Libtask.produce(nothing)
-            return res
-        end
-    end
+    ctask = Libtask.CTask(f, rng)
 
     # add backward reference
     newtrace = Trace(f, ctask, rng)
@@ -62,13 +56,7 @@ function forkr(trace::Trace)
     newf = reset_model(trace.f)
     Random123.set_counter!(trace.rng, 1)
 
-    ctask = let f = trace.ctask.task.code
-        Libtask.CTask() do
-            res = f()(trace.rng)
-            Libtask.produce(nothing)
-            return res
-        end
-    end
+    ctask = Libtask.CTask(newf, trace.rng)
 
     # add backward reference
     newtrace = Trace(newf, ctask, trace.rng)
