@@ -56,7 +56,7 @@ function forkr(trace::Trace)
     newf = reset_model(trace.f)
     Random123.set_counter!(trace.rng, 1)
 
-    ctask = Libtask.CTask(trace.ctask, trace.rng)
+    ctask = Libtask.CTask(newf, trace.rng)
 
     # add backward reference
     newtrace = Trace(newf, ctask, trace.rng)
