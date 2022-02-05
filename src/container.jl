@@ -215,12 +215,13 @@ function seed_from_rng!(
 ) where {T,R,N,I}
     n = length(pc.vals)
     nseeds = isnothing(ref) ? n : n - 1
-    rngs = vcat([pc[i].rng for i in 1:nseeds], [pc.rng])
 
     sampler = Random.Sampler(rng, I)
-    for subrng in rngs
+    for i in 1:nseeds
+        subrng = pc.vals[i].rng
         Random.seed!(subrng, gen_seed(rng, subrng, sampler))
     end
+    Random.seed!(pc.rng, gen_seed(rng, pc.rng, sampler))
 
     return pc
 end
