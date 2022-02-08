@@ -7,12 +7,12 @@
         sampler = AdvancedPS.SMC(15, 0.6)
         @test sampler.nparticles == 15
         @test sampler.resampler ===
-              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
 
         sampler = AdvancedPS.SMC(20, AdvancedPS.resample_multinomial, 0.6)
         @test sampler.nparticles == 20
         @test sampler.resampler ===
-              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
 
         sampler = AdvancedPS.SMC(25, AdvancedPS.resample_systematic)
         @test sampler.nparticles == 25
@@ -105,12 +105,12 @@
         sampler = AdvancedPS.PG(60, 0.6)
         @test sampler.nparticles == 60
         @test sampler.resampler ===
-              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_systematic, 0.6)
 
         sampler = AdvancedPS.PG(80, AdvancedPS.resample_multinomial, 0.6)
         @test sampler.nparticles == 80
         @test sampler.resampler ===
-              AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
+            AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
 
         sampler = AdvancedPS.PG(100, AdvancedPS.resample_systematic)
         @test sampler.nparticles == 100

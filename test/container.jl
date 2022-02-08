@@ -121,4 +121,32 @@
         @test consume(tr.ctask) == 2
         @test consume(a.ctask) == 4
     end
+
+    @testset "seed container" begin
+        function dummy(rng) end
+
+        seed = 1
+        n = 3
+        rng = Random.MersenneTwister(seed)
+
+        particles = [AdvancedPS.Trace(dummy, AdvancedPS.TracedRNG()) for _ in 1:n]
+        pc = AdvancedPS.ParticleContainer(particles, AdvancedPS.TracedRNG())
+
+        AdvancedPS.seed_from_rng!(pc, rng)
+        old_seeds = vcat([part.rng.rng.key for part in pc.vals], [pc.rng.rng.key])
+
+        Random.seed!(rng, seed)
+        AdvancedPS.seed_from_rng!(pc, rng)
+        new_seeds = vcat([part.rng.rng.key for part in pc.vals], [pc.rng.rng.key])
+
+        # Check if we reset the seeds properly
+        @test old_seeds ≈ new_seeds
+
+        Random.seed!(rng, 2)
+        AdvancedPS.seed_from_rng!(pc, rng, pc.vals[n])
+        ref_seeds = vcat([part.rng.rng.key for part in pc.vals], [pc.rng.rng.key])
+
+        # Dont reset reference particle
+        @test ref_seeds[n] ≈ new_seeds[n]
+    end
 end
