@@ -137,7 +137,7 @@ end
 
 Update reference trajectory. Defaults to `nothing`
 """
-update_ref!(particle::Trace, pc::ParticleContainer, weights) = nothing
+update_ref!(particle::Trace, pc::ParticleContainer) = nothing
 
 """
     reset_logweights!(pc::ParticleContainer)
@@ -265,7 +265,7 @@ function resample_propagate!(
     if ref !== nothing
         # Insert the retained particle. This is based on the replaying trick for efficiency
         # reasons. If we implement PG using task copying, we need to store Nx * T particles!
-        update_ref!(ref, pc, weights)
+        update_ref!(ref, pc)
         @inbounds children[n] = ref
     end
 

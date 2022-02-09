@@ -50,7 +50,6 @@ step(trace::SSMTrace) = trace.rng.count
 Get the log weight of the transition from previous state of `model` to `x`
 """
 function transition_logweight(particle::SSMTrace, x)
-    #println("Ancestor particle is $(particle.f) \n step is: $(step(particle)) \n target state $(x) \n previous state $(previous_state(particle))")
     score = Distributions.logpdf(
         transition(particle.f, previous_state(particle), step(particle)), x
     )
@@ -64,7 +63,6 @@ Get the ancestor log weights for each particle in `pc`
 """
 function get_ancestor_logweights(pc::ParticleContainer{<:SSMTrace}, x, weights)
     nparticles = length(pc.vals)
-    #println("Current logweights $(pc.logWs) ancestor weights $(weights)")
 
     logweights = map(1:nparticles) do i
         transition_logweight(pc.vals[i], x) + weights[i]
@@ -122,15 +120,13 @@ function forkr(particle::SSMTrace)
     return SSMTrace(deepcopy(particle.f), deepcopy(particle.rng))
 end
 
-function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace}, weights)
+function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})
     step(ref) == 1 && return nothing
     isdone(ref.f, step(ref)) && return nothing
 
-    #println("Model: $(ref.f) \n Current step: $(step(ref))")
-    ancestor_weights = get_ancestor_logweights(pc, ref.f.X[step(ref)], weights)
-    weights = StatsFuns.softmax(ancestor_weights)
-    ancestor_index = rand(Distributions.Categorical(weights))
+    ancestor_weights = get_ancestor_logweights(pc, ref.f.X[step(ref)], pc.logWs)
+    norm_weights = StatsFuns.softmax(ancestor_weights)
+    ancestor_index = rand(Distributions.Categorical(norm_weights))
     ancestor = pc.vals[ancestor_index]
-
-    return ref.f.X[step(ref) - 1] = previous_state(ancestor)
+    return ref.f.X[1:step(ref) - 1] = ancestor.f.X[1:step(ancestor) - 1]
 end
