@@ -1,11 +1,5 @@
 function Trace(f, rng::TracedRNG)
-    ctask = let f = f
-        Libtask.CTask() do
-            res = f(rng)
-            Libtask.produce(nothing)
-            return res
-        end
-    end
+    ctask = Libtask.CTask(f, rng)
 
     # add backward reference
     newtrace = Trace(f, ctask, rng)
@@ -54,13 +48,7 @@ function forkr(trace::Trace)
     newf = reset_model(trace.f)
     Random123.set_counter!(trace.rng, 1)
 
-    ctask = let f = trace.ctask.task.code
-        Libtask.CTask() do
-            res = f()(trace.rng)
-            Libtask.produce(nothing)
-            return res
-        end
-    end
+    ctask = Libtask.CTask(newf, trace.rng)
 
     # add backward reference
     newtrace = Trace(newf, ctask, trace.rng)
@@ -98,8 +86,15 @@ function ParticleContainer(particles::Vector{<:Particle})
     return ParticleContainer(particles, zeros(length(particles)), TracedRNG())
 end
 
-function ParticleContainer(particles::Vector{<:Particle}, r::TracedRNG)
-    return ParticleContainer(particles, zeros(length(particles)), r)
+function ParticleContainer(particles::Vector{<:Particle}, rng::TracedRNG)
+    return ParticleContainer(particles, zeros(length(particles)), rng)
+end
+
+function ParticleContainer(
+    particles::Vector{<:Particle}, trng::TracedRNG, rng::Random.AbstractRNG
+)
+    pc = ParticleContainer(particles, trng)
+    return seed_from_rng!(pc, rng)
 end
 
 Base.collect(pc::ParticleContainer) = pc.vals
@@ -201,10 +196,33 @@ function update_keys!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothin
     n = ref === nothing ? nparticles : nparticles - 1
     for i in 1:n
         pi = pc.vals[i]
-        k = split(pi.rng.rng.key)
+        k = split(state(pi.rng.rng))
         Random.seed!(pi.rng, k[1])
     end
     return nothing
+end
+
+"""
+    seed_from_rng!(pc::ParticleContainer, rng::Random.AbstractRNG, ref::Union{Particle,Nothing}=nothing)
+
+Set seeds of particle rng from user-provided `rng`
+"""
+function seed_from_rng!(
+    pc::ParticleContainer{T,<:TracedRNG{R,N,<:Random123.AbstractR123{I}}},
+    rng::Random.AbstractRNG,
+    ref::Union{Particle,Nothing}=nothing,
+) where {T,R,N,I}
+    n = length(pc.vals)
+    nseeds = isnothing(ref) ? n : n - 1
+
+    sampler = Random.Sampler(rng, I)
+    for i in 1:nseeds
+        subrng = pc.vals[i].rng
+        Random.seed!(subrng, gen_seed(rng, subrng, sampler))
+    end
+    Random.seed!(pc.rng, gen_seed(rng, pc.rng, sampler))
+
+    return pc
 end
 
 """

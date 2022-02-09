@@ -1,12 +1,12 @@
 # Default RNG type for when nothing is specified
-const _BASE_RNG = Random123.Philox2x
+const _BASE_RNG = Random123.Philox2x # Rng with state bigger than 1 are broken because of Split
 
 """
     TracedRNG{R,N,T}
 
 Wrapped random number generator from Random123 to keep track of random streams during model evaluation
 """
-mutable struct TracedRNG{R,N,T<:Random123.AbstractR123{R}} <: Random.AbstractRNG
+mutable struct TracedRNG{R,N,T<:Random123.AbstractR123} <: Random.AbstractRNG
     "Model step counter"
     count::Int
     "Inner RNG"
@@ -21,7 +21,7 @@ Create a `TracedRNG` with `r` as the inner RNG.
 """
 function TracedRNG(r::Random123.AbstractR123=_BASE_RNG())
     Random123.set_counter!(r, 0)
-    return TracedRNG(1, r, typeof(r.key)[])
+    return TracedRNG(1, r, Random123.seed_type(r)[])
 end
 
 # Connect to the Random API
@@ -50,7 +50,7 @@ function load_state!(rng::TracedRNG)
 end
 
 """
-    update_rng!(rng::TracedRNG)
+    Random.seed!(rng::TracedRNG, key)
 
 Set key and counter of inner rng in `rng` to `key` and the running model step to 0
 """
@@ -59,14 +59,32 @@ function Random.seed!(rng::TracedRNG, key)
     return Random123.set_counter!(rng.rng, 0)
 end
 
+"""
+    gen_seed(rng::Random.AbstractRNG, subrng::TracedRNG, sampler::Random.Sampler)
+
+Generate a `seed` for the subrng based on top-level `rng` and `sampler`
+"""
+function gen_seed(rng::Random.AbstractRNG, ::TracedRNG{<:Integer}, sampler::Random.Sampler)
+    return rand(rng, sampler)
+end
+
+function gen_seed(
+    rng::Random.AbstractRNG, ::TracedRNG{<:NTuple{N}}, sampler::Random.Sampler
+) where {N}
+    return Tuple(rand(rng, sampler, N))
+end
+
 """ 
     save_state!(r::TracedRNG)
 
 Add current key of the inner rng in `r` to `keys`.
 """
 function save_state!(r::TracedRNG)
-    return push!(r.keys, r.rng.key)
+    return push!(r.keys, state(r.rng))
 end
+
+state(rng::Random123.Philox2x) = rng.key
+state(rng::Random123.Philox4x) = (rng.key1, rng.key2)
 
 Base.copy(r::TracedRNG) = TracedRNG(r.count, copy(r.rng), deepcopy(r.keys))
 
