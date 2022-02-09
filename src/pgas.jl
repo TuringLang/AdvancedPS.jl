@@ -128,5 +128,5 @@ function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})
     norm_weights = StatsFuns.softmax(ancestor_weights)
     ancestor_index = rand(Distributions.Categorical(norm_weights))
     ancestor = pc.vals[ancestor_index]
-    return ref.f.X[1:step(ref) - 1] = ancestor.f.X[1:step(ancestor) - 1]
+    return ref.f.X[1:(step(ref) - 1)] = ancestor.f.X[1:(step(ancestor) - 1)]
 end
