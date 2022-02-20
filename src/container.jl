@@ -1,6 +1,6 @@
 struct Trace{F}
     f::F
-    ctask::Libtask.CTask
+    task::Libtask.TapedTask
 end
 
 const Particle = Trace
@@ -8,23 +8,23 @@ const Particle = Trace
 function Trace(f)
     if hasfield(typeof(f), :evaluator) # Test whether f is a Turing.TracedModel
         # println(f.evaluator)
-        ctask = Libtask.CTask(f.evaluator[1], f.evaluator[2:end]...)
+        task = Libtask.TapedTask(f.evaluator[1], f.evaluator[2:end]...)
     else # f is a Function, or AdavncedPS.Model
-        ctask = Libtask.CTask(f)
+        task = Libtask.TapedTask(f)
     end
 
     # add backward reference
-    newtrace = Trace(f, ctask)
-    addreference!(ctask.task, newtrace)
+    newtrace = Trace(f, task)
+    addreference!(task.task, newtrace)
 
     return newtrace
 end
 
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask))
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.task))
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
-advance!(t::Trace) = Libtask.consume(t.ctask)
+advance!(t::Trace) = Libtask.consume(t.task)
 
 # reset log probability
 reset_logprob!(t::Trace) = nothing
@@ -38,7 +38,7 @@ function fork(trace::Trace, isref::Bool=false)
     isref && delete_retained!(newtrace.f)
 
     # add backward reference
-    addreference!(newtrace.ctask.task, newtrace)
+    addreference!(newtrace.task.task, newtrace)
 
     return newtrace
 end
@@ -47,16 +47,16 @@ end
 # Create new task and copy randomness
 function forkr(trace::Trace)
     newf = reset_model(trace.f)
-    # ctask = Libtask.CTask(trace.ctask)    
+    # task = Libtask.TapedTask(trace.task)    
     if hasfield(typeof(newf), :evaluator) # Test whether f is a Turing.TracedModel
-        ctask = Libtask.CTask(newf.evaluator[1], newf.evaluator[2:end]...)
+        task = Libtask.TapedTask(newf.evaluator[1], newf.evaluator[2:end]...)
     else # f is a Function, or AdavncedPS.Model
-        ctask = Libtask.CTask(newf)
+        task = Libtask.TapedTask(newf)
     end
 
     # add backward reference
-    newtrace = Trace(newf, ctask)
-    addreference!(ctask.task, newtrace)
+    newtrace = Trace(newf, task)
+    addreference!(task.task, newtrace)
 
     return newtrace
 end
