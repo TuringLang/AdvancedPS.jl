@@ -111,15 +111,15 @@
         # Test task copy version of trace
         tr = AdvancedPS.Trace(f2, AdvancedPS.TracedRNG())
 
-        consume(tr.ttask)
-        consume(tr.ttask)
+        consume(tr.task)
+        consume(tr.task)
 
         a = AdvancedPS.fork(tr)
-        consume(a.ttask)
-        consume(a.ttask)
+        consume(a.task)
+        consume(a.task)
 
-        @test consume(tr.ttask) == 2
-        @test consume(a.ttask) == 4
+        @test consume(tr.task) == 2
+        @test consume(a.task) == 4
     end
 
     @testset "seed container" begin

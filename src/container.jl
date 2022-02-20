@@ -1,27 +1,27 @@
 struct Trace{F,R<:TracedRNG}
     f::F
-    ttask::Libtask.TapedTask
+    task::Libtask.TapedTask
     rng::R
 end
 
 const Particle = Trace
 
 function Trace(f, rng::TracedRNG)
-    ttask = Libtask.TapedTask(f, rng)
+    task = Libtask.TapedTask(f, rng)
 
     # add backward reference
-    newtrace = Trace(f, ttask, rng)
-    addreference!(ttask.task, newtrace)
+    newtrace = Trace(f, task, rng)
+    addreference!(task.task, newtrace)
 
     return newtrace
 end
 
-function Trace(f, ttask::Libtask.TapedTask)
-    return Trace(f, ttask, TracedRNG())
+function Trace(f, task::Libtask.TapedTask)
+    return Trace(f, task, TracedRNG())
 end
 
 # Copy task
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ttask), deepcopy(trace.rng))
+Base.copy(trace::Trace) = Trace(trace.f, copy(trace.task), deepcopy(trace.rng))
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
@@ -30,7 +30,7 @@ function advance!(t::Trace, isref::Bool)
     inc_counter!(t.rng)
 
     # Move to next step
-    return Libtask.consume(t.ttask)
+    return Libtask.consume(t.task)
 end
 
 # reset log probability
@@ -45,7 +45,7 @@ function fork(trace::Trace, isref::Bool=false)
     isref && delete_retained!(newtrace.f)
 
     # add backward reference
-    addreference!(newtrace.ttask.task, newtrace)
+    addreference!(newtrace.task.task, newtrace)
 
     return newtrace
 end
@@ -56,11 +56,11 @@ function forkr(trace::Trace)
     newf = reset_model(trace.f)
     Random123.set_counter!(trace.rng, 1)
 
-    ttask = Libtask.TapedTask(newf, trace.rng)
+    task = Libtask.TapedTask(newf, trace.rng)
 
     # add backward reference
-    newtrace = Trace(newf, ttask, trace.rng)
-    addreference!(ttask.task, newtrace)
+    newtrace = Trace(newf, task, trace.rng)
+    addreference!(task.task, newtrace)
 
     return newtrace
 end
