@@ -51,8 +51,8 @@ for t in 1:Tₘ
     y[t] = rand(rng, g(x[t], t))
 end
 
-plot(x, label="x", color=:black)
-plot(y, label="y", color=:black)
+plot(x; label="x", color=:black)
+plot(y; label="y", color=:black)
 
 # Turing
 model = NonLinearTimeSeries()
@@ -60,13 +60,13 @@ pgas = AdvancedPS.PGAS(Nₚ)
 chains = sample(rng, model, pgas, Nₛ)
 
 particles = hcat([v.trajectory.f.X for v in chains]...) # Concat all sampled states
-mean_trajectory = mean(particles, dims=2)
+mean_trajectory = mean(particles; dims=2)
 
-scatter(particles, label=false, opacity=0.01, color=:black)
-plot!(x, color=:red, label="Original Trajectory")
-plot!(mean_trajectory, color=:blue, label="Posterior mean", opacity=.9)
+scatter(particles; label=false, opacity=0.01, color=:black)
+plot!(x; color=:red, label="Original Trajectory")
+plot!(mean_trajectory; color=:blue, label="Posterior mean", opacity=0.9)
 
 # Compute mixing rate
-update_rate = sum(abs.(diff(particles, dims=2)) .> 0, dims=2)/Nₛ
-plot(update_rate, label=false, ylim=[0,1])
-hline!([1-1/Nₚ], label=false)
+update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
+plot(update_rate; label=false, ylim=[0, 1])
+hline!([1 - 1 / Nₚ]; label=false)
