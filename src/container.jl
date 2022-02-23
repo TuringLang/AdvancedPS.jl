@@ -236,7 +236,7 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 `ref` that is ensured to survive the resampling step.
 """
 function resample_propagate!(
-    rng::Random.AbstractRNG,
+    ::Random.AbstractRNG,
     pc::ParticleContainer,
     randcat=DEFAULT_RESAMPLER,
     ref::Union{Particle,Nothing}=nothing;
@@ -245,7 +245,7 @@ function resample_propagate!(
     # sample ancestor indices
     n = length(pc)
     nresamples = ref === nothing ? n : n - 1
-    indx = randcat(rng, weights, nresamples)
+    indx = randcat(pc.rng, weights, nresamples)
 
     # count number of children for each particle
     num_children = zeros(Int, n)
@@ -265,10 +265,10 @@ function resample_propagate!(
             pi = particles[i]
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
-            nseeds = isref ? ni - 1 : ni
+            rng = isref ? particles[j + 1].rng.rng : p.rng.rng
+            seeds = split(rng.key, ni)
 
-            seeds = split(p.rng.rng.key, nseeds)
-            !isref && Random.seed!(p.rng, seeds[1])
+            Random.seed!(p.rng, seeds[1])
 
             children[j += 1] = p
             # fork additional children

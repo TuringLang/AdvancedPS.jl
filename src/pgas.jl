@@ -51,7 +51,7 @@ Get the log weight of the transition from previous state of `model` to `x`
 """
 function transition_logweight(particle::SSMTrace, x)
     score = Distributions.logpdf(
-        transition(particle.f, previous_state(particle), step(particle)), x
+        transition(particle.f, particle.f.X[step(particle) - 2], step(particle)), x
     )
     return score
 end
@@ -105,7 +105,9 @@ end
 function truncate!(particle::SSMTrace)
     model = particle.f
     current_step = step(particle)
-    return model.X = model.X[1:(current_step - 1)]
+    model.X = model.X[1:(current_step - 1)]
+    particle.rng.keys = particle.rng.keys[1:(current_step - 1)]
+    return model
 end
 
 function fork(particle::SSMTrace, isref::Bool)
@@ -121,12 +123,14 @@ function forkr(particle::SSMTrace)
 end
 
 function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})
-    step(ref) == 1 && return nothing
+    step(ref) <= 2 && return nothing
     isdone(ref.f, step(ref)) && return nothing
 
-    ancestor_weights = get_ancestor_logweights(pc, ref.f.X[step(ref)], pc.logWs)
+    ancestor_weights = get_ancestor_logweights(pc, ref.f.X[step(ref) - 1], pc.logWs)
     norm_weights = StatsFuns.softmax(ancestor_weights)
-    ancestor_index = rand(Distributions.Categorical(norm_weights))
+    ancestor_index = rand(pc.rng, Distributions.Categorical(norm_weights))
+    #ancestor_index = length(pc.vals)
     ancestor = pc.vals[ancestor_index]
-    return ref.f.X[1:(step(ref) - 1)] = ancestor.f.X[1:(step(ancestor) - 1)]
+    ref.f.X[1:(step(ref) - 1)] = ancestor.f.X[1:(step(ancestor) - 1)]
+    return ref.rng.keys[1:(step(ref) - 1)] = ancestor.rng.keys[1:(step(ancestor) - 1)]
 end
