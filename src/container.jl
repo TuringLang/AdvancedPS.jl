@@ -1,73 +1,12 @@
-function Trace(f, rng::TracedRNG)
-    ctask = Libtask.CTask(f, rng)
-
-    # add backward reference
-    newtrace = Trace(f, ctask, rng)
-    addreference!(ctask.task, newtrace)
-
-    return newtrace
-end
-
-function Trace(f, ctask::Libtask.CTask)
-    return Trace(f, ctask, TracedRNG())
-end
-
-# Copy task
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.ctask), deepcopy(trace.rng))
-
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
-function advance!(t::Trace, isref::Bool)
+function advance!(t::TapedTrace, isref::Bool=false)
     isref ? load_state!(t.rng) : save_state!(t.rng)
     inc_counter!(t.rng)
 
     # Move to next step
-    return Libtask.consume(t.ctask)
+    return Libtask.consume(t.model.ctask)
 end
-
-# reset log probability
-reset_logprob!(t::Particle) = nothing
-
-reset_model(f) = deepcopy(f)
-delete_retained!(f) = nothing
-
-# Task copying version of fork for Trace.
-function fork(trace::Trace, isref::Bool=false)
-    newtrace = copy(trace)
-    isref && delete_retained!(newtrace.f)
-
-    # add backward reference
-    addreference!(newtrace.ctask.task, newtrace)
-
-    return newtrace
-end
-
-# PG requires keeping all randomness for the reference particle
-# Create new task and copy randomness
-function forkr(trace::Trace)
-    newf = reset_model(trace.f)
-    Random123.set_counter!(trace.rng, 1)
-
-    ctask = Libtask.CTask(newf, trace.rng)
-
-    # add backward reference
-    newtrace = Trace(newf, ctask, trace.rng)
-    addreference!(ctask.task, newtrace)
-
-    return newtrace
-end
-
-# create a backward reference in task_local_storage
-function addreference!(task::Task, trace::Trace)
-    if task.storage === nothing
-        task.storage = IdDict()
-    end
-    task.storage[:__trace] = trace
-
-    return task
-end
-
-current_trace() = current_task().storage[:__trace]
 
 """
 Data structure for particle filters
@@ -257,16 +196,22 @@ function resample_propagate!(
     particles = collect(pc)
     children = similar(particles)
     j = 0
+    target_ref_rng = num_children[n] > 0 ? deepcopy(particles[n - 1].rng) : nothing
     @inbounds for i in 1:n
         ni = num_children[i]
-
         if ni > 0
             # fork first child
             pi = particles[i]
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
-            rng = isref ? particles[j + 1].rng.rng : p.rng.rng
-            seeds = split(rng.key, ni)
+
+            rng = isref ? target_ref_rng.rng : p.rng.rng
+            nsplits = isref ? num_children[n - 1] + num_children[n] : ni # Cannot use the reference stream or we would be duplicating seeds
+            seeds = split(rng.key, nsplits)
+            if isref
+                offset = num_children[n - 1] + 1
+                seeds = seeds[offset:end]
+            end
 
             Random.seed!(p.rng, seeds[1])
 

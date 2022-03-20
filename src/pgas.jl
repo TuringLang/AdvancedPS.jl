@@ -34,7 +34,11 @@ function isdone end
 Return `Xₜ₋₁` or `nothing` from `model`
 """
 function previous_state(trace::SSMTrace)
-    return trace.f.X[step(trace) - 1]
+    return trace.model.X[step(trace) - 1]
+end
+
+function past_idx(trace::SSMTrace)
+    return 1:(step(trace) - 1)
 end
 
 """
@@ -51,7 +55,7 @@ Get the log weight of the transition from previous state of `model` to `x`
 """
 function transition_logweight(particle::SSMTrace, x)
     score = Distributions.logpdf(
-        transition(particle.f, particle.f.X[step(particle) - 2], step(particle)), x
+        transition(particle.model, particle.model.X[step(particle) - 2], step(particle)), x
     )
     return score
 end
@@ -78,7 +82,7 @@ Return the log-probability of the transition nothing if done
 function advance!(particle::SSMTrace, isref::Bool=false)
     isref ? load_state!(particle.rng) : save_state!(particle.rng)
 
-    model = particle.f
+    model = particle.model
     current_step = step(particle)
     isdone(model, current_step) && return nothing
 
@@ -103,34 +107,36 @@ function advance!(particle::SSMTrace, isref::Bool=false)
 end
 
 function truncate!(particle::SSMTrace)
-    model = particle.f
-    current_step = step(particle)
-    model.X = model.X[1:(current_step - 1)]
-    particle.rng.keys = particle.rng.keys[1:(current_step - 1)]
+    model = particle.model
+    idx = past_idx(particle)
+    model.X = model.X[idx]
+    particle.rng.keys = particle.rng.keys[idx]
     return model
 end
 
 function fork(particle::SSMTrace, isref::Bool)
-    model = deepcopy(particle.f)
-    new_particle = SSMTrace(model, deepcopy(particle.rng))
+    model = deepcopy(particle.model)
+    new_particle = Trace(model, deepcopy(particle.rng))
     isref && truncate!(new_particle) # Forget the rest of the reference trajectory
     return new_particle
 end
 
 function forkr(particle::SSMTrace)
     Random123.set_counter!(particle.rng, 1)
-    return SSMTrace(deepcopy(particle.f), deepcopy(particle.rng))
+    return Trace(deepcopy(particle.model), deepcopy(particle.rng))
 end
 
 function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})
-    step(ref) <= 2 && return nothing
-    isdone(ref.f, step(ref)) && return nothing
+    step(ref) <= 2 && return nothing # At the beginning of step + 1 since we start at 1
+    isdone(ref.model, step(ref)) && return nothing
 
-    ancestor_weights = get_ancestor_logweights(pc, ref.f.X[step(ref) - 1], pc.logWs)
+    ancestor_weights = get_ancestor_logweights(pc, ref.model.X[step(ref) - 1], pc.logWs)
     norm_weights = StatsFuns.softmax(ancestor_weights)
+
     ancestor_index = rand(pc.rng, Distributions.Categorical(norm_weights))
-    #ancestor_index = length(pc.vals)
     ancestor = pc.vals[ancestor_index]
-    ref.f.X[1:(step(ref) - 1)] = ancestor.f.X[1:(step(ancestor) - 1)]
-    return ref.rng.keys[1:(step(ref) - 1)] = ancestor.rng.keys[1:(step(ancestor) - 1)]
+
+    idx = past_idx(ref)
+    ref.model.X[idx] = ancestor.model.X[idx]
+    return ref.rng.keys[idx] = ancestor.rng.keys[idx]
 end

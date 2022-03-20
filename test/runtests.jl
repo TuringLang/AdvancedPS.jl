@@ -18,4 +18,7 @@ using Test
     @testset "RNG tests" begin
         include("rng.jl")
     end
+    @testset "PG-AS" begin
+        include("pgas.jl")
+    end
 end
