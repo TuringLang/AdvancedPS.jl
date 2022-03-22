@@ -3,9 +3,9 @@
 
 State wrapper to hold `Libtask.CTask` model initiated from `f`
 """
-struct TapedModel{F}
+struct TapedModel{F} <: AbstractMCMC.AbstractModel
     f::F
-    ctask::Libtask.TapedTask
+    ctask::Libtask.TapedTask{F}
 end
 
 TapedModel(f, args...) = TapedModel(f, Libtask.TapedTask(f, args...))

@@ -34,19 +34,19 @@ function isdone end
 Return `Xₜ₋₁` or `nothing` from `model`
 """
 function previous_state(trace::SSMTrace)
-    return trace.model.X[step(trace) - 1]
+    return trace.model.X[current_step(trace) - 1]
 end
 
 function past_idx(trace::SSMTrace)
-    return 1:(step(trace) - 1)
+    return 1:(current_step(trace) - 1)
 end
 
 """
-    step(model::AbstractStateSpaceModel)
+    current_step(model::AbstractStateSpaceModel)
 
 Return current model step
 """
-step(trace::SSMTrace) = trace.rng.count
+current_step(trace::SSMTrace) = trace.rng.count
 
 """
     transition_logweight(model::AbstractStateSpaceModel, x)
@@ -55,7 +55,7 @@ Get the log weight of the transition from previous state of `model` to `x`
 """
 function transition_logweight(particle::SSMTrace, x)
     score = Distributions.logpdf(
-        transition(particle.model, particle.model.X[step(particle) - 2], step(particle)), x
+        transition(particle.model, particle.model.X[current_step(particle) - 2], current_step(particle)), x
     )
     return score
 end
@@ -83,21 +83,21 @@ function advance!(particle::SSMTrace, isref::Bool=false)
     isref ? load_state!(particle.rng) : save_state!(particle.rng)
 
     model = particle.model
-    current_step = step(particle)
-    isdone(model, current_step) && return nothing
+    running_step = current_step(particle)
+    isdone(model, running_step) && return nothing
 
     if !isref
-        if current_step == 1
+        if running_step == 1
             new_state = rand(particle.rng, initialization(model)) # Generate initial state, maybe fallback to 0 if initialization is not defined
         else
-            current_state = model.X[current_step - 1]
-            new_state = rand(particle.rng, transition(model, current_state, current_step))
+            current_state = model.X[running_step - 1]
+            new_state = rand(particle.rng, transition(model, current_state, running_step))
         end
     else
-        new_state = model.X[current_step]
+        new_state = model.X[running_step]
     end
 
-    score = observation(model, new_state, current_step)
+    score = observation(model, new_state, running_step)
 
     # accept transition
     !isref && push!(model.X, new_state)
@@ -127,10 +127,10 @@ function forkr(particle::SSMTrace)
 end
 
 function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})
-    step(ref) <= 2 && return nothing # At the beginning of step + 1 since we start at 1
-    isdone(ref.model, step(ref)) && return nothing
+    current_step(ref) <= 2 && return nothing # At the beginning of step + 1 since we start at 1
+    isdone(ref.model, current_step(ref)) && return nothing
 
-    ancestor_weights = get_ancestor_logweights(pc, ref.model.X[step(ref) - 1], pc.logWs)
+    ancestor_weights = get_ancestor_logweights(pc, ref.model.X[current_step(ref) - 1], pc.logWs)
     norm_weights = StatsFuns.softmax(ancestor_weights)
 
     ancestor_index = rand(pc.rng, Distributions.Categorical(norm_weights))
