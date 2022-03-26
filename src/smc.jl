@@ -39,7 +39,7 @@ function AbstractMCMC.sample(
 
     traces = map(1:(sampler.nparticles)) do i
         trng = TracedRNG()
-        tmodel = TapedModel(model, trng)
+        tmodel = GenericModel(model, trng)
         Trace(tmodel, trng)
     end
 
@@ -111,7 +111,7 @@ function AbstractMCMC.step(
             forkr(state.trajectory)
         else
             trng = TracedRNG()
-            Trace(TapedModel(model, trng), trng)
+            Trace(GenericModel(model, trng), trng)
         end
     end
 

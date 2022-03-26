@@ -24,7 +24,7 @@
         logps = [0.0, -1.0, -2.0]
         particles = map(logps) do logp
             trng = AdvancedPS.TracedRNG()
-            tmodel = AdvancedPS.TapedModel(fpc(logp), trng)
+            tmodel = AdvancedPS.GenericModel(fpc(logp), trng)
             AdvancedPS.Trace(tmodel, trng)
         end
         pc = AdvancedPS.ParticleContainer(particles)
@@ -58,12 +58,16 @@
         # Resample and propagate particles with reference particle
         particles_ref = map(logps) do logp
             trng = AdvancedPS.TracedRNG()
-            tmodel = AdvancedPS.TapedModel(fpc(logp), trng)
+            tmodel = AdvancedPS.GenericModel(fpc(logp), trng)
             AdvancedPS.Trace(tmodel, trng)
         end
         pc_ref = AdvancedPS.ParticleContainer(particles_ref)
+
+        ref = particles_ref[end]
+        AdvancedPS.advance!(ref) # Make sure ref has a valid history
+
         AdvancedPS.resample_propagate!(
-            Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, particles_ref[end]
+            Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, ref
         )
         @test pc_ref.logWs == zeros(3)
         @test AdvancedPS.getweights(pc_ref) == fill(1 / 3, 3)
@@ -116,7 +120,7 @@
 
         # Test task copy version of trace
         trng = AdvancedPS.TracedRNG()
-        tmodel = AdvancedPS.TapedModel(f2, trng)
+        tmodel = AdvancedPS.GenericModel(f2, trng)
         tr = AdvancedPS.Trace(tmodel, trng)
 
         consume(tr.model.ctask)
@@ -139,7 +143,7 @@
 
         particles = map(1:n) do _
             trng = AdvancedPS.TracedRNG()
-            tmodel = AdvancedPS.TapedModel(dummy, trng)
+            tmodel = AdvancedPS.GenericModel(dummy, trng)
             AdvancedPS.Trace(tmodel, trng)
         end
         pc = AdvancedPS.ParticleContainer(particles, AdvancedPS.TracedRNG())

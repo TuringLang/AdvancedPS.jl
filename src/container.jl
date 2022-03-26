@@ -1,6 +1,6 @@
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
-function advance!(t::TapedTrace, isref::Bool=false)
+function advance!(t::GenericTrace, isref::Bool=false)
     isref ? load_state!(t.rng) : save_state!(t.rng)
     inc_counter!(t.rng)
 
