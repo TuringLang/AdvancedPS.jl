@@ -70,8 +70,13 @@ function forkr(trace::TapedTrace)
     # add backward reference
     newtrace = Trace(new_tapedmodel, trace.rng)
     addreference!(ctask.task, newtrace)
-
+    gen_refseed!(newtrace)
     return newtrace
+end
+
+function gen_refseed!(part::Particle)
+    seed = split(state(part.rng.rng), 1)
+    return set_refseed!(part.rng, seed[1])
 end
 
 # reset log probability

@@ -196,7 +196,6 @@ function resample_propagate!(
     particles = collect(pc)
     children = similar(particles)
     j = 0
-    target_ref_rng = num_children[n] > 0 ? deepcopy(particles[n - 1].rng) : nothing
     @inbounds for i in 1:n
         ni = num_children[i]
         if ni > 0
@@ -205,13 +204,10 @@ function resample_propagate!(
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
 
-            rng = isref ? target_ref_rng.rng : p.rng.rng
-            nsplits = isref ? num_children[n - 1] + num_children[n] : ni # Cannot use the reference stream or we would be duplicating seeds
-            seeds = split(rng.key, nsplits)
-            if isref
-                offset = num_children[n - 1] + 1
-                seeds = seeds[offset:end]
-            end
+            key = isref ? refseed(ref.rng) : state(p.rng.rng) # Pick up the alternative rng stream if using the reference particle
+            nsplits = isref ? ni + 1 : ni # We need one more seed to refresh the alternative rng stream
+            seeds = split(key, nsplits)
+            isref && set_refseed!(ref.rng, seeds[end]) # Refresh the alternative rng stream
 
             Random.seed!(p.rng, seeds[1])
 

@@ -88,6 +88,18 @@ state(rng::Random123.Philox4x) = (rng.key1, rng.key2)
 
 Base.copy(r::TracedRNG) = TracedRNG(r.count, copy(r.rng), deepcopy(r.keys))
 
+# Add an extra seed to the reference particle keys array to use as an alternative stream 
+# (we don't need to tack this one)
+#
+# We have to be careful when spliting the reference particle. 
+# Since we don't know the seed tree from the previous SMC run we cannot reuse any of the intermediate seed
+# in the TracedRNG container. We might collide with a previous seed and the children particle would collapse
+# to the reference particle. A solution to solve this is to have an extra stream attached to the reference particle 
+# that we only use to seed the children of the reference particle. 
+#
+set_refseed!(rng::TracedRNG{R}, seed::R) where {R} = rng.keys[end] = seed
+refseed(rng::TracedRNG) = rng.keys[end]
+
 """
     set_counter!(r::TracedRNG, n::Integer)
 

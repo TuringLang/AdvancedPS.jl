@@ -128,7 +128,9 @@ end
 
 function forkr(particle::SSMTrace)
     Random123.set_counter!(particle.rng, 1)
-    return Trace(deepcopy(particle.model), deepcopy(particle.rng))
+    newtrace = Trace(deepcopy(particle.model), deepcopy(particle.rng))
+    gen_refseed!(newtrace)
+    return newtrace
 end
 
 function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})

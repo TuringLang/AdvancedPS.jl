@@ -103,10 +103,10 @@ function AbstractMCMC.step(
 )
     # Create a new set of particles.
     nparticles = sampler.nparticles
-    is_ref = !isnothing(state)
+    isref = !isnothing(state)
 
     traces = map(1:nparticles) do i
-        if i == nparticles && is_ref
+        if i == nparticles && isref
             # Create reference trajectory.
             forkr(state.trajectory)
         else
@@ -118,7 +118,7 @@ function AbstractMCMC.step(
     particles = ParticleContainer(traces, TracedRNG(), rng)
 
     # Perform a particle sweep.
-    reference = is_ref ? particles.vals[nparticles] : nothing
+    reference = isref ? particles.vals[nparticles] : nothing
     logevidence = sweep!(rng, particles, sampler.resampler, reference)
 
     # Pick a particle to be retained.
@@ -136,10 +136,10 @@ function AbstractMCMC.step(
 )
     # Create a new set of particles.
     nparticles = sampler.nparticles
-    is_ref = !isnothing(state)
+    isref = !isnothing(state)
 
     traces = map(1:nparticles) do i
-        if i == nparticles && is_ref
+        if i == nparticles && isref
             # Create reference trajectory.
             forkr(deepcopy(state.trajectory))
         else
@@ -149,7 +149,7 @@ function AbstractMCMC.step(
     particles = ParticleContainer(traces, TracedRNG(), rng)
 
     # Perform a particle sweep.
-    reference = is_ref ? particles.vals[nparticles] : nothing
+    reference = isref ? particles.vals[nparticles] : nothing
     logevidence = sweep!(rng, particles, sampler.resampler, reference)
 
     # Pick a particle to be retained.
