@@ -58,7 +58,7 @@ function transition_logweight(particle::SSMTrace, x)
         transition(
             particle.model,
             particle.model.X[current_step(particle) - 2],
-            current_step(particle),
+            current_step(particle) - 2,
         ),
         x,
     )

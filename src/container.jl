@@ -204,10 +204,10 @@ function resample_propagate!(
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
 
-            key = isref ? refseed(ref.rng) : state(p.rng.rng) # Pick up the alternative rng stream if using the reference particle
+            key = isref ? safe_get_refseed(ref.rng) : state(p.rng.rng) # Pick up the alternative rng stream if using the reference particle
             nsplits = isref ? ni + 1 : ni # We need one more seed to refresh the alternative rng stream
             seeds = split(key, nsplits)
-            isref && set_refseed!(ref.rng, seeds[end]) # Refresh the alternative rng stream
+            isref && safe_set_refseed!(ref.rng, seeds[end]) # Refresh the alternative rng stream
 
             Random.seed!(p.rng, seeds[1])
 

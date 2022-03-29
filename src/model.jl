@@ -76,7 +76,7 @@ end
 
 function gen_refseed!(part::Particle)
     seed = split(state(part.rng.rng), 1)
-    return set_refseed!(part.rng, seed[1])
+    return safe_set_refseed!(part.rng, seed[1])
 end
 
 # reset log probability

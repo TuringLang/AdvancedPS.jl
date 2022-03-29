@@ -63,8 +63,10 @@
         end
         pc_ref = AdvancedPS.ParticleContainer(particles_ref)
 
-        ref = particles_ref[end]
-        AdvancedPS.advance!(ref) # Make sure ref has a valid history
+        selected = particles_ref[end] # Replicate life cycle of the reference particle
+        AdvancedPS.advance!(selected)
+        ref = AdvancedPS.forkr(selected)
+        pc_ref.vals[end] = ref
 
         AdvancedPS.resample_propagate!(
             Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, ref
