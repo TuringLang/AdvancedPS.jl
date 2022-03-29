@@ -1,81 +1,12 @@
-struct Trace{F,R<:TracedRNG}
-    f::F
-    task::Libtask.TapedTask
-    rng::R
-end
-
-const Particle = Trace
-
-function Trace(f, rng::TracedRNG)
-    task = Libtask.TapedTask(f, rng)
-
-    # add backward reference
-    newtrace = Trace(f, task, rng)
-    addreference!(task.task, newtrace)
-
-    return newtrace
-end
-
-function Trace(f, task::Libtask.TapedTask)
-    return Trace(f, task, TracedRNG())
-end
-
-# Copy task
-Base.copy(trace::Trace) = Trace(trace.f, copy(trace.task), deepcopy(trace.rng))
-
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
-function advance!(t::Trace, isref::Bool)
+function advance!(t::GenericTrace, isref::Bool=false)
     isref ? load_state!(t.rng) : save_state!(t.rng)
     inc_counter!(t.rng)
 
     # Move to next step
-    return Libtask.consume(t.task)
+    return Libtask.consume(t.model.ctask)
 end
-
-# reset log probability
-reset_logprob!(t::Trace) = nothing
-
-reset_model(f) = deepcopy(f)
-delete_retained!(f) = nothing
-
-# Task copying version of fork for Trace.
-function fork(trace::Trace, isref::Bool=false)
-    newtrace = copy(trace)
-    isref && delete_retained!(newtrace.f)
-
-    # add backward reference
-    addreference!(newtrace.task.task, newtrace)
-
-    return newtrace
-end
-
-# PG requires keeping all randomness for the reference particle
-# Create new task and copy randomness
-function forkr(trace::Trace)
-    newf = reset_model(trace.f)
-    Random123.set_counter!(trace.rng, 1)
-
-    task = Libtask.TapedTask(newf, trace.rng)
-
-    # add backward reference
-    newtrace = Trace(newf, task, trace.rng)
-    addreference!(task.task, newtrace)
-
-    return newtrace
-end
-
-# create a backward reference in task_local_storage
-function addreference!(task::Task, trace::Trace)
-    if task.storage === nothing
-        task.storage = IdDict()
-    end
-    task.storage[:__trace] = trace
-
-    return task
-end
-
-current_trace() = current_task().storage[:__trace]
 
 """
 Data structure for particle filters
@@ -134,6 +65,13 @@ function Base.copy(pc::ParticleContainer)
 
     return ParticleContainer(vals, logWs, rng)
 end
+
+"""
+    update_ref!(particle::Trace, pc::ParticleContainer)
+
+Update reference trajectory. Defaults to `nothing`
+"""
+update_ref!(particle::Trace, pc::ParticleContainer) = nothing
 
 """
     reset_logweights!(pc::ParticleContainer)
@@ -237,19 +175,16 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 `ref` that is ensured to survive the resampling step.
 """
 function resample_propagate!(
-    rng::Random.AbstractRNG,
+    ::Random.AbstractRNG,
     pc::ParticleContainer,
-    randcat=resample_systematic,
+    randcat=DEFAULT_RESAMPLER,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
 )
-    # check that weights are not NaN
-    @assert !any(isnan, weights)
-
     # sample ancestor indices
     n = length(pc)
     nresamples = ref === nothing ? n : n - 1
-    indx = randcat(rng, weights, nresamples)
+    indx = randcat(pc.rng, weights, nresamples)
 
     # count number of children for each particle
     num_children = zeros(Int, n)
@@ -263,16 +198,18 @@ function resample_propagate!(
     j = 0
     @inbounds for i in 1:n
         ni = num_children[i]
-
         if ni > 0
             # fork first child
             pi = particles[i]
             isref = pi === ref
             p = isref ? fork(pi, isref) : pi
-            nseeds = isref ? ni - 1 : ni
 
-            seeds = split(p.rng.rng.key, nseeds)
-            !isref && Random.seed!(p.rng, seeds[1])
+            key = isref ? safe_get_refseed(ref.rng) : state(p.rng.rng) # Pick up the alternative rng stream if using the reference particle
+            nsplits = isref ? ni + 1 : ni # We need one more seed to refresh the alternative rng stream
+            seeds = split(key, nsplits)
+            isref && safe_set_refseed!(ref.rng, seeds[end]) # Refresh the alternative rng stream
+
+            Random.seed!(p.rng, seeds[1])
 
             children[j += 1] = p
             # fork additional children
@@ -287,6 +224,7 @@ function resample_propagate!(
     if ref !== nothing
         # Insert the retained particle. This is based on the replaying trick for efficiency
         # reasons. If we implement PG using task copying, we need to store Nx * T particles!
+        update_ref!(ref, pc)
         @inbounds children[n] = ref
     end
 

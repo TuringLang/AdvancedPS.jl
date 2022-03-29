@@ -22,7 +22,11 @@
 
         # Create particle container.
         logps = [0.0, -1.0, -2.0]
-        particles = [AdvancedPS.Trace(fpc(logp), AdvancedPS.TracedRNG()) for logp in logps]
+        particles = map(logps) do logp
+            trng = AdvancedPS.TracedRNG()
+            tmodel = AdvancedPS.GenericModel(fpc(logp), trng)
+            AdvancedPS.Trace(tmodel, trng)
+        end
         pc = AdvancedPS.ParticleContainer(particles)
 
         # Initial state.
@@ -52,12 +56,20 @@
         @test AdvancedPS.logZ(pc) ≈ log(sum(exp, 2 .* logps))
 
         # Resample and propagate particles with reference particle
-        particles_ref = [
-            AdvancedPS.Trace(fpc(logp), AdvancedPS.TracedRNG()) for logp in logps
-        ]
+        particles_ref = map(logps) do logp
+            trng = AdvancedPS.TracedRNG()
+            tmodel = AdvancedPS.GenericModel(fpc(logp), trng)
+            AdvancedPS.Trace(tmodel, trng)
+        end
         pc_ref = AdvancedPS.ParticleContainer(particles_ref)
+
+        selected = particles_ref[end] # Replicate life cycle of the reference particle
+        AdvancedPS.advance!(selected)
+        ref = AdvancedPS.forkr(selected)
+        pc_ref.vals[end] = ref
+
         AdvancedPS.resample_propagate!(
-            Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, particles_ref[end]
+            Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, ref
         )
         @test pc_ref.logWs == zeros(3)
         @test AdvancedPS.getweights(pc_ref) == fill(1 / 3, 3)
@@ -109,17 +121,19 @@
         end
 
         # Test task copy version of trace
-        tr = AdvancedPS.Trace(f2, AdvancedPS.TracedRNG())
+        trng = AdvancedPS.TracedRNG()
+        tmodel = AdvancedPS.GenericModel(f2, trng)
+        tr = AdvancedPS.Trace(tmodel, trng)
 
-        consume(tr.task)
-        consume(tr.task)
+        consume(tr.model.ctask)
+        consume(tr.model.ctask)
 
         a = AdvancedPS.fork(tr)
-        consume(a.task)
-        consume(a.task)
+        consume(a.model.ctask)
+        consume(a.model.ctask)
 
-        @test consume(tr.task) == 2
-        @test consume(a.task) == 4
+        @test consume(tr.model.ctask) == 2
+        @test consume(a.model.ctask) == 4
     end
 
     @testset "seed container" begin
@@ -129,7 +143,11 @@
         n = 3
         rng = Random.MersenneTwister(seed)
 
-        particles = [AdvancedPS.Trace(dummy, AdvancedPS.TracedRNG()) for _ in 1:n]
+        particles = map(1:n) do _
+            trng = AdvancedPS.TracedRNG()
+            tmodel = AdvancedPS.GenericModel(dummy, trng)
+            AdvancedPS.Trace(tmodel, trng)
+        end
         pc = AdvancedPS.ParticleContainer(particles, AdvancedPS.TracedRNG())
 
         AdvancedPS.seed_from_rng!(pc, rng)

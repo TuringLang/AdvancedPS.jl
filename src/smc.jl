@@ -18,7 +18,7 @@ SMC(nparticles::Int) = SMC(nparticles, ResampleWithESSThreshold())
 function SMC(nparticles::Int, resampler, threshold::Real)
     return SMC(nparticles, ResampleWithESSThreshold(resampler, threshold))
 end
-SMC(nparticles::Int, threshold::Real) = SMC(nparticles, resample_systematic, threshold)
+SMC(nparticles::Int, threshold::Real) = SMC(nparticles, DEFAULT_RESAMPLER, threshold)
 
 struct SMCSample{P,W,L}
     trajectories::P
@@ -37,10 +37,14 @@ function AbstractMCMC.sample(
         @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
     end
 
+    traces = map(1:(sampler.nparticles)) do i
+        trng = TracedRNG()
+        tmodel = GenericModel(model, trng)
+        Trace(tmodel, trng)
+    end
+
     # Create a set of particles.
-    particles = ParticleContainer(
-        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], TracedRNG(), rng
-    )
+    particles = ParticleContainer(traces, TracedRNG(), rng)
 
     # Perform particle sweep.
     logevidence = sweep!(rng, particles, sampler.resampler)
@@ -70,7 +74,7 @@ PG(nparticles::Int) = PG(nparticles, ResampleWithESSThreshold())
 function PG(nparticles::Int, resampler, threshold::Real)
     return PG(nparticles, ResampleWithESSThreshold(resampler, threshold))
 end
-PG(nparticles::Int, threshold::Real) = PG(nparticles, resample_systematic, threshold)
+PG(nparticles::Int, threshold::Real) = PG(nparticles, DEFAULT_RESAMPLER, threshold)
 
 struct PGState{T}
     trajectory::T
@@ -81,50 +85,74 @@ struct PGSample{T,L}
     logevidence::L
 end
 
-function AbstractMCMC.step(
-    rng::Random.AbstractRNG, model::AbstractMCMC.AbstractModel, sampler::PG; kwargs...
-)
-    # Create a new set of particles.
-    particles = ParticleContainer(
-        [Trace(model, TracedRNG()) for _ in 1:(sampler.nparticles)], TracedRNG(), rng
-    )
-
-    # Perform a particle sweep.
-    logevidence = sweep!(rng, particles, sampler.resampler)
-
-    # Pick a particle to be retained.
-    trajectory = rand(rng, particles)
-
-    return PGSample(trajectory, logevidence), PGState(trajectory)
+struct PGAS{R} <: AbstractMCMC.AbstractSampler
+    """Number of particles."""
+    nparticles::Int
+    """Resampling algorithm."""
+    resampler::R
 end
+
+PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold(1.0))
 
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
     model::AbstractMCMC.AbstractModel,
     sampler::PG,
-    state::PGState;
+    state::Union{PGState,Nothing}=nothing;
     kwargs...,
 )
     # Create a new set of particles.
     nparticles = sampler.nparticles
+    isref = !isnothing(state)
 
-    x = map(1:nparticles) do i
-        if i == nparticles
+    traces = map(1:nparticles) do i
+        if i == nparticles && isref
             # Create reference trajectory.
             forkr(state.trajectory)
         else
-            Trace(model, TracedRNG())
+            trng = TracedRNG()
+            Trace(GenericModel(model, trng), trng)
         end
     end
 
-    reference = x[end]
-    particles = ParticleContainer(x, TracedRNG(), rng)
+    particles = ParticleContainer(traces, TracedRNG(), rng)
 
     # Perform a particle sweep.
+    reference = isref ? particles.vals[nparticles] : nothing
     logevidence = sweep!(rng, particles, sampler.resampler, reference)
 
     # Pick a particle to be retained.
     newtrajectory = rand(rng, particles)
 
+    return PGSample(newtrajectory, logevidence), PGState(newtrajectory)
+end
+
+function AbstractMCMC.step(
+    rng::Random.AbstractRNG,
+    model::AbstractStateSpaceModel,
+    sampler::PGAS,
+    state::Union{PGState,Nothing}=nothing;
+    kwargs...,
+)
+    # Create a new set of particles.
+    nparticles = sampler.nparticles
+    isref = !isnothing(state)
+
+    traces = map(1:nparticles) do i
+        if i == nparticles && isref
+            # Create reference trajectory.
+            forkr(deepcopy(state.trajectory))
+        else
+            Trace(deepcopy(model), TracedRNG())
+        end
+    end
+    particles = ParticleContainer(traces, TracedRNG(), rng)
+
+    # Perform a particle sweep.
+    reference = isref ? particles.vals[nparticles] : nothing
+    logevidence = sweep!(rng, particles, sampler.resampler, reference)
+
+    # Pick a particle to be retained.
+    newtrajectory = rand(particles.rng, particles)
     return PGSample(newtrajectory, logevidence), PGState(newtrajectory)
 end

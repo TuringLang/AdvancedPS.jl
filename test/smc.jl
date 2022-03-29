@@ -93,7 +93,7 @@
 
         chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
 
-        @test all(isone(p.f.x) for p in chains_smc.trajectories)
+        @test all(isone(p.model.f.x) for p in chains_smc.trajectories)
         @test chains_smc.logevidence ≈ -2 * log(2)
     end
 
@@ -147,7 +147,7 @@
 
         chains_pg = sample(TestModel(), AdvancedPS.PG(10), 100)
 
-        @test all(isone(p.trajectory.f.x) for p in chains_pg)
+        @test all(isone(p.trajectory.model.f.x) for p in chains_pg)
         @test mean(x.logevidence for x in chains_pg) ≈ -2 * log(2) atol = 0.01
     end
 
@@ -170,8 +170,8 @@
         pg = AdvancedPS.PG(1)
         first, second = sample(Model(), pg, 2)
 
-        first_model = first.trajectory.f
-        second_model = second.trajectory.f
+        first_model = first.trajectory.model.f
+        second_model = second.trajectory.model.f
 
         # Single Particle - must be replaying
         @test first_model.a ≈ second_model.a
