@@ -99,7 +99,7 @@ function advance!(particle::SSMTrace, isref::Bool=false)
             new_state = rand(particle.rng, transition(model, current_state, running_step))
         end
     else
-        new_state = model.X[running_step]
+        new_state = model.X[running_step] # We need the current state from the reference particle
     end
 
     score = observation(model, new_state, running_step)
