@@ -4,7 +4,20 @@ using Random
 using Distributions
 using Plots
 
+# # Model definition
+# 
+# We consider the following linear state-space model with Gaussian innovations. The model is one-dimensional and is given
+# by the following transition equations.
+# 
+# ```
+#  x_{t+1} = a x_{t} + \epsilon_t \quad \epsilon_t \sim \mathcal{N}(0,q^2)
+#  y_{t} = x_{t} + \nu_{t} \quad \nu \sim \mathcal{N}(0, r^2) 
+# ```
+# We're interested in sampling from the latent state `x_t`. We assume the static paramters `\theta = (a, q^2, r^2)` are known.
+# 
+
 # Parameters
+# We define a small 
 Parameters = @NamedTuple begin
     a::Float64
     q::Float64
