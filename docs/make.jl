@@ -10,7 +10,8 @@ mkpath(EXAMPLES_OUT)
 # Install and precompile all packages
 # Workaround for https://github.com/JuliaLang/Pkg.jl/issues/2219
 examples = filter!(isdir, readdir(joinpath(@__DIR__, "..", "examples"); join=true))
-let script = "using Pkg; Pkg.activate(ARGS[1]); Pkg.instantiate()"
+above = joinpath(@__DIR__, "..")
+let script = "using Pkg; Pkg.activate(ARGS[1]); Pkg.instantiate(); Pkg.develop(path=\"$(above)\");"
     for example in examples
         if !success(`$(Base.julia_cmd()) -e $script $example`)
             error(
