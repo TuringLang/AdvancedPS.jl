@@ -4,7 +4,6 @@ using Random
 using Distributions
 using Plots
 
-
 # We consider the following linear state-space model with Gaussian innovations. The latent state is a simple gaussian random walk
 # and the observation is linear in the latent states, namely:
 # 
@@ -94,7 +93,7 @@ xlabel!("x")
 # 
 model = NonLinearTimeSeries(θ₀)
 pgas = AdvancedPS.PGAS(Nₚ)
-chains = sample(rng, model, pgas, Nₛ, progress=false)
+chains = sample(rng, model, pgas, Nₛ; progress=false)
 #md nothing #hide
 
 # The actual sampled trajectory is in the trajectory inner model
