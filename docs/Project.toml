@@ -1,4 +1,5 @@
 [deps]
+AdvancedPS = "576499cb-2369-40b2-a588-c64705576edc"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
 
