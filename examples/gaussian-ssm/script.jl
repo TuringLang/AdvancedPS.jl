@@ -7,22 +7,22 @@ using Plots
 # We consider the following linear state-space model with Gaussian innovations. The latent state is a simple gaussian random walk
 # and the observation is linear in the latent states, namely:
 # 
-# $$
+# ```math
 #  x_{t+1} = a x_{t} + \epsilon_t \quad \epsilon_t \sim \mathcal{N}(0,q^2)
-# $$ 
-# $$
-#  y_{t} = x_{t} + \nu_{t} \quad \nu \sim \mathcal{N}(0, r^2) 
-# $$
+# ```
+# ```math
+#  y_{t} = x_{t} + \nu_{t} \quad \nu_{t} \sim \mathcal{N}(0, r^2) 
+# ```
 #
 # Here we assume the static parameters $\theta = (a, q^2, r^2)$ are known and we are only interested in sampling from the latent state $x_t$. 
 # To use particle gibbs with the ancestor sampling step we need to provide both the transition and observation densities. 
 # From the definition above we get:  
-# $$ 
-#  x_{t+1} \sim f_{\theta}(x_t|x_t) = \mathcal{N}(a x_t, q^2)
-# $$
-# $$ 
-#  y_t \sim g_{\theta}(x_t|x_t) = \mathcal{N}(a x_t, q^2)
-# $$
+# ```math
+#  x_{t+1} \sim f_{\theta}(x_{t+1}|x_t) = \mathcal{N}(a x_t, q^2)
+# ```
+# ```math
+#  y_t \sim g_{\theta}(y_t|x_t) = \mathcal{N}(x_t, q^2)
+# ```
 # as well as the initial distribution $f_0(x) = \mathcal{N}(0, q^2/(1-a^2))$.
 
 # We are ready to use `AdvancedPS` with our model. We first need to define a model type that subtypes `AdvancedPS.AbstractStateSpaceModel`.
@@ -44,7 +44,7 @@ g(m::NonLinearTimeSeries, state, t) = Normal(state, m.θ.r)         # Observatio
 f₀(m::NonLinearTimeSeries) = Normal(0, m.θ.q^2 / (1 - m.θ.a^2))    # Initial state density
 #md nothing #hide
 
-# To implement `AdvancedPS.AbstractStateSpaceModel` we need to define a few functions to define the dynamics of our system. 
+# To implement `AdvancedPS.AbstractStateSpaceModel` we need to define a few functions to specify the dynamics of the system:
 # - `AdvancedPS.initialization` the initial state density
 # - `AdvancedPS.transition` the state transition density
 # - `AdvancedPS.observation` the observation score given the observed data
@@ -63,8 +63,8 @@ q = 0.32  # State variance
 r = 1     # Observation variance
 Tₘ = 300  # Number of observation
 Nₚ = 50   # Number of particles
-Nₛ = 1000 # Number of samples
-seed = 9  # Reproduce everything
+Nₛ = 500  # Number of samples
+seed = 0 # Reproduce everything
 
 θ₀ = Parameters((a, q, r))
 
@@ -83,11 +83,11 @@ for t in 1:Tₘ
 end
 
 # Let's have a look at the simulated data from the latent state dynamics
-plot(x; label="x", color=:black)
+plot(x; label="x")
 xlabel!("t")
 
 # and the observation data
-plot(y; label="y", color=:black)
+plot(y; label="y")
 xlabel!("x")
 
 # 
@@ -102,7 +102,7 @@ mean_trajectory = mean(particles; dims=2)
 #md nothing #hide
 
 # 
-scatter(particles; label=false, opacity=0.01, color=:black)
+scatter(particles; label=false, opacity=0.01)
 plot!(x; color=:red, label="Original Trajectory")
 plot!(mean_trajectory; color=:orange, label="Mean trajectory", opacity=0.9)
 xlabel!("t")
