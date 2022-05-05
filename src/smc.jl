@@ -92,7 +92,6 @@ function AbstractMCMC.step(
     state::Union{PGState,Nothing}=nothing;
     kwargs...,
 )
-    println("Smc step")
     # Create a new set of particles.
     nparticles = sampler.nparticles
     isref = !isnothing(state)
