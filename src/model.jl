@@ -89,7 +89,7 @@ reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing
 
 function delete_seeds!(particle::Particle)
-    particle.rng.keys = particle.rng.keys[1:(particle.rng.count - 1)]
+    return particle.rng.keys = particle.rng.keys[1:(particle.rng.count - 1)]
 end
 """
     observe(dist::Distribution, x)
