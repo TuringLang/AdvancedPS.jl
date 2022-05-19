@@ -117,3 +117,6 @@ Random123.set_counter!(r::TracedRNG, n::Integer) = r.count = n
 Increase the model step counter by `n`
 """
 inc_counter!(r::TracedRNG, n::Integer=1) = r.count += n
+
+# Handle mutating RNG properly when forking the tape in Libtask
+Libtask.tape_copy(rng::TracedRNG) = copy(rng)
