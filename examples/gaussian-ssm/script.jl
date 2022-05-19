@@ -102,7 +102,7 @@ mean_trajectory = mean(particles; dims=2)
 #md nothing #hide
 
 # 
-scatter(particles; label=false, opacity=0.01)
+scatter(particles; label=false, opacity=0.01, color=:black)
 plot!(x; color=:red, label="Original Trajectory")
 plot!(mean_trajectory; color=:orange, label="Mean trajectory", opacity=0.9)
 xlabel!("t")
