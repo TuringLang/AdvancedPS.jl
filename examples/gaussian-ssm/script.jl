@@ -64,7 +64,7 @@ r = 1     # Observation variance
 Tₘ = 300  # Number of observation
 Nₚ = 50   # Number of particles
 Nₛ = 500  # Number of samples
-seed = 0 # Reproduce everything
+seed = 9 # Reproduce everything
 
 θ₀ = Parameters((a, q, r))
 
@@ -108,7 +108,8 @@ plot!(mean_trajectory; color=:orange, label="Mean trajectory", opacity=0.9)
 xlabel!("t")
 ylabel!("State")
 
-# By sampling an ancestor from the reference particle in the particle gibbs sampler we 
+# By sampling an ancestor from the reference particle in the particle gibbs sampler we split the 
+# trajectory of the reference particle.
 update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 plot(update_rate; label=false, ylim=[0, 1], legend=:bottomleft)
 hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")
