@@ -39,7 +39,7 @@ function AbstractMCMC.sample(
 
     traces = map(1:(sampler.nparticles)) do i
         trng = TracedRNG()
-        tmodel = GenericModel(model, trng)
+        tmodel = GenericModel(deepcopy(model), trng)
         Trace(tmodel, trng)
     end
 
@@ -85,15 +85,6 @@ struct PGSample{T,L}
     logevidence::L
 end
 
-struct PGAS{R} <: AbstractMCMC.AbstractSampler
-    """Number of particles."""
-    nparticles::Int
-    """Resampling algorithm."""
-    resampler::R
-end
-
-PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold(1.0))
-
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
     model::AbstractMCMC.AbstractModel,
@@ -108,10 +99,10 @@ function AbstractMCMC.step(
     traces = map(1:nparticles) do i
         if i == nparticles && isref
             # Create reference trajectory.
-            forkr(state.trajectory)
+            forkr(copy(state.trajectory))
         else
             trng = TracedRNG()
-            Trace(GenericModel(model, trng), trng)
+            Trace(GenericModel(deepcopy(model), trng), trng)
         end
     end
 
@@ -126,6 +117,15 @@ function AbstractMCMC.step(
 
     return PGSample(newtrajectory, logevidence), PGState(newtrajectory)
 end
+
+struct PGAS{R} <: AbstractMCMC.AbstractSampler
+    """Number of particles."""
+    nparticles::Int
+    """Resampling algorithm."""
+    resampler::R
+end
+
+PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold(1.0))
 
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
