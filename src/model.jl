@@ -14,7 +14,7 @@ Base.copy(model::GenericModel) = GenericModel(model.f, copy(model.ctask))
 """
     Trace{F,R}
 """
-struct Trace{F,R}
+mutable struct Trace{F,R}
     model::F
     rng::R
 
@@ -51,7 +51,10 @@ current_trace() = current_task().storage[:__trace]
 # Task copying version of fork for Trace.
 function fork(trace::GenericTrace, isref::Bool=false)
     newtrace = copy(trace)
+    rng, = newtrace.model.ctask.args
+    newtrace.rng = rng
     isref && delete_retained!(newtrace.model.f)
+    isref && delete_seeds!(newtrace)
 
     # add backward reference
     addreference!(newtrace.model.ctask.task, newtrace)
@@ -92,4 +95,15 @@ Observe sample `x` from distribution `dist` and yield its log-likelihood value.
 """
 function observe(dist::Distributions.Distribution, x)
     return Libtask.produce(Distributions.loglikelihood(dist, x))
+end
+
+"""
+    delete_seeds!(particle::Particle)
+
+Truncate the seed history from the `particle` rng. When forking the reference Particle
+we need to keep the seeds up to the current model iteration but generate new seeds
+and random values afterward.
+"""
+function delete_seeds!(particle::Particle)
+    return particle.rng.keys = particle.rng.keys[1:(particle.rng.count - 1)]
 end
