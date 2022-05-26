@@ -1,4 +1,4 @@
-# # Particle Gibbs with Ancestor Sampling
+# # Particle Gibbs for Gaussian state-space model
 using AdvancedPS
 using Random
 using Distributions
