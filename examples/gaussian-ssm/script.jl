@@ -98,7 +98,7 @@ chains = sample(rng, model, pgas, Nₛ; progress=false);
 #md nothing #hide
 
 # 
-particles = hcat([chain.trajectory.model.X for chain in chains]...) 
+particles = hcat([chain.trajectory.model.X for chain in chains]...)
 mean_trajectory = mean(particles; dims=2);
 #md nothing #hide
 
@@ -114,7 +114,7 @@ ylabel!("State")
 # We can compute the update rate of $x_t$ vs $t$ defined as the proportion of times $t$ where $x_t$ gets updated:
 update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 #md nothing #hide
- 
+
 # and compare it to the theoretical value of $1 - 1/Nₚ$. 
 plot(update_rate; label=false, ylim=[0, 1], legend=:bottomleft)
 hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")

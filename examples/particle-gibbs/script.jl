@@ -38,8 +38,8 @@ mutable struct NonLinearTimeSeries <: AbstractMCMC.AbstractModel
     NonLinearTimeSeries(θ::Parameters) = new(TArray(Float64, θ.T), θ)
 end
 
-f(model::NonLinearTimeSeries, state, t) = Normal(model.θ.a * state, model.θ.q) 
-g(model::NonLinearTimeSeries, state, t) = Normal(0, exp(0.5*state)^2)
+f(model::NonLinearTimeSeries, state, t) = Normal(model.θ.a * state, model.θ.q)
+g(model::NonLinearTimeSeries, state, t) = Normal(0, exp(0.5 * state)^2)
 f₀(model::NonLinearTimeSeries) = Normal(0, model.θ.q)
 #md nothing #hide
 
