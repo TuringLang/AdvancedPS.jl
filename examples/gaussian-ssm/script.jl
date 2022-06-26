@@ -83,12 +83,10 @@ for t in 1:Tₘ
 end
 
 # Here are the latent and obseravation timeseries
-plot(x; label="x")
-xlabel!("t")
+plot(x; label="x", xlabel="t")
 
-#  
-plot(y; label="y")
-xlabel!("x")
+# 
+plot(y; label="y", xlabel="t")
 
 # `AdvancedPS` subscribes to the `AbstractMCMC` API. To sample we just need to define a Particle Gibbs kernel
 # and a model interface. 
@@ -103,11 +101,9 @@ mean_trajectory = mean(particles; dims=2);
 #md nothing #hide
 
 # This toy model is small enough to inspect all the generated traces:
-scatter(particles; label=false, opacity=0.01, color=:black)
+scatter(particles; label=false, opacity=0.01, color=:black, xlabel="t", ylabel="state")
 plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
-xlabel!("t")
-ylabel!("State")
 
 # We used a particle gibbs kernel with the ancestor updating step which should help with the particle 
 # degeneracy problem and improve the mixing. 
@@ -116,7 +112,12 @@ update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 #md nothing #hide
 
 # and compare it to the theoretical value of $1 - 1/Nₚ$. 
-plot(update_rate; label=false, ylim=[0, 1], legend=:bottomleft)
+plot(
+    update_rate;
+    label=false,
+    ylim=[0, 1],
+    legend=:bottomleft,
+    xlabel="Iteration",
+    ylabel="Update rate",
+)
 hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")
-xlabel!("Iteration")
-ylabel!("Update rate")

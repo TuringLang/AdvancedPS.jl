@@ -61,7 +61,7 @@ makedocs(;
             )...,
         ],
     ],
-    strict=true,
+    #strict=true,
     checkdocs=:exports,
     doctestfilters=[
         # Older versions will show "0 element Array" instead of "Type[]".
