@@ -67,12 +67,11 @@ for t in 1:Tₘ
 end
 
 # Here are the latent and observation series:
-plot(x; label="x")
-xlabel!("t")
+plot(x; label="x", xlabel="t")
 
-#  
-plot(y; label="y")
-xlabel!("x")
+# 
+plot(y; label="y", xlabel="t")
+
 
 # Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
 function (model::NonLinearTimeSeries)(rng::Random.AbstractRNG)
@@ -125,12 +124,9 @@ mean_trajectory = mean(particles; dims=2)
 # We can now plot all the generated traces.
 # Beyond the last few timesteps all the trajectories collapse into one. Using the ancestor updating step can help 
 # with the degeneracy problem.
-plot()
-scatter(particles; label=false, opacity=0.01, color=:black)
+scatter(particles; label=false, opacity=0.01, color=:black, xlabel="t", ylabel="state")
 plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
-xlabel!("t")
-ylabel!("State")
 
 # We can also check the mixing as defined in the Gaussian State Space model example. As seen on the
 # scatter plot above, we are mostly left with a single trajectory before timestep 150. The orange 
@@ -138,7 +134,5 @@ ylabel!("State")
 update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 #md nothing #hide
 
-plot(update_rate; label=false, ylim=[0, 1], legend=:bottomleft)
+plot(update_rate; label=false, ylim=[0, 1], legend=:bottomleft, xlabel="Iteration", ylabel="Update rate")
 hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")
-xlabel!("Iteration")
-ylabel!("Update rate")
