@@ -72,7 +72,6 @@ plot(x; label="x", xlabel="t")
 # 
 plot(y; label="y", xlabel="t")
 
-
 # Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
 function (model::NonLinearTimeSeries)(rng::Random.AbstractRNG)
     x₀ = rand(rng, f₀(model))
@@ -134,5 +133,12 @@ plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 #md nothing #hide
 
-plot(update_rate; label=false, ylim=[0, 1], legend=:bottomleft, xlabel="Iteration", ylabel="Update rate")
+plot(
+    update_rate;
+    label=false,
+    ylim=[0, 1],
+    legend=:bottomleft,
+    xlabel="Iteration",
+    ylabel="Update rate",
+)
 hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")

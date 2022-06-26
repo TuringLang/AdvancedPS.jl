@@ -112,5 +112,12 @@ update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 #md nothing #hide
 
 # and compare it to the theoretical value of $1 - 1/Nₚ$. 
-plot(update_rate; label=false, ylim=[0, 1], legend=:bottomleft, xlabel="Iteration", ylabel="Update rate")
+plot(
+    update_rate;
+    label=false,
+    ylim=[0, 1],
+    legend=:bottomleft,
+    xlabel="Iteration",
+    ylabel="Update rate",
+)
 hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")
