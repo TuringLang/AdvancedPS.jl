@@ -59,8 +59,6 @@ end
 # Task copying version of fork for Trace.
 function fork(trace::GenericTrace, isref::Bool=false)
     newtrace = copy(trace)
-    #rng, = newtrace.model.ctask.args
-    #newtrace.rng = rng
     update_rng!(newtrace)
     isref && delete_retained!(newtrace.model.f)
     isref && delete_seeds!(newtrace)
