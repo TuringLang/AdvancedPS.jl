@@ -3,9 +3,11 @@
 
 State wrapper to hold `Libtask.CTask` model initiated from `f`
 """
-struct GenericModel{F} <: AbstractMCMC.AbstractModel
-    f::F
-    ctask::Libtask.TapedTask{F}
+struct GenericModel{F1,F2} <: AbstractMCMC.AbstractModel
+    f::F1
+    ctask::Libtask.TapedTask{F2}
+
+    GenericModel(f::F1, ctask::Libtask.TapedTask{F2}) where {F1,F2} = new{F1,F2}(f, ctask)
 end
 
 GenericModel(f, args...) = GenericModel(f, Libtask.TapedTask(f, args...))
@@ -48,11 +50,18 @@ end
 
 current_trace() = current_task().storage[:__trace]
 
+function update_rng!(trace::GenericTrace)
+    rng, = trace.model.ctask.args
+    trace.rng = rng
+    return trace
+end
+
 # Task copying version of fork for Trace.
 function fork(trace::GenericTrace, isref::Bool=false)
     newtrace = copy(trace)
-    rng, = newtrace.model.ctask.args
-    newtrace.rng = rng
+    #rng, = newtrace.model.ctask.args
+    #newtrace.rng = rng
+    update_rng!(newtrace)
     isref && delete_retained!(newtrace.model.f)
     isref && delete_seeds!(newtrace)
 
