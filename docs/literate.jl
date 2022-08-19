@@ -15,4 +15,4 @@ using Literate: Literate
 
 # Convert to markdown and notebook
 const SCRIPTJL = joinpath(EXAMPLEPATH, "script.jl")
-Literate.markdown(SCRIPTJL, OUTDIR; name=EXAMPLE, documenter=false, execute=true)
+Literate.markdown(SCRIPTJL, OUTDIR; name=EXAMPLE, execute=true)
