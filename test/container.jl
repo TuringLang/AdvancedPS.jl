@@ -110,8 +110,7 @@
     @testset "trace" begin
         n = Ref(0)
         function f2(rng)
-            t = TArray(Int, 1)
-            t[1] = 0
+            t = [0]
             while true
                 n[] += 1
                 produce(t[1])
@@ -166,5 +165,32 @@
 
         # Dont reset reference particle
         @test ref_seeds[n] ≈ new_seeds[n]
+    end
+
+    @testset "seed history" begin
+
+        function dummy(rng)
+            while true
+                produce(1)
+            end
+        end
+
+        # Test task copy version of trace
+        trng = AdvancedPS.TracedRNG()
+        tmodel = AdvancedPS.GenericModel(dummy, trng)
+        tr = AdvancedPS.Trace(tmodel, trng)
+
+        AdvancedPS.advance!(tr)
+        AdvancedPS.advance!(tr)
+        AdvancedPS.advance!(tr)
+
+        ref = AdvancedPS.forkr(tr) # Ref particle
+
+        new_tr = AdvancedPS.fork(ref, true)
+        @test length(new_tr.rng.keys) == 0
+
+        AdvancedPS.advance!(ref)
+        child = AdvancedPS.fork(ref, true)
+        @test length(new_tr.rng.keys) == 1
     end
 end
