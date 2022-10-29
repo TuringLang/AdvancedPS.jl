@@ -190,6 +190,6 @@
 
         AdvancedPS.advance!(ref)
         child = AdvancedPS.fork(ref, true)
-        @test length(new_tr.rng.keys) == 1
+        @test length(child.rng.keys) == 1
     end
 end

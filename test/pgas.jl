@@ -79,7 +79,6 @@
 
     @testset "rng stability" begin
         model = BaseModel(Params(0.9, 0.32, 1))
-
         seed = 10
         rng = Random.MersenneTwister(seed)
 

@@ -33,9 +33,9 @@ Parameters = @NamedTuple begin
 end
 
 mutable struct NonLinearTimeSeries <: AbstractMCMC.AbstractModel
-    X::TArray
+    X::Array
     θ::Parameters
-    NonLinearTimeSeries(θ::Parameters) = new(TArray(Float64, θ.T), θ)
+    NonLinearTimeSeries(θ::Parameters) = new(zeros(Float64, θ.T), θ)
 end
 
 f(model::NonLinearTimeSeries, state, t) = Normal(model.θ.a * state, model.θ.q)
@@ -86,10 +86,6 @@ function (model::NonLinearTimeSeries)(rng::Random.AbstractRNG)
         Libtask.produce(score)
     end
 end
-
-# `AdvancedPS` relies on `Libtask` to copy models during their execution but we need to make sure the 
-# internal data of each model is properly copied over as well.
-Libtask.tape_copy(model::NonLinearTimeSeries) = deepcopy(model)
 
 # Here we use the particle gibbs kernel without adaptive resampling.
 model = NonLinearTimeSeries(θ₀)

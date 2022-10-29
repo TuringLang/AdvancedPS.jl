@@ -10,7 +10,11 @@ struct GenericModel{F1,F2} <: AbstractMCMC.AbstractModel
     GenericModel(f::F1, ctask::Libtask.TapedTask{F2}) where {F1,F2} = new{F1,F2}(f, ctask)
 end
 
-GenericModel(f, args...) = GenericModel(f, Libtask.TapedTask(f, args...))
+function GenericModel(f, args...)
+    return GenericModel(
+        f, Libtask.TapedTask(f, args...; deepcopy_types=Union{TracedRNG,typeof(f)})
+    )
+end
 Base.copy(model::GenericModel) = GenericModel(model.f, copy(model.ctask))
 
 """
@@ -74,7 +78,10 @@ function forkr(trace::GenericTrace)
     newf = reset_model(trace.model.f)
     Random123.set_counter!(trace.rng, 1)
 
-    ctask = Libtask.TapedTask(newf, trace.rng)
+    ctask = Libtask.TapedTask(
+        newf, trace.rng; deepcopy_types=Union{TracedRNG,typeof(trace.model.f)}
+    )
+    #ctask = Libtask.TapedTask(newf, trace.rng)
     new_tapedmodel = GenericModel(newf, ctask)
 
     # add backward reference
