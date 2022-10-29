@@ -71,7 +71,7 @@
         @test length(Set(terminal_values)) == 3 # All distinct
     end
 
-    @testset "constructor" begin 
+    @testset "constructor" begin
         sampler = AdvancedPS.PGAS(10)
         @test sampler.nparticles == 10
         @test sampler.resampler === AdvancedPS.ResampleWithESSThreshold(1.0) # adaptive PG-AS ?
@@ -79,7 +79,7 @@
 
     @testset "rng stability" begin
         model = BaseModel(Params(0.9, 0.32, 1))
-        
+
         seed = 10
         rng = Random.MersenneTwister(seed)
 

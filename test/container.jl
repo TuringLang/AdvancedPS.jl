@@ -168,7 +168,6 @@
     end
 
     @testset "seed history" begin
-
         function dummy(rng)
             while true
                 produce(1)
