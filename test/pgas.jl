@@ -70,4 +70,27 @@
         terminal_values = [part.model.X[3] for part in pc.vals]
         @test length(Set(terminal_values)) == 3 # All distinct
     end
+
+    @testset "constructor" begin
+        sampler = AdvancedPS.PGAS(10)
+        @test sampler.nparticles == 10
+        @test sampler.resampler === AdvancedPS.ResampleWithESSThreshold(1.0) # adaptive PG-AS ?
+    end
+
+    @testset "rng stability" begin
+        model = BaseModel(Params(0.9, 0.32, 1))
+
+        seed = 10
+        rng = Random.MersenneTwister(seed)
+
+        Random.seed!(rng, seed)
+        chain1 = sample(rng, model, AdvancedPS.PGAS(10), 10)
+        vals1 = hcat([chain.trajectory.model.X for chain in chain1]...)
+
+        Random.seed!(rng, seed)
+        chain2 = sample(rng, model, AdvancedPS.PGAS(10), 10)
+        vals2 = hcat([chain.trajectory.model.X for chain in chain2]...) # TODO: Create proper chains
+
+        @test vals1 == vals2
+    end
 end
