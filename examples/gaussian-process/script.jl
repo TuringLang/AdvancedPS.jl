@@ -54,8 +54,6 @@ function gp_update(model::GPSSM, state, step)
     return Normal(μ[1], σ[1])
 end
 
-Libtask.tape_copy(model::GPSSM) = deepcopy(model)
-
 AdvancedPS.initialization(::GPSSM) = h(model)
 AdvancedPS.transition(model::GPSSM, state, step) = gp_update(model, state, step)
 AdvancedPS.observation(model::GPSSM, state, step) = logpdf(g(model, state, step), y[step])
