@@ -5,7 +5,6 @@ using Distributions
 using Plots
 using AbstractMCMC
 using Random123
-using Libtask: TArray
 using Libtask
 
 # We consider the following stochastic volatility model:
