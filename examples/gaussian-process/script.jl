@@ -1,4 +1,4 @@
-# # Gaussian Process innovation
+# # Gaussian Process State-Space Model (GP-SSM)
 using LinearAlgebra
 using Random
 using AdvancedPS
