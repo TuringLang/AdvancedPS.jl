@@ -84,7 +84,7 @@ end
 
 # Here are the latent and obseravation timeseries
 plot(x; label="x", xlabel="t")
-plot!(y; seriestype=:scatter,label="y", xlabel="t",mc=:red, ms=2, ma=0.5)
+plot!(y; seriestype=:scatter, label="y", xlabel="t", mc=:red, ms=2, ma=0.5)
 
 # `AdvancedPS` subscribes to the `AbstractMCMC` API. To sample we just need to define a Particle Gibbs kernel
 # and a model interface. 
