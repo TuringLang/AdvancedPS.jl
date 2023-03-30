@@ -1,11 +1,11 @@
-""" 
+"""
     initialization(model::AbstractStateSpaceModel)
 
 Define the distribution of the initial state of the State Space Model
 """
 function initialization end
 
-""" 
+"""
     transition(model::AbstractStateSpaceModel, state, step)
 
 Define the transition density of the State Space Model
@@ -16,12 +16,12 @@ function transition end
 """
     observation(model::AbstractStateSpaceModel, state, step)
 
-Return the log-likelihood of the observed measurement conditional on the current state of the model. 
+Return the log-likelihood of the observed measurement conditional on the current state of the model.
 Must return `nothing` if it consumed all the data
 """
 function observation end
 
-""" 
+"""
     isdone(model::AbstractStateSpaceModel, step)
 
 Return `true` if model reached final state else `false`
@@ -79,7 +79,7 @@ function get_ancestor_logweights(pc::ParticleContainer{<:SSMTrace}, x, weights)
     return logweights
 end
 
-""" 
+"""
     advance!(particle::SSMTrace, isref::Bool=false)
 
 Return the log-probability of the transition nothing if done
