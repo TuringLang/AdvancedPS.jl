@@ -1,13 +1,3 @@
-# step to the next observe statement and
-# return the log probability of the transition (or nothing if done)
-function advance!(t::GenericTrace, isref::Bool=false)
-    isref ? load_state!(t.rng) : save_state!(t.rng)
-    inc_counter!(t.rng)
-
-    # Move to next step
-    return Libtask.consume(t.model.ctask)
-end
-
 """
 Data structure for particle filters
 - `effectiveSampleSize(pc :: ParticleContainer)`: Return the effective sample size of the particles in `pc`
