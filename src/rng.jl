@@ -19,7 +19,7 @@ end
 
 """
     TracedRNG(r::Random123.AbstractR123=AdvancedPS._BASE_RNG())
-Create a `TracedRNG` with `r` as the inner RNG. 
+Create a `TracedRNG` with `r` as the inner RNG.
 """
 function TracedRNG(r::Random123.AbstractR123=_BASE_RNG())
     Random123.set_counter!(r, 0)
@@ -36,7 +36,7 @@ Base.rand(rng::TracedRNG, ::Type{T}) where {T} = Base.rand(rng.rng, T)
 Split `key` into `n` new keys
 """
 function split(key::Integer, n::Integer=1)
-    T = typeof(key) # Make sure the type of `key` is consistent on W32 and W64 systems. 
+    T = typeof(key) # Make sure the type of `key` is consistent on W32 and W64 systems.
     return T[hash(key, i) for i in UInt(1):UInt(n)]
 end
 
@@ -76,7 +76,7 @@ function gen_seed(
     return Tuple(rand(rng, sampler, N))
 end
 
-""" 
+"""
     save_state!(r::TracedRNG)
 
 Add current key of the inner rng in `r` to `keys`.
@@ -92,14 +92,14 @@ function Base.copy(rng::TracedRNG)
     return TracedRNG(rng.count, copy(rng.rng), deepcopy(rng.keys), rng.refseed)
 end
 
-# Add an extra seed to the reference particle keys array to use as an alternative stream 
+# Add an extra seed to the reference particle keys array to use as an alternative stream
 # (we don't need to tack this one)
 #
-# We have to be careful when spliting the reference particle. 
+# We have to be careful when spliting the reference particle.
 # Since we don't know the seed tree from the previous SMC run we cannot reuse any of the intermediate seed
 # in the TracedRNG container. We might collide with a previous seed and the children particle would collapse
-# to the reference particle. A solution to solve this is to have an extra stream attached to the reference particle 
-# that we only use to seed the children of the reference particle. 
+# to the reference particle. A solution to solve this is to have an extra stream attached to the reference particle
+# that we only use to seed the children of the reference particle.
 #
 safe_set_refseed!(rng::TracedRNG{R}, seed::R) where {R} = rng.refseed = seed
 safe_get_refseed(rng::TracedRNG) = rng.refseed

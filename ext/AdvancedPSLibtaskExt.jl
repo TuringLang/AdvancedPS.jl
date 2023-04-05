@@ -1,7 +1,8 @@
 module AdvancedPSLibtask
 
+using AbstractMCMC
 using Libtask
-using AdvancedPS
+using AdvancedPS: load_state!, save_state!, inc_counter!, TracedRNG, Particle
 using Random123
 
 mutable struct LibtaskTrace{F,R}
@@ -45,7 +46,7 @@ function advance!(t::LibtaskTrace, isref::Bool=false)
 end
 
 # Copy task
-Base.copy(trace::LibtaskTrace) = Trace(copy(trace.model), deepcopy(trace.rng))
+Base.copy(trace::LibtaskTrace) = LibtaskTrace(copy(trace.model), deepcopy(trace.rng))
 
 # create a backward reference in task_local_storage
 function addreference!(task::Task, trace::LibtaskTrace)
