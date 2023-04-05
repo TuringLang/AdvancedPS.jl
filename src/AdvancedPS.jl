@@ -17,4 +17,9 @@ include("container.jl")
 include("pgas.jl")
 include("smc.jl")
 
+println(isdefined(Base, :get_extension))
+if !isdefined(Base, :get_extension)
+  include("../ext/AdvancedPSLibtaskExt.jl")
+end
+
 end
