@@ -4,9 +4,7 @@ using AdvancedPS: AdvancedPS
 using Random123: Random123
 using Distributions: Distributions
 
-isdefined(Base, :get_extension) ? (
-using Libtask: Libtask) : (
-using ..Libtask: Libtask)
+isdefined(Base, :get_extension) ? (using Libtask: Libtask) : (using ..Libtask: Libtask)
 
 """
     GenericModel{F}
