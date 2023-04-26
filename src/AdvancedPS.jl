@@ -23,7 +23,9 @@ end
 
 function __init__()
     @static if !isdefined(Base, :get_extension)
-        @require Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f" include("../ext/LibtaskExt.jl")
+        @require Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f" include(
+            "../ext/LibtaskExt.jl"
+        )
     end
 end
 
