@@ -3,6 +3,7 @@ module LibtaskExt
 using AdvancedPS: AdvancedPS
 using Random123: Random123
 using Distributions: Distributions
+using AbstractMCMC: AbstractMCMC
 
 isdefined(Base, :get_extension) ? (using Libtask: Libtask) : (using ..Libtask: Libtask)
 
@@ -99,13 +100,13 @@ function AdvancedPS.forkr(trace::LibtaskTrace)
     return newtrace
 end
 
-function gen_refseed!(part::Particle)
+function gen_refseed!(part::AdvancedPS.Particle)
     seed = split(state(part.rng.rng), 1)
     return safe_set_refseed!(part.rng, seed[1])
 end
 
 # reset log probability
-reset_logprob!(::Particle) = nothing
+reset_logprob!(::AdvancedPS.Particle) = nothing
 
 reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing
@@ -126,7 +127,7 @@ Truncate the seed history from the `particle` rng. When forking the reference Pa
 we need to keep the seeds up to the current model iteration but generate new seeds
 and random values afterward.
 """
-function delete_seeds!(particle::Particle)
+function delete_seeds!(particle::AdvancedPS.Particle)
     return particle.rng.keys = particle.rng.keys[1:(particle.rng.count - 1)]
 end
 
