@@ -17,6 +17,8 @@ reset_logprob!(::AdvancedPS.Particle) = nothing
 reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing
 
+Base.copy(trace::Trace) = Trace(copy(trace.model), deepcopy(trace.rng))
+
 """
     observe(dist::Distribution, x)
 
