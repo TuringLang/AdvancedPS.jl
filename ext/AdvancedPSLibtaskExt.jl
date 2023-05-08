@@ -1,11 +1,16 @@
-module LibtaskExt
+module AdvancedPSLibtaskExt
 
-using AdvancedPS: AdvancedPS
-using Random123: Random123
-using Distributions: Distributions
-using AbstractMCMC: AbstractMCMC
-
-isdefined(Base, :get_extension) ? (using Libtask: Libtask) : (using ..Libtask: Libtask)
+if isdefined(Base, :get_extension)
+    using AdvancedPS: AdvancedPS
+    using AdvancedPS: Random123
+    using AdvancedPS: AbstractMCMC
+    using Libtask: Libtask
+else
+    using ..AdvancedPS: AdvancedPS
+    using ..AdvancedPS: Random123
+    using ..AdvancedPS: AbstractMCMC
+    using ..Libtask: Libtask
+end
 
 """
     LibtaskModel{F}

@@ -21,10 +21,10 @@ if !isdefined(Base, :get_extension)
     using Requires
 end
 
-function __init__()
-    @static if !isdefined(Base, :get_extension)
+@static if !isdefined(Base, :get_extension)
+    function __init__()
         @require Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f" include(
-            "../ext/LibtaskExt.jl"
+            "../ext/AdvancedPSLibtaskExt.jl"
         )
     end
 end
