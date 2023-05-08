@@ -31,10 +31,9 @@ Base.copy(model::LibtaskModel) = LibtaskModel(model.f, copy(model.ctask))
 const LibtaskTrace{R} = AdvancedPS.Trace{<:LibtaskModel,R}
 
 function AdvancedPS.Trace(model::AbstractMCMC.AbstractModel, rng::AdvancedPS.TracedRNG)
-    println("Here")
     gen_model = LibtaskModel(model, rng)
     trace = AdvancedPS.Trace(gen_model, rng)
-    addreference!(gen_model.ctask.task, trace)
+    addreference!(gen_model.ctask.task, trace) # Do we need it here ?
     return trace
 end
 
@@ -47,9 +46,6 @@ function AdvancedPS.advance!(t::LibtaskTrace, isref::Bool=false)
     # Move to next step
     return Libtask.consume(t.model.ctask)
 end
-
-# Copy task
-Base.copy(trace::LibtaskTrace) = AdvancedPS.Trace(copy(trace.model), deepcopy(trace.rng))
 
 # create a backward reference in task_local_storage
 function addreference!(task::Task, trace::LibtaskTrace)
@@ -98,5 +94,7 @@ function AdvancedPS.forkr(trace::LibtaskTrace)
     AdvancedPS.gen_refseed!(newtrace)
     return newtrace
 end
+
+AdvancedPS.update_ref!(::LibtaskTrace) = nothing
 
 end
