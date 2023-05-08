@@ -7,14 +7,15 @@ using Random123
 using Libtask
 
 # We consider the following stochastic volatility model:
-# 
+#
 # ```math
 #  x_{t+1} = a x_t + v_t \quad v_{t} \sim \mathcal{N}(0, r^2)
 # ```
 # ```math
-#  y_{t} = e_t \exp(\frac{1}{2}x_t) \quad e_t \sim \mathcal{N}(0, 1) 
+#  y_{t} = e_t \exp(\frac{1}{2}x_t) \quad v_{t} \sim \mathcal{N}(0, 1)
 # ```
 #
+# Here we assume the static parameters $\theta = (q^2, r^2)$ are known and we are only interested in sampling from the latent state $x_t$.
 # We can reformulate the above in terms of transition and observation densities:
 # ```math
 #  x_{t+1} \sim f_{\theta}(x_{t+1}|x_t) = \mathcal{N}(a x_t, r^2)
@@ -66,7 +67,7 @@ end
 # Here are the latent and observation series:
 plot(x; label="x", xlabel="t")
 
-# 
+#
 plot(y; label="y", xlabel="t")
 
 # Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
@@ -90,7 +91,7 @@ pg = AdvancedPS.PG(Nₚ, 1.0)
 chains = sample(rng, model, pg, Nₛ; progress=false);
 #md nothing #hide
 
-# The trajectories are not stored during the sampling and we need to regenerate the history of each 
+# The trajectories are not stored during the sampling and we need to regenerate the history of each
 # sample if we want to look at the individual traces.
 function replay(particle::AdvancedPS.Particle)
     trng = deepcopy(particle.rng)
@@ -114,13 +115,14 @@ mean_trajectory = mean(particles; dims=2)
 #md nothing #hide
 
 # We can now plot all the generated traces.
-# Beyond the last few timesteps all the trajectories collapse into one. Using the ancestor updating step can help with the degeneracy problem, as we show below.
+# Beyond the last few timesteps all the trajectories collapse into one. Using the ancestor updating step can help
+# with the degeneracy problem.
 scatter(particles; label=false, opacity=0.01, color=:black, xlabel="t", ylabel="state")
 plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 
 # We can also check the mixing as defined in the Gaussian State Space model example. As seen on the
-# scatter plot above, we are mostly left with a single trajectory before timestep 150. The orange 
+# scatter plot above, we are mostly left with a single trajectory before timestep 150. The orange
 # bar is the optimal mixing rate for the number of particles we use.
 update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 #md nothing #hide
