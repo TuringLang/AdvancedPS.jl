@@ -19,14 +19,7 @@ delete_retained!(f) = nothing
 
 Base.copy(trace::Trace) = Trace(copy(trace.model), deepcopy(trace.rng))
 
-"""
-    observe(dist::Distribution, x)
-
-Observe sample `x` from distribution `dist` and yield its log-likelihood value.
-"""
-function observe(dist::Distributions.Distribution, x)
-    return Libtask.produce(Distributions.loglikelihood(dist, x))
-end
+function observe end
 
 """
     delete_seeds!(particle::Particle)
