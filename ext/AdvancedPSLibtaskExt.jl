@@ -4,11 +4,15 @@ if isdefined(Base, :get_extension)
     using AdvancedPS: AdvancedPS
     using AdvancedPS: Random123
     using AdvancedPS: AbstractMCMC
+    using AdvancedPS: Random
+    using AdvancedPS: Distributions
     using Libtask: Libtask
 else
     using ..AdvancedPS: AdvancedPS
     using ..AdvancedPS: Random123
     using ..AdvancedPS: AbstractMCMC
+    using ..AdvancedPS: Random
+    using ..AdvancedPS: Distributions
     using ..Libtask: Libtask
 end
 
@@ -34,13 +38,6 @@ end
 Base.copy(model::LibtaskModel) = LibtaskModel(model.f, copy(model.ctask))
 
 const LibtaskTrace{R} = AdvancedPS.Trace{<:LibtaskModel,R}
-
-function AdvancedPS.Trace(model::AbstractMCMC.AbstractModel, rng::AdvancedPS.TracedRNG)
-    gen_model = LibtaskModel(model, rng)
-    trace = AdvancedPS.Trace(gen_model, rng)
-    addreference!(gen_model.ctask.task, trace) # Do we need it here ?
-    return trace
-end
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
@@ -101,5 +98,90 @@ function AdvancedPS.forkr(trace::LibtaskTrace)
 end
 
 AdvancedPS.update_ref!(::LibtaskTrace) = nothing
+
+"""
+    observe(dist::Distribution, x)
+
+Observe sample `x` from distribution `dist` and yield its log-likelihood value.
+"""
+function AdvancedPS.observe(dist::Distributions.Distribution, x)
+    return Libtask.produce(Distributions.loglikelihood(dist, x))
+end
+
+"""
+AbstractMCMC interface. We need libtask to sample from arbitrary callable AbstractModel
+"""
+
+function AbstractMCMC.step(
+    rng::Random.AbstractRNG,
+    model::AbstractMCMC.AbstractModel,
+    sampler::AdvancedPS.PG,
+    state::Union{AdvancedPS.PGState,Nothing}=nothing;
+    kwargs...,
+)
+    # Create a new set of particles.
+    nparticles = sampler.nparticles
+    isref = !isnothing(state)
+
+    traces = map(1:nparticles) do i
+        if i == nparticles && isref
+            # Create reference trajectory.
+            AdvancedPS.forkr(copy(state.trajectory))
+        else
+            trng = AdvancedPS.TracedRNG()
+            gen_model = LibtaskModel(deepcopy(model), trng)
+            trace = AdvancedPS.Trace(LibtaskModel(deepcopy(model), trng), trng)
+            addreference!(gen_model.ctask.task, trace) # Do we need it here ?
+            trace
+        end
+    end
+
+    particles = AdvancedPS.ParticleContainer(traces, AdvancedPS.TracedRNG(), rng)
+
+    # Perform a particle sweep.
+    reference = isref ? particles.vals[nparticles] : nothing
+    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler, reference)
+
+    # Pick a particle to be retained.
+    newtrajectory = rand(rng, particles)
+
+    return AdvancedPS.PGSample(newtrajectory, logevidence),
+    AdvancedPS.PGState(newtrajectory)
+end
+
+function AbstractMCMC.sample(
+    model::AbstractMCMC.AbstractModel, sampler::AdvancedPS.SMC; kwargs...
+)
+    return AbstractMCMC.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
+end
+
+function AbstractMCMC.sample(
+    rng::Random.AbstractRNG,
+    model::AbstractMCMC.AbstractModel,
+    sampler::AdvancedPS.SMC;
+    kwargs...,
+)
+    if !isempty(kwargs)
+        @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
+    end
+
+    traces = map(1:(sampler.nparticles)) do i
+        trng = AdvancedPS.TracedRNG()
+        gen_model = LibtaskModel(deepcopy(model), trng)
+        trace = AdvancedPS.Trace(LibtaskModel(deepcopy(model), trng), trng)
+        addreference!(gen_model.ctask.task, trace) # Do we need it here ?
+        trace
+    end
+
+    # Create a set of particles.
+    particles = AdvancedPS.ParticleContainer(traces, AdvancedPS.TracedRNG(), rng)
+
+    # Perform particle sweep.
+    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler)
+
+    return AdvancedPS.SMCSample(
+        collect(particles), AdvancedPS.getweights(particles), logevidence
+    )
+end
 
 end
