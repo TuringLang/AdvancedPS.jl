@@ -71,8 +71,8 @@ end
 function AdvancedPS.fork(trace::LibtaskTrace, isref::Bool=false)
     newtrace = copy(trace)
     update_rng!(newtrace)
-    isref && delete_retained!(newtrace.model.f)
-    isref && delete_seeds!(newtrace)
+    isref && AdvancedPS.delete_retained!(newtrace.model.f)
+    isref && AdvancedPS.delete_seeds!(newtrace)
 
     # add backward reference
     addreference!(newtrace.model.ctask.task, newtrace)
@@ -145,7 +145,8 @@ function AbstractMCMC.step(
     # Pick a particle to be retained.
     newtrajectory = rand(rng, particles)
 
-    return AdvancedPS.PGSample(newtrajectory, logevidence),
+    replayed = replay(newtrajectory)
+    return AdvancedPS.PGSample(replayed.model.f, logevidence),
     AdvancedPS.PGState(newtrajectory)
 end
 
@@ -180,8 +181,26 @@ function AbstractMCMC.sample(
     logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler)
 
     return AdvancedPS.SMCSample(
-        collect(particles), AdvancedPS.getweights(particles), logevidence
+        collect(map(replay, particles)), AdvancedPS.getweights(particles), logevidence
     )
+end
+
+"""
+    replay(particle::AdvancedPS.Particle)
+
+Rewind the particle and regenerate all sampled values. This ensures that the returned trajectory has the correct values.
+The replay mechanism is internal and should not be exposed to the user.
+"""
+function replay(particle::AdvancedPS.Particle)
+    trng = deepcopy(particle.rng)
+    Random123.set_counter!(trng.rng, 0)
+    trng.count = 1
+    trace = AdvancedPS.Trace(LibtaskModel(deepcopy(particle.model.f), trng), trng)
+    score = AdvancedPS.advance!(trace, true)
+    while !isnothing(score)
+        score = AdvancedPS.advance!(trace, true)
+    end
+    return trace
 end
 
 end
