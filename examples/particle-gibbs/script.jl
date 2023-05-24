@@ -92,26 +92,8 @@ pg = AdvancedPS.PG(Nₚ, 1.0)
 chains = sample(rng, model, pg, Nₛ; progress=false);
 #md nothing #hide
 
-# The trajectories are not stored during the sampling and we need to regenerate the history of each
-# sample if we want to look at the individual traces.
-function replay(particle::AdvancedPS.Particle)
-    trng = deepcopy(particle.rng)
-    Random123.set_counter!(trng.rng, 0)
-    trng.count = 1
-    model = NonLinearTimeSeries(θ₀)
-    trace = AdvancedPS.Trace(AdvancedPS.GenericModel(model, trng), trng)
-    score = AdvancedPS.advance!(trace, true)
-    while !isnothing(score)
-        score = AdvancedPS.advance!(trace, true)
-    end
-    return trace
-end
-
-trajectories = map(chains) do sample
-    replay(sample.trajectory)
-end
-
-particles = hcat([trajectory.model.f.X for trajectory in trajectories]...) # Concat all sampled states
+# Each sampled trajectory holds a NonLinearTimeSeries model
+particles = hcat([chain.trajectory.X for chain in chains]...) # Concat all sampled states
 mean_trajectory = mean(particles; dims=2)
 #md nothing #hide
 
