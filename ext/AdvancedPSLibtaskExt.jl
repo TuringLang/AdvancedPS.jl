@@ -180,8 +180,10 @@ function AbstractMCMC.sample(
     # Perform particle sweep.
     logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler)
 
+    replayed = map(particle -> replay(particle).model.f, particles.vals)
+
     return AdvancedPS.SMCSample(
-        collect(map(replay, particles)), AdvancedPS.getweights(particles), logevidence
+        collect(replayed), AdvancedPS.getweights(particles), logevidence
     )
 end
 

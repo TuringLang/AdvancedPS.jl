@@ -93,7 +93,7 @@
 
         chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
 
-        @test all(isone(p.model.f.x) for p in chains_smc.trajectories)
+        @test all(isone(particle.x) for particle in chains_smc.trajectories)
         @test chains_smc.logevidence ≈ -2 * log(2)
     end
 
