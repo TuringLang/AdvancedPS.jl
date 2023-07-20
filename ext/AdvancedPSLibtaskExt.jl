@@ -191,7 +191,6 @@ end
     replay(particle::AdvancedPS.Particle)
 
 Rewind the particle and regenerate all sampled values. This ensures that the returned trajectory has the correct values.
-The replay mechanism is internal and should not be exposed to the user.
 """
 function replay(particle::AdvancedPS.Particle)
     trng = deepcopy(particle.rng)
