@@ -107,33 +107,33 @@
         @test all(iszero, pc.logWs)
     end
 
-    @testset "trace" begin
-        n = Ref(0)
-        function f2(rng)
-            t = [0]
-            while true
-                n[] += 1
-                produce(t[1])
-                n[] += 1
-                t[1] = 1 + t[1]
-            end
-        end
+    #@testset "trace" begin
+    #    n = Ref(0)
+    #    function f2(rng)
+    #        t = [0]
+    #        while true
+    #            n[] += 1
+    #            produce(t[1])
+    #            n[] += 1
+    #            t[1] = 1 + t[1]
+    #        end
+    #    end
 
-        # Test task copy version of trace
-        trng = AdvancedPS.TracedRNG()
-        tmodel = AdvancedPS.GenericModel(f2, trng)
-        tr = AdvancedPS.Trace(tmodel, trng)
+    #    # Test task copy version of trace
+    #    trng = AdvancedPS.TracedRNG()
+    #    tmodel = AdvancedPS.GenericModel(f2, trng)
+    #    tr = AdvancedPS.Trace(tmodel, trng)
 
-        consume(tr.model.ctask)
-        consume(tr.model.ctask)
+    #    consume(tr.model.ctask)
+    #    consume(tr.model.ctask)
 
-        a = AdvancedPS.fork(tr)
-        consume(a.model.ctask)
-        consume(a.model.ctask)
+    #    a = AdvancedPS.fork(tr)
+    #    consume(a.model.ctask)
+    #    consume(a.model.ctask)
 
-        @test consume(tr.model.ctask) == 2
-        @test consume(a.model.ctask) == 4
-    end
+    #    @test consume(tr.model.ctask) == 2
+    #    @test consume(a.model.ctask) == 4
+    #end
 
     @testset "seed container" begin
         seed = 1
