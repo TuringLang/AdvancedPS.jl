@@ -20,8 +20,6 @@
     end
 
     @testset "particle container" begin
-        # Create a resumable function that always returns the same log probability.
-
         # Create particle container.
         logps = [0.0, -1.0, -2.0]
         particles = map(logps) do logp
@@ -29,6 +27,13 @@
             AdvancedPS.Trace(LogPModel(logp, []), trng)
         end
         pc = AdvancedPS.ParticleContainer(particles)
+
+        # Push!
+        pc2 = deepcopy(pc)
+        particle = AdvancedPS.Trace(LogPModel(0, []), AdvancedPS.TracedRNG())
+        push!(pc2, particle)
+        @test length(pc2.vals) == 4
+        @test pc2.logWs ≈ zeros(4)
 
         # Initial state.
         @test pc.logWs == zeros(3)

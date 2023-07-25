@@ -4,8 +4,6 @@
 mutable struct Trace{F,R}
     model::F
     rng::R
-
-    Trace(model::F, rng::R) where {F,R} = new{F,R}(model, rng)
 end
 
 const Particle = Trace
