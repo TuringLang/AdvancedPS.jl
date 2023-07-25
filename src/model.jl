@@ -20,17 +20,6 @@ Base.copy(trace::Trace) = Trace(copy(trace.model), deepcopy(trace.rng))
 function observe end
 
 """
-    delete_seeds!(particle::Particle)
-
-Truncate the seed history from the `particle` rng. When forking the reference Particle
-we need to keep the seeds up to the current model iteration but generate new seeds
-and random values afterward.
-"""
-function delete_seeds!(particle::Particle)
-    return particle.rng.keys = particle.rng.keys[1:(particle.rng.count - 1)]
-end
-
-"""
     gen_refseed!(particle::Particle)
 
 Generate a new seed for the reference particle
