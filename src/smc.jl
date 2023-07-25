@@ -98,7 +98,7 @@ function AbstractMCMC.step(
     traces = map(1:nparticles) do i
         if i == nparticles && isref
             # Create reference trajectory.
-            forkr(copy(state.trajectory))
+            forkr(deepcopy(state.trajectory))
         else
             trng = TracedRNG()
             Trace(deepcopy(model), trng)

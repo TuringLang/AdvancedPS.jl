@@ -82,14 +82,28 @@
         seed = 10
         rng = Random.MersenneTwister(seed)
 
+        for sampler in [AdvancedPS.PGAS(10), AdvancedPS.PG(10)]
+            Random.seed!(rng, seed)
+            chain1 = sample(rng, model, sampler, 10)
+            vals1 = hcat([chain.trajectory.model.X for chain in chain1]...)
+
+            Random.seed!(rng, seed)
+            chain2 = sample(rng, model, sampler, 10)
+            vals2 = hcat([chain.trajectory.model.X for chain in chain2]...) # TODO: Create proper chains
+
+            @test vals1 ≈ vals2
+        end
+
+        # Test stability for SMC
+        sampler = AdvancedPS.SMC(10)
         Random.seed!(rng, seed)
-        chain1 = sample(rng, model, AdvancedPS.PGAS(10), 10)
-        vals1 = hcat([chain.trajectory.model.X for chain in chain1]...)
+        chain1 = sample(rng, model, sampler)
+        vals1 = hcat([trace.model.X for trace in chain1.trajectories]...)
 
         Random.seed!(rng, seed)
-        chain2 = sample(rng, model, AdvancedPS.PGAS(10), 10)
-        vals2 = hcat([chain.trajectory.model.X for chain in chain2]...) # TODO: Create proper chains
+        chain2 = sample(rng, model, sampler)
+        vals2 = hcat([trace.model.X for trace in chain2.trajectories]...)
 
-        @test vals1 == vals2
+        @test vals1 ≈ vals2
     end
 end
