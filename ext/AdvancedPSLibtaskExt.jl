@@ -72,7 +72,7 @@ function AdvancedPS.fork(trace::LibtaskTrace, isref::Bool=false)
     newtrace = copy(trace)
     update_rng!(newtrace)
     isref && AdvancedPS.delete_retained!(newtrace.model.f)
-    isref && AdvancedPS.delete_seeds!(newtrace)
+    isref && delete_seeds!(newtrace)
 
     # add backward reference
     addreference!(newtrace.model.ctask.task, newtrace)
@@ -202,6 +202,17 @@ function replay(particle::AdvancedPS.Particle)
         score = AdvancedPS.advance!(trace, true)
     end
     return trace
+end
+
+"""
+    delete_seeds!(particle::Particle)
+
+Truncate the seed history from the `particle` rng. When forking the reference Particle
+we need to keep the seeds up to the current model iteration but generate new seeds
+and random values afterward.
+"""
+function delete_seeds!(particle::AdvancedPS.Particle)
+    return particle.rng.keys = particle.rng.keys[1:(particle.rng.count - 1)]
 end
 
 end
