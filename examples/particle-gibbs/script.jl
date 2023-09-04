@@ -13,18 +13,18 @@ using Libtask
 #  x_{t+1} = a x_t + v_t \quad v_{t} \sim \mathcal{N}(0, r^2)
 # ```
 # ```math
-#  y_{t} = e_t \exp(\frac{1}{2}x_t) \quad v_{t} \sim \mathcal{N}(0, 1) 
+#  y_{t} = e_t \exp(\frac{1}{2}x_t) \quad e_t \sim \mathcal{N}(0, 1) 
 # ```
-#
-# Here we assume the static parameters $\theta = (q^2, r^2)$ are known and we are only interested in sampling from the latent state $x_t$. 
+# 
 # We can reformulate the above in terms of transition and observation densities:
 # ```math
-#  x_{t+1} \sim f_{\theta}(x_{t+1}|x_t) = \mathcal{N}(a x_t, q^2)
+#  x_{t+1} \sim f_{\theta}(x_{t+1}|x_t) = \mathcal{N}(a x_t, r^2)
 # ```
 # ```math
 #  y_t \sim g_{\theta}(y_t|x_t) = \mathcal{N}(0, \exp(\frac{1}{2}x_t)^2)
 # ```
 # with the initial distribution $f_0(x) = \mathcal{N}(0, q^2)$.
+# Here we assume the static parameters $\theta = (q^2, r^2)$ are known and we are only interested in sampling from the latent state $x_t$.
 Parameters = @NamedTuple begin
     a::Float64
     q::Float64
@@ -38,7 +38,7 @@ mutable struct NonLinearTimeSeries <: AbstractMCMC.AbstractModel
 end
 
 f(model::NonLinearTimeSeries, state, t) = Normal(model.θ.a * state, model.θ.q)
-g(model::NonLinearTimeSeries, state, t) = Normal(0, exp(0.5 * state)^2)
+g(model::NonLinearTimeSeries, state, t) = Normal(0, exp(0.5 * state))
 f₀(model::NonLinearTimeSeries) = Normal(0, model.θ.q)
 #md nothing #hide
 
