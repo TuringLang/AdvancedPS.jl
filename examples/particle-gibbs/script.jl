@@ -87,7 +87,7 @@ end
 # Here we use the particle gibbs kernel without adaptive resampling.
 model = NonLinearTimeSeries(θ₀)
 pg = AdvancedPS.PG(Nₚ, 1.0)
-chains = sample(model, pg, Nₛ);
+chains = sample(rng, model, pg, Nₛ; progress=false);
 #md nothing #hide
 
 # The trajectories are not stored during the sampling and we need to regenerate the history of each 
