@@ -147,9 +147,6 @@ AdvancedPS.isdone(::NonLinearTimeSeries, step) = step > Tₘ
 # We can now sample from the model using the PGAS sampler and collect the trajectories.
 pg = AdvancedPS.PGAS(Nₚ)
 chains = sample(model, pg, Nₛ);
-trajectories = map(chains) do sample
-    replay(sample.trajectory)
-end
 particles = hcat([trajectory.model.f.X for trajectory in trajectories]...)
 mean_trajectory = mean(particles; dims=2)
 
