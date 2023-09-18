@@ -1,3 +1,4 @@
+# # Particle Gibbs for non-linear models
 using AdvancedPS
 using Random
 using Distributions
@@ -145,10 +146,13 @@ end
 AdvancedPS.isdone(::NonLinearTimeSeries, step) = step > Tₘ
 
 # We can now sample from the model using the PGAS sampler and collect the trajectories.
-pg = AdvancedPS.PGAS(Nₚ)
-chains = sample(model, pg, Nₛ);
-particles = hcat([trajectory.model.f.X for trajectory in trajectories]...)
-mean_trajectory = mean(particles; dims=2)
+pgas = AdvancedPS.PGAS(Nₚ)
+chains = sample(rng, model, pgas, Nₛ; progress=false);
+trajectories = map(chains) do sample
+    replay(sample.trajectory)
+end
+particles = hcat([trajectory.model.f.X for trajectory in trajectories]...);
+mean_trajectory = mean(particles; dims=2);
 
 # The ancestor sampling has helped with the degeneracy problem and we now have a much more diverse set of trajectories, also at earlier time periods.
 scatter(particles; label=false, opacity=0.01, color=:black, xlabel="t", ylabel="state")
