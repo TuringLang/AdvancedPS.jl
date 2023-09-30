@@ -8,6 +8,7 @@ end
 
 const Particle = Trace
 const SSMTrace{R} = Trace{<:AbstractStateSpaceModel,R}
+const GenericTrace{R} = Trace{<:AbstractGenericModel,R}
 
 # reset log probability
 reset_logprob!(::AdvancedPS.Particle) = nothing
@@ -17,7 +18,9 @@ delete_retained!(f) = nothing
 
 Base.copy(trace::Trace) = Trace(copy(trace.model), deepcopy(trace.rng))
 
+# This is required to make it visible from outside extensions
 function observe end
+function replay end
 
 """
     gen_refseed!(particle::Particle)

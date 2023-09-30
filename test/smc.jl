@@ -21,7 +21,7 @@
 
     # Smoke tests
     @testset "models" begin
-        mutable struct NormalModel <: AbstractMCMC.AbstractModel
+        mutable struct NormalModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             b::Float64
 
@@ -45,7 +45,7 @@
         sample(NormalModel(), AdvancedPS.SMC(100))
 
         # failing test
-        mutable struct FailSMCModel <: AbstractMCMC.AbstractModel
+        mutable struct FailSMCModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             b::Float64
 
@@ -66,7 +66,7 @@
     @testset "logevidence" begin
         Random.seed!(100)
 
-        mutable struct TestModel <: AbstractMCMC.AbstractModel
+        mutable struct TestModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             x::Bool
             b::Float64
@@ -120,7 +120,7 @@
     @testset "logevidence" begin
         Random.seed!(100)
 
-        mutable struct TestModel <: AbstractMCMC.AbstractModel
+        mutable struct TestModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             x::Bool
             b::Float64
@@ -152,14 +152,14 @@
     end
 
     @testset "Replay reference" begin
-        mutable struct Model <: AbstractMCMC.AbstractModel
+        mutable struct DummyModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             b::Float64
 
-            Model() = new()
+            DummyModel() = new()
         end
 
-        function (m::Model)(rng)
+        function (m::DummyModel)(rng)
             m.a = rand(rng, Normal())
             AdvancedPS.observe(Normal(), m.a)
 
@@ -168,7 +168,7 @@
         end
 
         pg = AdvancedPS.PG(1)
-        first, second = sample(Model(), pg, 2)
+        first, second = sample(DummyModel(), pg, 2)
 
         first_model = first.trajectory
         second_model = second.trajectory
