@@ -39,6 +39,12 @@ Base.copy(model::LibtaskModel) = LibtaskModel(model.f, copy(model.ctask))
 
 const LibtaskTrace{R} = AdvancedPS.Trace{<:LibtaskModel,R}
 
+function AdvancedPS.Trace(
+    model::AdvancedPS.AbstractGenericModel, rng::Random.AbstractRNG, args...
+)
+    return AdvancedPS.Trace(LibtaskModel(model, args...), rng)
+end
+
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
 function AdvancedPS.advance!(t::LibtaskTrace, isref::Bool=false)
@@ -114,7 +120,7 @@ AbstractMCMC interface. We need libtask to sample from arbitrary callable Abstra
 
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
-    model::AbstractMCMC.AbstractModel,
+    model::AdvancedPS.AbstractGenericModel,
     sampler::AdvancedPS.PG,
     state::Union{AdvancedPS.PGState,Nothing}=nothing;
     kwargs...,
@@ -145,20 +151,20 @@ function AbstractMCMC.step(
     # Pick a particle to be retained.
     newtrajectory = rand(rng, particles)
 
-    replayed = replay(newtrajectory)
+    replayed = AdvancedPS.replay(newtrajectory)
     return AdvancedPS.PGSample(replayed.model.f, logevidence),
     AdvancedPS.PGState(newtrajectory)
 end
 
 function AbstractMCMC.sample(
-    model::AbstractMCMC.AbstractModel, sampler::AdvancedPS.SMC; kwargs...
+    model::AdvancedPS.AbstractGenericModel, sampler::AdvancedPS.SMC; kwargs...
 )
     return AbstractMCMC.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
 end
 
 function AbstractMCMC.sample(
     rng::Random.AbstractRNG,
-    model::AbstractMCMC.AbstractModel,
+    model::AdvancedPS.AbstractGenericModel,
     sampler::AdvancedPS.SMC;
     kwargs...,
 )
@@ -180,7 +186,7 @@ function AbstractMCMC.sample(
     # Perform particle sweep.
     logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler)
 
-    replayed = map(particle -> replay(particle).model.f, particles.vals)
+    replayed = map(particle -> AdvancedPS.replay(particle).model.f, particles.vals)
 
     return AdvancedPS.SMCSample(
         collect(replayed), AdvancedPS.getweights(particles), logevidence
@@ -192,7 +198,7 @@ end
 
 Rewind the particle and regenerate all sampled values. This ensures that the returned trajectory has the correct values.
 """
-function replay(particle::AdvancedPS.Particle)
+function AdvancedPS.replay(particle::AdvancedPS.Particle)
     trng = deepcopy(particle.rng)
     Random123.set_counter!(trng.rng, 0)
     trng.count = 1

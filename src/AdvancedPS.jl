@@ -6,9 +6,12 @@ using Random: Random
 using StatsFuns: StatsFuns
 using Random123: Random123
 
+abstract type AbstractParticleModel <: AbstractMCMC.AbstractModel end
+
 """ Abstract type for an abstract model formulated in the state space form
 """
-abstract type AbstractStateSpaceModel <: AbstractMCMC.AbstractModel end
+abstract type AbstractStateSpaceModel <: AbstractParticleModel end
+abstract type AbstractGenericModel <: AbstractParticleModel end
 
 include("resampling.jl")
 include("rng.jl")

@@ -112,33 +112,35 @@
         @test all(iszero, pc.logWs)
     end
 
-    #@testset "trace" begin
-    #    n = Ref(0)
-    #    function f2(rng)
-    #        t = [0]
-    #        while true
-    #            n[] += 1
-    #            produce(t[1])
-    #            n[] += 1
-    #            t[1] = 1 + t[1]
-    #        end
-    #    end
+    @testset "trace" begin
+        struct Model <: AdvancedPS.AbstractGenericModel
+            val::Ref{Int}
+        end
 
-    #    # Test task copy version of trace
-    #    trng = AdvancedPS.TracedRNG()
-    #    tmodel = AdvancedPS.GenericModel(f2, trng)
-    #    tr = AdvancedPS.Trace(tmodel, trng)
+        function (model::Model)(rng::Random.AbstractRNG)
+            t = [0]
+            while true
+                model.val[] += 1
+                produce(t[1])
+                model.val[] += 1
+                t[1] += 1
+            end
+        end
 
-    #    consume(tr.model.ctask)
-    #    consume(tr.model.ctask)
+        # Test task copy version of trace
+        trng = AdvancedPS.TracedRNG()
+        tr = AdvancedPS.Trace(Model(Ref(0)), trng, trng)
 
-    #    a = AdvancedPS.fork(tr)
-    #    consume(a.model.ctask)
-    #    consume(a.model.ctask)
+        consume(tr.model.ctask)
+        consume(tr.model.ctask)
 
-    #    @test consume(tr.model.ctask) == 2
-    #    @test consume(a.model.ctask) == 4
-    #end
+        a = AdvancedPS.fork(tr)
+        consume(a.model.ctask)
+        consume(a.model.ctask)
+
+        @test consume(tr.model.ctask) == 2
+        @test consume(a.model.ctask) == 4
+    end
 
     @testset "seed container" begin
         seed = 1

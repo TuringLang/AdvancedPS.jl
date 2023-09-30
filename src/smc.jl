@@ -84,39 +84,6 @@ struct PGSample{T,L}
     logevidence::L
 end
 
-function AbstractMCMC.step(
-    rng::Random.AbstractRNG,
-    model::AbstractStateSpaceModel,
-    sampler::PG,
-    state::Union{PGState,Nothing}=nothing;
-    kwargs...,
-)
-    # Create a new set of particles.
-    nparticles = sampler.nparticles
-    isref = !isnothing(state)
-
-    traces = map(1:nparticles) do i
-        if i == nparticles && isref
-            # Create reference trajectory.
-            forkr(deepcopy(state.trajectory))
-        else
-            trng = TracedRNG()
-            Trace(deepcopy(model), trng)
-        end
-    end
-
-    particles = ParticleContainer(traces, TracedRNG(), rng)
-
-    # Perform a particle sweep.
-    reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = sweep!(rng, particles, sampler.resampler, reference)
-
-    # Pick a particle to be retained.
-    newtrajectory = rand(rng, particles)
-
-    return PGSample(newtrajectory, logevidence), PGState(newtrajectory)
-end
-
 struct PGAS{R} <: AbstractMCMC.AbstractSampler
     """Number of particles."""
     nparticles::Int
