@@ -107,6 +107,7 @@
         @test vals1 ≈ vals2
     end
 
+    # Smoke test mostly
     @testset "smc sampler" begin
         model = BaseModel(Params(0.9, 0.32, 1))
         npart = 10
