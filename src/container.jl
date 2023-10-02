@@ -57,11 +57,15 @@ function Base.copy(pc::ParticleContainer)
 end
 
 """
-    update_ref!(particle::Trace, pc::ParticleContainer)
+    update_ref!(particle::Trace, pc::ParticleContainer, AbstractReferenceSampler)
 
 Update reference trajectory. Defaults to `nothing`
 """
-update_ref!(particle::Trace, pc::ParticleContainer) = nothing
+function update_ref!(
+    particle::Trace, pc::ParticleContainer, ::Type{IdentityReferenceSampler}
+)
+    return particle
+end
 
 """
     reset_logweights!(pc::ParticleContainer)
@@ -167,6 +171,7 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 function resample_propagate!(
     ::Random.AbstractRNG,
     pc::ParticleContainer,
+    ancestor_resampler::Type{<:AbstractReferenceSampler},
     randcat=DEFAULT_RESAMPLER,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
@@ -214,7 +219,7 @@ function resample_propagate!(
     if ref !== nothing
         # Insert the retained particle. This is based on the replaying trick for efficiency
         # reasons. If we implement PG using task copying, we need to store Nx * T particles!
-        update_ref!(ref, pc)
+        update_ref!(ref, pc, ancestor_resampler)
         @inbounds children[n] = ref
     end
 
@@ -229,6 +234,7 @@ function resample_propagate!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
     resampler::ResampleWithESSThreshold,
+    ancestor_resampler::Type{<:AbstractReferenceSampler},
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
 )
@@ -236,7 +242,9 @@ function resample_propagate!(
     ess = inv(sum(abs2, weights))
 
     if ess ≤ resampler.threshold * length(pc)
-        resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
+        resample_propagate!(
+            rng, pc, ancestor_resampler, resampler.resampler, ref; weights=weights
+        )
     else
         update_keys!(pc, ref)
     end
@@ -310,12 +318,13 @@ Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68
 function sweep!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
-    resampler,
+    resampler::ResampleWithESSThreshold,
+    ancestor_resampler::Type{<:AbstractReferenceSampler},
     ref::Union{Particle,Nothing}=nothing,
 )
     # Initial step:
     # Resample and propagate particles.
-    resample_propagate!(rng, pc, resampler, ref)
+    resample_propagate!(rng, pc, resampler, ancestor_resampler, ref)
 
     # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
     # weights.
@@ -336,7 +345,7 @@ function sweep!(
     # For observations ``y₂, …, yₜ``:
     while !isdone
         # Resample and propagate particles.
-        resample_propagate!(rng, pc, resampler, ref)
+        resample_propagate!(rng, pc, resampler, ancestor_resampler, ref)
 
         # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
         # weights.

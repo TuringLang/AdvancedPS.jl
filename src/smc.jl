@@ -51,7 +51,7 @@ function AbstractMCMC.sample(
     return SMCSample(collect(particles), getweights(particles), logevidence)
 end
 
-struct PG{R} <: AbstractMCMC.AbstractSampler
+struct PG{R,T<:AbstractReferenceSampler} <: AbstractMCMC.AbstractSampler
     """Number of particles."""
     nparticles::Int
     """Resampling algorithm."""
@@ -67,11 +67,19 @@ Create a Particle Gibbs sampler with `n` particles.
 If the algorithm for the resampling step is not specified explicitly, systematic resampling
 is performed if the estimated effective sample size per particle drops below 0.5.
 """
-PG(nparticles::Int) = PG(nparticles, ResampleWithESSThreshold())
+function PG(nparticles::Int)
+    let resampler = ResampleWithESSThreshold()
+        PG{typeof(resampler),IdentityReferenceSampler}(nparticles, resampler)
+    end
+end
 
 # Convenient constructors with ESS threshold
 function PG(nparticles::Int, resampler, threshold::Real)
-    return PG(nparticles, ResampleWithESSThreshold(resampler, threshold))
+    resampler_oject = ResampleWithESSThreshold(resampler, threshold)
+    T = typeof(resampler_oject)
+    return PG{T,IdentityReferenceSampler}(
+        nparticles, ResampleWithESSThreshold(resampler, threshold)
+    )
 end
 PG(nparticles::Int, threshold::Real) = PG(nparticles, DEFAULT_RESAMPLER, threshold)
 
@@ -84,22 +92,20 @@ struct PGSample{T,L}
     logevidence::L
 end
 
-struct PGAS{R} <: AbstractMCMC.AbstractSampler
-    """Number of particles."""
-    nparticles::Int
-    """Resampling algorithm."""
-    resampler::R
+const PGAS{R} = PG{R,AncestorReferenceSampler}
+function PGAS(nparticles::Int)
+    let resampler = ResampleWithESSThreshold(1.0)
+        PG{typeof(resampler),AncestorReferenceSampler}(nparticles, resampler)
+    end
 end
-
-PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold(1.0))
 
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
     model::AbstractStateSpaceModel,
-    sampler::PGAS,
+    sampler::PG{R,T},
     state::Union{PGState,Nothing}=nothing;
     kwargs...,
-)
+) where {R,T<:AbstractReferenceSampler}
     # Create a new set of particles.
     nparticles = sampler.nparticles
     isref = !isnothing(state)
@@ -116,9 +122,9 @@ function AbstractMCMC.step(
 
     # Perform a particle sweep.
     reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = sweep!(rng, particles, sampler.resampler, reference)
+    logevidence = sweep!(rng, particles, sampler.resampler, T, reference)
 
     # Pick a particle to be retained.
     newtrajectory = rand(particles.rng, particles)
-    return PGSample(newtrajectory, logevidence), PGState(newtrajectory)
+    return PGSample(newtrajectory.model, logevidence), PGState(newtrajectory)
 end

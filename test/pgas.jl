@@ -82,7 +82,7 @@
         seed = 10
         rng = Random.MersenneTwister(seed)
 
-        for sampler in [AdvancedPS.PGAS(10)]
+        for sampler in [AdvancedPS.PGAS(10), AdvancedPS.PG(10)]
             Random.seed!(rng, seed)
             chain1 = sample(rng, model, sampler, 10)
             vals1 = hcat([chain.trajectory.model.X for chain in chain1]...)

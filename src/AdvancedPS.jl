@@ -13,6 +13,7 @@ abstract type AbstractParticleModel <: AbstractMCMC.AbstractModel end
 abstract type AbstractStateSpaceModel <: AbstractParticleModel end
 abstract type AbstractGenericModel <: AbstractParticleModel end
 
+include("ancestor.jl")
 include("resampling.jl")
 include("rng.jl")
 include("model.jl")

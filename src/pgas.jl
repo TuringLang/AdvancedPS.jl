@@ -133,16 +133,26 @@ function forkr(particle::SSMTrace)
     return newtrace
 end
 
-function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})
+"""
+    sample_ancestor_index(rng, weights)
+
+Return index of the particle to use as a new ancestor for the reference particle.
+"""
+function sample_ancestor_index(rng::Random.AbstractRNG, weights::AbstractVector{<:Number})
+    norm_weights = StatsFuns.softmax(weights)
+    return rand(rng, Distributions.Categorical(norm_weights))
+end
+
+function update_ref!(
+    ref::SSMTrace, pc::ParticleContainer{<:SSMTrace}, ::Type{AncestorReferenceSampler}
+)
     current_step(ref) <= 2 && return nothing # At the beginning of step + 1 since we start at 1
     isdone(ref.model, current_step(ref)) && return nothing
 
     ancestor_weights = get_ancestor_logweights(
         pc, ref.model.X[current_step(ref) - 1], pc.logWs
     )
-    norm_weights = StatsFuns.softmax(ancestor_weights)
-
-    ancestor_index = rand(pc.rng, Distributions.Categorical(norm_weights))
+    ancestor_index = sample_ancestor_index(pc.rng, ancestor_weights)
     ancestor = pc.vals[ancestor_index]
 
     idx = past_idx(ref)

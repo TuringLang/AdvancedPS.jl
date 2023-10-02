@@ -103,8 +103,6 @@ function AdvancedPS.forkr(trace::LibtaskTrace)
     return newtrace
 end
 
-AdvancedPS.update_ref!(::LibtaskTrace) = nothing
-
 """
     observe(dist::Distribution, x)
 
