@@ -56,6 +56,9 @@ struct PG{R,T<:AbstractReferenceSampler} <: AbstractMCMC.AbstractSampler
     nparticles::Int
     """Resampling algorithm."""
     resampler::R
+
+    PG{T}(nparticles::Int, resampler::R) where {T,R} = new{R,T}(nparticles, resampler)
+    PG{R,T}(nparticles::Int, resampler::R) where {T,R} = new{R,T}(nparticles, resampler)
 end
 
 """

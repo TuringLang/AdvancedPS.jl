@@ -112,7 +112,9 @@
         @test sampler.resampler ===
             AdvancedPS.ResampleWithESSThreshold(AdvancedPS.resample_multinomial, 0.6)
 
-        sampler = AdvancedPS.PG(100, AdvancedPS.resample_systematic)
+        sampler = AdvancedPS.PG{AdvancedPS.IdentityReferenceSampler}(
+            100, AdvancedPS.resample_systematic
+        )
         @test sampler.nparticles == 100
         @test sampler.resampler === AdvancedPS.resample_systematic
     end
