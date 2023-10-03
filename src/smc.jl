@@ -46,7 +46,7 @@ function AbstractMCMC.sample(
     particles = ParticleContainer(traces, TracedRNG(), rng)
 
     # Perform particle sweep.
-    logevidence = sweep!(rng, particles, sampler.resampler)
+    logevidence = sweep!(rng, particles, sampler.resampler, IdentityReferenceSampler)
 
     return SMCSample(collect(particles), getweights(particles), logevidence)
 end

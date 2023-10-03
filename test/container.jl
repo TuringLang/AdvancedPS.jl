@@ -74,7 +74,11 @@
         pc_ref.vals[end] = ref
 
         AdvancedPS.resample_propagate!(
-            Random.GLOBAL_RNG, pc_ref, AdvancedPS.resample_systematic, ref
+            Random.GLOBAL_RNG,
+            pc_ref,
+            AdvancedPS.IdentityReferenceSampler,
+            AdvancedPS.resample_systematic,
+            ref,
         )
         @test pc_ref.logWs == zeros(3)
         @test AdvancedPS.getweights(pc_ref) == fill(1 / 3, 3)
@@ -84,7 +88,9 @@
         @test pc_ref.vals[end] === particles_ref[end]
 
         # Resample and propagate particles.
-        AdvancedPS.resample_propagate!(Random.GLOBAL_RNG, pc)
+        AdvancedPS.resample_propagate!(
+            Random.GLOBAL_RNG, pc, AdvancedPS.IdentityReferenceSampler
+        )
         @test pc.logWs == zeros(3)
         @test AdvancedPS.getweights(pc) == fill(1 / 3, 3)
         @test all(AdvancedPS.getweight(pc, i) == 1 / 3 for i in 1:3)

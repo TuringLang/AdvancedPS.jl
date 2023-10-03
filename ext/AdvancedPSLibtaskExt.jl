@@ -119,10 +119,10 @@ AbstractMCMC interface. We need libtask to sample from arbitrary callable Abstra
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
     model::AdvancedPS.AbstractGenericModel,
-    sampler::AdvancedPS.PG,
+    sampler::AdvancedPS.PG{R,T},
     state::Union{AdvancedPS.PGState,Nothing}=nothing;
     kwargs...,
-)
+) where {R,T<:AdvancedPS.AbstractReferenceSampler}
     # Create a new set of particles.
     nparticles = sampler.nparticles
     isref = !isnothing(state)
@@ -144,7 +144,7 @@ function AbstractMCMC.step(
 
     # Perform a particle sweep.
     reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler, reference)
+    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler, T, reference)
 
     # Pick a particle to be retained.
     newtrajectory = rand(rng, particles)
@@ -182,7 +182,9 @@ function AbstractMCMC.sample(
     particles = AdvancedPS.ParticleContainer(traces, AdvancedPS.TracedRNG(), rng)
 
     # Perform particle sweep.
-    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler)
+    logevidence = AdvancedPS.sweep!(
+        rng, particles, sampler.resampler, AdvancedPS.IdentityReferenceSampler
+    )
 
     replayed = map(particle -> AdvancedPS.replay(particle).model.f, particles.vals)
 

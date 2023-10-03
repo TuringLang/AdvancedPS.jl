@@ -58,11 +58,15 @@
         pc = AdvancedPS.ParticleContainer(particles, AdvancedPS.TracedRNG(), base_rng)
 
         AdvancedPS.reweight!(pc, ref)
-        AdvancedPS.resample_propagate!(base_rng, pc, resampler, ref)
+        AdvancedPS.resample_propagate!(
+            base_rng, pc, resampler, AdvancedPS.AncestorReferenceSampler, ref
+        )
 
         AdvancedPS.reweight!(pc, ref)
         pc.logWs = [-Inf, 0, -Inf] # Force ancestor update to second particle
-        AdvancedPS.resample_propagate!(base_rng, pc, resampler, ref)
+        AdvancedPS.resample_propagate!(
+            base_rng, pc, resampler, AdvancedPS.AncestorReferenceSampler, ref
+        )
 
         AdvancedPS.reweight!(pc, ref)
         @test all(pc.vals[2].model.X[1:2] .≈ ref.model.X[1:2])
@@ -85,11 +89,11 @@
         for sampler in [AdvancedPS.PGAS(10), AdvancedPS.PG(10)]
             Random.seed!(rng, seed)
             chain1 = sample(rng, model, sampler, 10)
-            vals1 = hcat([chain.trajectory.model.X for chain in chain1]...)
+            vals1 = hcat([chain.trajectory.X for chain in chain1]...)
 
             Random.seed!(rng, seed)
             chain2 = sample(rng, model, sampler, 10)
-            vals2 = hcat([chain.trajectory.model.X for chain in chain2]...) # TODO: Create proper chains
+            vals2 = hcat([chain.trajectory.X for chain in chain2]...) # TODO: Create proper chains
 
             @test vals1 ≈ vals2
         end
