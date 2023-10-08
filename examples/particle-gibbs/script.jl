@@ -21,9 +21,8 @@ function plot_update_rate(update_rate::AbstractVector{Float64}, Nₚ::Int)
         xlabel="Iteration",
         ylabel="Update rate",
     )
-    hline!(plt, [1 - 1 / Nₚ]; label="N: $(Nₚ)")
+    return hline!(plt, [1 - 1 / Nₚ]; label="N: $(Nₚ)")
 end
-
 
 """
     update_rate(trajectories, N)
@@ -34,7 +33,6 @@ function update_rate(particles::AbstractMatrix{Float64}, Nₛ)
     return sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
 end
 #md nothing #hide
-
 
 # We consider the following stochastic volatility model:
 # 
@@ -91,7 +89,6 @@ plot(x; label="x", xlabel="t")
 
 # 
 plot(y; label="y", xlabel="t")
-
 
 # Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
 mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractGenericModel
