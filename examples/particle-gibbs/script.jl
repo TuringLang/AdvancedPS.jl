@@ -93,13 +93,13 @@ plot(x; label="x", xlabel="t")
 plot(y; label="y", xlabel="t")
 
 
+# Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
 mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractGenericModel
     X::Array
     θ::Parameters
     NonLinearTimeSeries(θ::Parameters) = new(zeros(Float64, θ.T), θ)
 end
 
-# Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
 function (model::NonLinearTimeSeries)(rng::Random.AbstractRNG)
     x₀ = rand(rng, f₀(model.θ))
     model.X[1] = x₀
