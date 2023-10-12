@@ -7,6 +7,33 @@ using AbstractMCMC
 using Random123
 using Libtask
 
+"""
+    plot_update_rate(update_rate, N)
+
+Plot empirical update rate against theoretical value
+"""
+function plot_update_rate(update_rate::AbstractVector{Float64}, Nₚ::Int)
+    plt = plot(
+        update_rate;
+        label=false,
+        ylim=[0, 1],
+        legend=:bottomleft,
+        xlabel="Iteration",
+        ylabel="Update rate",
+    )
+    return hline!(plt, [1 - 1 / Nₚ]; label="N: $(Nₚ)")
+end
+
+"""
+    update_rate(trajectories, N)
+
+Compute latent state update rate
+"""
+function update_rate(particles::AbstractMatrix{Float64}, Nₛ)
+    return sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
+end
+#md nothing #hide
+
 # We consider the following stochastic volatility model:
 # 
 # ```math
@@ -31,22 +58,17 @@ Parameters = @NamedTuple begin
     T::Int
 end
 
-mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractStateSpaceModel
-    X::Array
-    θ::Parameters
-    NonLinearTimeSeries(θ::Parameters) = new(zeros(Float64, θ.T), θ)
-end
-
-f(model::NonLinearTimeSeries, state, t) = Normal(model.θ.a * state, model.θ.q)
-g(model::NonLinearTimeSeries, state, t) = Normal(0, exp(0.5 * state))
-f₀(model::NonLinearTimeSeries) = Normal(0, model.θ.q)
+f(θ::Parameters, state, t) = Normal(θ.a * state, θ.q)
+g(θ::Parameters, state, t) = Normal(0, exp(0.5 * state))
+f₀(θ::Parameters) = Normal(0, θ.q)
+#md nothing #hide
 
 # Let's simulate some data
 a = 0.9   # State Variance
 q = 0.5   # Observation variance
 Tₘ = 200  # Number of observation
 Nₚ = 20   # Number of particles
-Nₛ = 500  # Number of samples
+Nₛ = 200  # Number of samples
 seed = 1  # Reproduce everything
 
 θ₀ = Parameters((a, q, Tₘ))
@@ -54,14 +76,12 @@ rng = Random.MersenneTwister(seed)
 
 x = zeros(Tₘ)
 y = zeros(Tₘ)
-
-reference = NonLinearTimeSeries(θ₀)
 x[1] = 0
 for t in 1:Tₘ
     if t < Tₘ
-        x[t + 1] = rand(rng, f(reference, x[t], t))
+        x[t + 1] = rand(rng, f(θ₀, x[t], t))
     end
-    y[t] = rand(rng, g(reference, x[t], t))
+    y[t] = rand(rng, g(θ₀, x[t], t))
 end
 
 # Here are the latent and observation series:
@@ -71,16 +91,22 @@ plot(x; label="x", xlabel="t")
 plot(y; label="y", xlabel="t")
 
 # Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
+mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractGenericModel
+    X::Array
+    θ::Parameters
+    NonLinearTimeSeries(θ::Parameters) = new(zeros(Float64, θ.T), θ)
+end
+
 function (model::NonLinearTimeSeries)(rng::Random.AbstractRNG)
-    x₀ = rand(rng, f₀(model))
+    x₀ = rand(rng, f₀(model.θ))
     model.X[1] = x₀
-    score = logpdf(g(model, x₀, 1), y[1])
+    score = logpdf(g(model.θ, x₀, 1), y[1])
     Libtask.produce(score)
 
     for t in 2:(model.θ.T)
-        state = rand(rng, f(model, model.X[t - 1], t - 1))
+        state = rand(rng, f(model.θ, model.X[t - 1], t - 1))
         model.X[t] = state
-        score = logpdf(g(model, state, t), y[t])
+        score = logpdf(g(model.θ, state, t), y[t])
         Libtask.produce(score)
     end
 end
@@ -91,67 +117,41 @@ pg = AdvancedPS.PG(Nₚ, 1.0)
 chains = sample(rng, model, pg, Nₛ; progress=false);
 #md nothing #hide
 
-# The trajectories are not stored during the sampling and we need to regenerate the history of each 
-# sample if we want to look at the individual traces.
-function replay(particle::AdvancedPS.Particle)
-    trng = deepcopy(particle.rng)
-    Random123.set_counter!(trng.rng, 0)
-    trng.count = 1
-    model = NonLinearTimeSeries(θ₀)
-    trace = AdvancedPS.Trace(AdvancedPS.GenericModel(model, trng), trng)
-    score = AdvancedPS.advance!(trace, true)
-    while !isnothing(score)
-        score = AdvancedPS.advance!(trace, true)
-    end
-    return trace
-end
-
-trajectories = map(chains) do sample
-    replay(sample.trajectory)
-end
-
-particles = hcat([trajectory.model.f.X for trajectory in trajectories]...) # Concat all sampled states
-mean_trajectory = mean(particles; dims=2)
+particles = hcat([chain.trajectory.X for chain in chains]...) # Concat all sampled states
+mean_trajectory = mean(particles; dims=2);
 #md nothing #hide
 
 # We can now plot all the generated traces.
 # Beyond the last few timesteps all the trajectories collapse into one. Using the ancestor updating step can help with the degeneracy problem, as we show below.
-scatter(particles; label=false, opacity=0.01, color=:black, xlabel="t", ylabel="state")
+scatter(particles; label=false, opacity=1.01, color=:black, xlabel="t", ylabel="state")
 plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 
 # We can also check the mixing as defined in the Gaussian State Space model example. As seen on the
 # scatter plot above, we are mostly left with a single trajectory before timestep 150. The orange 
 # bar is the optimal mixing rate for the number of particles we use.
-update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
-#md nothing #hide
-
-plot(
-    update_rate;
-    label=false,
-    ylim=[0, 1],
-    legend=:bottomleft,
-    xlabel="Iteration",
-    ylabel="Update rate",
-)
-hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")
+plot_update_rate(update_rate(particles, Nₛ)[:, 1], Nₚ)
 
 # Let's see if ancestor sampling can help with the degeneracy problem. We use the same number of particles, but replace the sampler with PGAS. 
 # To use this sampler we need to define the transition and observation densities as well as the initial distribution in the following way:
-AdvancedPS.initialization(model::NonLinearTimeSeries) = f₀(model)
-AdvancedPS.transition(model::NonLinearTimeSeries, state, step) = f(model, state, step)
-function AdvancedPS.observation(model::NonLinearTimeSeries, state, step)
-    return logpdf(g(model, state, step), y[step])
+mutable struct NonLinearSSM <: AdvancedPS.AbstractStateSpaceModel
+    X::Vector{Float64}
+    θ::Parameters
+    NonLinearSSM(θ::Parameters) = new(Float64[], θ)
 end
-AdvancedPS.isdone(::NonLinearTimeSeries, step) = step > Tₘ
+
+AdvancedPS.initialization(model::NonLinearSSM) = f₀(model.θ)
+AdvancedPS.transition(model::NonLinearSSM, state, step) = f(model.θ, state, step)
+function AdvancedPS.observation(model::NonLinearSSM, state, step)
+    return logpdf(g(model.θ, state, step), y[step])
+end
+AdvancedPS.isdone(::NonLinearSSM, step) = step > Tₘ
 
 # We can now sample from the model using the PGAS sampler and collect the trajectories.
 pgas = AdvancedPS.PGAS(Nₚ)
+model = NonLinearSSM(θ₀)
 chains = sample(rng, model, pgas, Nₛ; progress=false);
-trajectories = map(chains) do sample
-    replay(sample.trajectory)
-end
-particles = hcat([trajectory.model.f.X for trajectory in trajectories]...);
+particles = hcat([chain.trajectory.model.X for chain in chains]...);
 mean_trajectory = mean(particles; dims=2);
 
 # The ancestor sampling has helped with the degeneracy problem and we now have a much more diverse set of trajectories, also at earlier time periods.
@@ -160,13 +160,4 @@ plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 
 # The update rate is now much higher throughout time.
-update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
-plot(
-    update_rate;
-    label=false,
-    ylim=[0, 1],
-    legend=:bottomleft,
-    xlabel="Iteration",
-    ylabel="Update rate",
-)
-hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")
+plot_update_rate(update_rate(particles, Nₛ)[:, 1], Nₚ)

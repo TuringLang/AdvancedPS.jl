@@ -21,7 +21,7 @@
 
     # Smoke tests
     @testset "models" begin
-        mutable struct NormalModel <: AbstractMCMC.AbstractModel
+        mutable struct NormalModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             b::Float64
 
@@ -45,7 +45,7 @@
         sample(NormalModel(), AdvancedPS.SMC(100))
 
         # failing test
-        mutable struct FailSMCModel <: AbstractMCMC.AbstractModel
+        mutable struct FailSMCModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             b::Float64
 
@@ -66,7 +66,7 @@
     @testset "logevidence" begin
         Random.seed!(100)
 
-        mutable struct TestModel <: AbstractMCMC.AbstractModel
+        mutable struct TestModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             x::Bool
             b::Float64
@@ -93,7 +93,7 @@
 
         chains_smc = sample(TestModel(), AdvancedPS.SMC(100))
 
-        @test all(isone(p.model.f.x) for p in chains_smc.trajectories)
+        @test all(isone(particle.x) for particle in chains_smc.trajectories)
         @test chains_smc.logevidence ≈ -2 * log(2)
     end
 
@@ -120,7 +120,7 @@
     @testset "logevidence" begin
         Random.seed!(100)
 
-        mutable struct TestModel <: AbstractMCMC.AbstractModel
+        mutable struct TestModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             x::Bool
             b::Float64
@@ -147,19 +147,19 @@
 
         chains_pg = sample(TestModel(), AdvancedPS.PG(10), 100)
 
-        @test all(isone(p.trajectory.model.f.x) for p in chains_pg)
+        @test all(isone(p.trajectory.x) for p in chains_pg)
         @test mean(x.logevidence for x in chains_pg) ≈ -2 * log(2) atol = 0.01
     end
 
     @testset "Replay reference" begin
-        mutable struct Model <: AbstractMCMC.AbstractModel
+        mutable struct DummyModel <: AdvancedPS.AbstractGenericModel
             a::Float64
             b::Float64
 
-            Model() = new()
+            DummyModel() = new()
         end
 
-        function (m::Model)(rng)
+        function (m::DummyModel)(rng)
             m.a = rand(rng, Normal())
             AdvancedPS.observe(Normal(), m.a)
 
@@ -168,10 +168,10 @@
         end
 
         pg = AdvancedPS.PG(1)
-        first, second = sample(Model(), pg, 2)
+        first, second = sample(DummyModel(), pg, 2)
 
-        first_model = first.trajectory.model.f
-        second_model = second.trajectory.model.f
+        first_model = first.trajectory
+        second_model = second.trajectory
 
         # Single Particle - must be replaying
         @test first_model.a ≈ second_model.a

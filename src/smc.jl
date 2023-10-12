@@ -26,12 +26,12 @@ struct SMCSample{P,W,L}
     logevidence::L
 end
 
-function AbstractMCMC.sample(model::AbstractMCMC.AbstractModel, sampler::SMC; kwargs...)
+function AbstractMCMC.sample(model::AbstractStateSpaceModel, sampler::SMC; kwargs...)
     return AbstractMCMC.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
 end
 
 function AbstractMCMC.sample(
-    rng::Random.AbstractRNG, model::AbstractMCMC.AbstractModel, sampler::SMC; kwargs...
+    rng::Random.AbstractRNG, model::AbstractStateSpaceModel, sampler::SMC; kwargs...
 )
     if !isempty(kwargs)
         @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
@@ -39,8 +39,7 @@ function AbstractMCMC.sample(
 
     traces = map(1:(sampler.nparticles)) do i
         trng = TracedRNG()
-        tmodel = GenericModel(deepcopy(model), trng)
-        Trace(tmodel, trng)
+        Trace(deepcopy(model), trng)
     end
 
     # Create a set of particles.
@@ -83,39 +82,6 @@ end
 struct PGSample{T,L}
     trajectory::T
     logevidence::L
-end
-
-function AbstractMCMC.step(
-    rng::Random.AbstractRNG,
-    model::AbstractMCMC.AbstractModel,
-    sampler::PG,
-    state::Union{PGState,Nothing}=nothing;
-    kwargs...,
-)
-    # Create a new set of particles.
-    nparticles = sampler.nparticles
-    isref = !isnothing(state)
-
-    traces = map(1:nparticles) do i
-        if i == nparticles && isref
-            # Create reference trajectory.
-            forkr(copy(state.trajectory))
-        else
-            trng = TracedRNG()
-            Trace(GenericModel(deepcopy(model), trng), trng)
-        end
-    end
-
-    particles = ParticleContainer(traces, TracedRNG(), rng)
-
-    # Perform a particle sweep.
-    reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = sweep!(rng, particles, sampler.resampler, reference)
-
-    # Pick a particle to be retained.
-    newtrajectory = rand(rng, particles)
-
-    return PGSample(newtrajectory, logevidence), PGState(newtrajectory)
 end
 
 struct PGAS{R} <: AbstractMCMC.AbstractSampler

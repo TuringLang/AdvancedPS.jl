@@ -1,4 +1,16 @@
 @testset "container.jl" begin
+
+    # Since the extension would hide the low level function call API
+    mutable struct LogPModel{T} <: AdvancedPS.AbstractStateSpaceModel
+        logp::T
+        X::Array{T}
+    end
+
+    AdvancedPS.initialization(model::LogPModel) = Uniform()
+    AdvancedPS.transition(model::LogPModel, state, step) = Uniform()
+    AdvancedPS.observation(model::LogPModel, state, step) = model.logp
+    AdvancedPS.isdone(model::LogPModel, step) = false
+
     @testset "copy particle container" begin
         pc = AdvancedPS.ParticleContainer(AdvancedPS.Trace[])
         newpc = copy(pc)
@@ -8,26 +20,20 @@
     end
 
     @testset "particle container" begin
-        # Create a resumable function that always returns the same log probability.
-        function fpc(logp)
-            f = let logp = logp
-                rng -> begin
-                    while true
-                        produce(logp)
-                    end
-                end
-            end
-            return f
-        end
-
         # Create particle container.
         logps = [0.0, -1.0, -2.0]
         particles = map(logps) do logp
             trng = AdvancedPS.TracedRNG()
-            tmodel = AdvancedPS.GenericModel(fpc(logp), trng)
-            AdvancedPS.Trace(tmodel, trng)
+            AdvancedPS.Trace(LogPModel(logp, []), trng)
         end
         pc = AdvancedPS.ParticleContainer(particles)
+
+        # Push!
+        pc2 = deepcopy(pc)
+        particle = AdvancedPS.Trace(LogPModel(0, []), AdvancedPS.TracedRNG())
+        push!(pc2, particle)
+        @test length(pc2.vals) == 4
+        @test pc2.logWs ≈ zeros(4)
 
         # Initial state.
         @test pc.logWs == zeros(3)
@@ -58,8 +64,7 @@
         # Resample and propagate particles with reference particle
         particles_ref = map(logps) do logp
             trng = AdvancedPS.TracedRNG()
-            tmodel = AdvancedPS.GenericModel(fpc(logp), trng)
-            AdvancedPS.Trace(tmodel, trng)
+            AdvancedPS.Trace(LogPModel(logp, []), trng)
         end
         pc_ref = AdvancedPS.ParticleContainer(particles_ref)
 
@@ -108,21 +113,23 @@
     end
 
     @testset "trace" begin
-        n = Ref(0)
-        function f2(rng)
+        struct Model <: AdvancedPS.AbstractGenericModel
+            val::Ref{Int}
+        end
+
+        function (model::Model)(rng::Random.AbstractRNG)
             t = [0]
             while true
-                n[] += 1
+                model.val[] += 1
                 produce(t[1])
-                n[] += 1
-                t[1] = 1 + t[1]
+                model.val[] += 1
+                t[1] += 1
             end
         end
 
         # Test task copy version of trace
         trng = AdvancedPS.TracedRNG()
-        tmodel = AdvancedPS.GenericModel(f2, trng)
-        tr = AdvancedPS.Trace(tmodel, trng)
+        tr = AdvancedPS.Trace(Model(Ref(0)), trng, trng)
 
         consume(tr.model.ctask)
         consume(tr.model.ctask)
@@ -136,16 +143,13 @@
     end
 
     @testset "seed container" begin
-        function dummy(rng) end
-
         seed = 1
         n = 3
         rng = Random.MersenneTwister(seed)
 
         particles = map(1:n) do _
             trng = AdvancedPS.TracedRNG()
-            tmodel = AdvancedPS.GenericModel(dummy, trng)
-            AdvancedPS.Trace(tmodel, trng)
+            AdvancedPS.Trace(LogPModel(1.0, []), trng)
         end
         pc = AdvancedPS.ParticleContainer(particles, AdvancedPS.TracedRNG())
 
@@ -168,16 +172,9 @@
     end
 
     @testset "seed history" begin
-        function dummy(rng)
-            while true
-                produce(1)
-            end
-        end
-
         # Test task copy version of trace
         trng = AdvancedPS.TracedRNG()
-        tmodel = AdvancedPS.GenericModel(dummy, trng)
-        tr = AdvancedPS.Trace(tmodel, trng)
+        tr = AdvancedPS.Trace(LogPModel(1.0, []), trng)
 
         AdvancedPS.advance!(tr)
         AdvancedPS.advance!(tr)
