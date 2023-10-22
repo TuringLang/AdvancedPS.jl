@@ -61,7 +61,11 @@ end
 
 Update reference trajectory. Defaults to `nothing`
 """
-update_ref!(particle::Trace, pc::ParticleContainer) = nothing
+function update_ref!(
+    particle::Trace, pc::ParticleContainer, sampler::AbstractMCMC.AbstractSampler
+)
+    return nothing
+end
 
 """
     reset_logweights!(pc::ParticleContainer)
@@ -167,6 +171,7 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 function resample_propagate!(
     ::Random.AbstractRNG,
     pc::ParticleContainer,
+    sampler::AbstractMCMC.AbstractSampler,
     randcat=DEFAULT_RESAMPLER,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
@@ -214,7 +219,7 @@ function resample_propagate!(
     if ref !== nothing
         # Insert the retained particle. This is based on the replaying trick for efficiency
         # reasons. If we implement PG using task copying, we need to store Nx * T particles!
-        update_ref!(ref, pc)
+        update_ref!(ref, pc, sampler)
         @inbounds children[n] = ref
     end
 
@@ -228,6 +233,7 @@ end
 function resample_propagate!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
+    sampler::AbstractMCMC.AbstractSampler,
     resampler::ResampleWithESSThreshold,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
@@ -236,7 +242,7 @@ function resample_propagate!(
     ess = inv(sum(abs2, weights))
 
     if ess ≤ resampler.threshold * length(pc)
-        resample_propagate!(rng, pc, resampler.resampler, ref; weights=weights)
+        resample_propagate!(rng, pc, sampler, resampler.resampler, ref; weights=weights)
     else
         update_keys!(pc, ref)
     end
@@ -311,11 +317,12 @@ function sweep!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
     resampler,
+    sampler::AbstractMCMC.AbstractSampler,
     ref::Union{Particle,Nothing}=nothing,
 )
     # Initial step:
     # Resample and propagate particles.
-    resample_propagate!(rng, pc, resampler, ref)
+    resample_propagate!(rng, pc, sampler, resampler, ref)
 
     # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
     # weights.
@@ -336,7 +343,7 @@ function sweep!(
     # For observations ``y₂, …, yₜ``:
     while !isdone
         # Resample and propagate particles.
-        resample_propagate!(rng, pc, resampler, ref)
+        resample_propagate!(rng, pc, sampler, resampler, ref)
 
         # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
         # weights.

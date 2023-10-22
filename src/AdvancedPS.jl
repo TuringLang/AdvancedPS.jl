@@ -17,8 +17,8 @@ include("resampling.jl")
 include("rng.jl")
 include("model.jl")
 include("container.jl")
-include("pgas.jl")
 include("smc.jl")
+include("pgas.jl")
 
 if !isdefined(Base, :get_extension)
     using Requires
