@@ -61,9 +61,7 @@ end
 
 Update reference trajectory. Defaults to `nothing`
 """
-function update_ref!(
-    particle::Trace, pc::ParticleContainer, sampler::ParticleSampler
-)
+function update_ref!(particle::Trace, pc::ParticleContainer, sampler::ParticleSampler)
     return nothing
 end
 
