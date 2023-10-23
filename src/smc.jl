@@ -1,4 +1,6 @@
-struct SMC{R} <: AbstractMCMC.AbstractSampler
+abstract type ParticleSampler <: AbstractMCMC.AbstractSampler end
+
+struct SMC{R} <: ParticleSampler
     nparticles::Int
     resampler::R
 end
@@ -51,7 +53,7 @@ function AbstractMCMC.sample(
     return SMCSample(collect(particles), getweights(particles), logevidence)
 end
 
-struct PG{R} <: AbstractMCMC.AbstractSampler
+struct PG{R} <: ParticleSampler
     """Number of particles."""
     nparticles::Int
     """Resampling algorithm."""
