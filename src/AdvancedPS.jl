@@ -8,6 +8,9 @@ using Random123: Random123
 
 abstract type AbstractParticleModel <: AbstractMCMC.AbstractModel end
 
+abstract type ParticleSampler <: AbstractMCMC.AbstractSampler end
+
+
 """ Abstract type for an abstract model formulated in the state space form
 """
 abstract type AbstractStateSpaceModel <: AbstractParticleModel end
