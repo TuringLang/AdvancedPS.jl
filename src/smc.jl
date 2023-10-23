@@ -1,5 +1,3 @@
-abstract type ParticleSampler <: AbstractMCMC.AbstractSampler end
-
 struct SMC{R} <: ParticleSampler
     nparticles::Int
     resampler::R
