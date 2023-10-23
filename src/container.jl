@@ -62,7 +62,7 @@ end
 Update reference trajectory. Defaults to `nothing`
 """
 function update_ref!(
-    particle::Trace, pc::ParticleContainer, sampler::AbstractMCMC.AbstractSampler
+    particle::Trace, pc::ParticleContainer, sampler::ParticleSampler
 )
     return nothing
 end
@@ -171,7 +171,7 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 function resample_propagate!(
     ::Random.AbstractRNG,
     pc::ParticleContainer,
-    sampler::AbstractMCMC.AbstractSampler,
+    sampler::ParticleSampler,
     randcat=DEFAULT_RESAMPLER,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
