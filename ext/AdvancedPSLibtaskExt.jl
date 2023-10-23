@@ -146,7 +146,7 @@ function AbstractMCMC.step(
 
     # Perform a particle sweep.
     reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler, reference)
+    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler, sampler, reference)
 
     # Pick a particle to be retained.
     newtrajectory = rand(rng, particles)
@@ -184,7 +184,7 @@ function AbstractMCMC.sample(
     particles = AdvancedPS.ParticleContainer(traces, AdvancedPS.TracedRNG(), rng)
 
     # Perform particle sweep.
-    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler)
+    logevidence = AdvancedPS.sweep!(rng, particles, sampler.resampler, sampler)
 
     replayed = map(particle -> AdvancedPS.replay(particle).model.f, particles.vals)
 

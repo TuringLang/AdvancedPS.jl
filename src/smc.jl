@@ -1,4 +1,4 @@
-struct SMC{R} <: AbstractMCMC.AbstractSampler
+struct SMC{R} <: AbstractParticleSampler
     nparticles::Int
     resampler::R
 end
@@ -46,12 +46,12 @@ function AbstractMCMC.sample(
     particles = ParticleContainer(traces, TracedRNG(), rng)
 
     # Perform particle sweep.
-    logevidence = sweep!(rng, particles, sampler.resampler)
+    logevidence = sweep!(rng, particles, sampler.resampler, sampler)
 
     return SMCSample(collect(particles), getweights(particles), logevidence)
 end
 
-struct PG{R} <: AbstractMCMC.AbstractSampler
+struct PG{R} <: AbstractParticleSampler
     """Number of particles."""
     nparticles::Int
     """Resampling algorithm."""
@@ -84,7 +84,7 @@ struct PGSample{T,L}
     logevidence::L
 end
 
-struct PGAS{R} <: AbstractMCMC.AbstractSampler
+struct PGAS{R} <: AbstractParticleSampler
     """Number of particles."""
     nparticles::Int
     """Resampling algorithm."""
@@ -96,7 +96,7 @@ PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold(1.0))
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
     model::AbstractStateSpaceModel,
-    sampler::PGAS,
+    sampler::Union{PGAS,PG},
     state::Union{PGState,Nothing}=nothing;
     kwargs...,
 )
@@ -116,7 +116,7 @@ function AbstractMCMC.step(
 
     # Perform a particle sweep.
     reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = sweep!(rng, particles, sampler.resampler, reference)
+    logevidence = sweep!(rng, particles, sampler.resampler, sampler, reference)
 
     # Pick a particle to be retained.
     newtrajectory = rand(particles.rng, particles)

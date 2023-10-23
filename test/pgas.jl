@@ -46,6 +46,7 @@
             AdvancedPS.Trace(BaseModel(Params(0.9, 0.31, 1)), AdvancedPS.TracedRNG()) for
             _ in 1:3
         ]
+        sampler = AdvancedPS.PGAS(3)
         resampler = AdvancedPS.ResampleWithESSThreshold(1.0)
 
         part = particles[3]
@@ -58,11 +59,11 @@
         pc = AdvancedPS.ParticleContainer(particles, AdvancedPS.TracedRNG(), base_rng)
 
         AdvancedPS.reweight!(pc, ref)
-        AdvancedPS.resample_propagate!(base_rng, pc, resampler, ref)
+        AdvancedPS.resample_propagate!(base_rng, pc, sampler, resampler, ref)
 
         AdvancedPS.reweight!(pc, ref)
         pc.logWs = [-Inf, 0, -Inf] # Force ancestor update to second particle
-        AdvancedPS.resample_propagate!(base_rng, pc, resampler, ref)
+        AdvancedPS.resample_propagate!(base_rng, pc, sampler, resampler, ref)
 
         AdvancedPS.reweight!(pc, ref)
         @test all(pc.vals[2].model.X[1:2] .≈ ref.model.X[1:2])
