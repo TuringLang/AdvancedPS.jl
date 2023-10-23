@@ -86,7 +86,7 @@ struct PGSample{T,L}
     logevidence::L
 end
 
-struct PGAS{R} <: AbstractMCMC.AbstractSampler
+struct PGAS{R} <: ParticleSampler
     """Number of particles."""
     nparticles::Int
     """Resampling algorithm."""
