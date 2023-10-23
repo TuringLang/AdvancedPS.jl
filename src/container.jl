@@ -231,7 +231,7 @@ end
 function resample_propagate!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
-    sampler::AbstractMCMC.AbstractSampler,
+    sampler::ParticleContainer,
     resampler::ResampleWithESSThreshold,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
