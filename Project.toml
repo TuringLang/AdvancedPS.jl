@@ -18,7 +18,7 @@ Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f"
 AdvancedPSLibtaskExt = "Libtask"
 
 [compat]
-AbstractMCMC = "2, 3, 4"
+AbstractMCMC = "2, 3, 4, 5"
 Distributions = "0.23, 0.24, 0.25"
 Libtask = "0.8"
 Random123 = "1.3"
