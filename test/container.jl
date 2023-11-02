@@ -129,7 +129,7 @@
 
         # Test task copy version of trace
         trng = AdvancedPS.TracedRNG()
-        tr = AdvancedPS.Trace(Model(Ref(0)), trng, trng)
+        tr = AdvancedPS.Trace(Model(Ref(0)), trng)
 
         consume(tr.model.ctask)
         consume(tr.model.ctask)

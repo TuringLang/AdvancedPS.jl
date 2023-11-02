@@ -117,3 +117,5 @@ Random123.set_counter!(r::TracedRNG, n::Integer) = r.count = n
 Increase the model step counter by `n`
 """
 inc_counter!(r::TracedRNG, n::Integer=1) = r.count += n
+
+function update_rng! end
