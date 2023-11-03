@@ -130,7 +130,7 @@
 
         # Test task copy version of trace
         trng = AdvancedPS.TracedRNG()
-        tr = AdvancedPS.Trace(Model(Ref(0)), trng, trng)
+        tr = AdvancedPS.Trace(Model(Ref(0)), trng)
 
         consume(tr.model.ctask)
         consume(tr.model.ctask)
@@ -141,6 +141,21 @@
 
         @test consume(tr.model.ctask) == 2
         @test consume(a.model.ctask) == 4
+    end
+
+    @testset "current trace" begin
+        struct TaskIdModel <: AdvancedPS.AbstractGenericModel end
+
+        function (model::TaskIdModel)(rng::Random.AbstractRNG)
+            # Just print the task it's running in
+            id = objectid(AdvancedPS.current_trace())
+            return Libtask.produce(id)
+        end
+
+        trace = AdvancedPS.Trace(TaskIdModel(), AdvancedPS.TracedRNG())
+        AdvancedPS.addreference!(trace.model.ctask.task, trace)
+
+        @test AdvancedPS.advance!(trace, false) === objectid(trace)
     end
 
     @testset "seed container" begin
