@@ -143,6 +143,21 @@
         @test consume(a.model.ctask) == 4
     end
 
+    @testset "current trace" begin
+        struct TaskIdModel <: AdvancedPS.AbstractGenericModel end
+
+        function (model::TaskIdModel)(rng::Random.AbstractRNG)
+            # Just print the task it's running in
+            id = objectid(AdvancedPS.current_trace())
+            return Libtask.produce(id)
+        end
+
+        trace = AdvancedPS.Trace(TaskIdModel(), AdvancedPS.TracedRNG())
+        AdvancedPS.addreference!(trace.model.ctask.task, trace)
+
+        @test AdvancedPS.advance!(trace, false) === objectid(trace)
+    end
+
     @testset "seed container" begin
         seed = 1
         n = 3
