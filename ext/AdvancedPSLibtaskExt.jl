@@ -131,7 +131,6 @@ function AbstractMCMC.step(
             # Create reference trajectory.
             AdvancedPS.forkr(copy(state.trajectory))
         else
-            println(model)
             trng = AdvancedPS.TracedRNG()
             trace = AdvancedPS.Trace(deepcopy(model), trng)
             AdvancedPS.addreference!(trace.model.ctask.task, trace) # TODO: Do we need it here ?
