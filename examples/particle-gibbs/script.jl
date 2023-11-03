@@ -5,7 +5,6 @@ using Distributions
 using Plots
 using AbstractMCMC
 using Random123
-using Libtask
 
 """
     plot_update_rate(update_rate, N)
@@ -91,25 +90,19 @@ plot(x; label="x", xlabel="t")
 plot(y; label="y", xlabel="t")
 
 # Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
-mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractGenericModel
-    X::Array
+mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractStateSpaceModel
+    X::Vector{Float64}
     θ::Parameters
-    NonLinearTimeSeries(θ::Parameters) = new(zeros(Float64, θ.T), θ)
+    NonLinearTimeSeries(θ::Parameters) = new(Float64[], θ)
 end
 
-function (model::NonLinearTimeSeries)(rng::Random.AbstractRNG)
-    x₀ = rand(rng, f₀(model.θ))
-    model.X[1] = x₀
-    score = logpdf(g(model.θ, x₀, 1), y[1])
-    Libtask.produce(score)
-
-    for t in 2:(model.θ.T)
-        state = rand(rng, f(model.θ, model.X[t - 1], t - 1))
-        model.X[t] = state
-        score = logpdf(g(model.θ, state, t), y[t])
-        Libtask.produce(score)
-    end
+# The dynamics of the model is defined through the `AbstractStateSpaceModel` interface:
+AdvancedPS.initialization(model::NonLinearTimeSeries) = f₀(model.θ)
+AdvancedPS.transition(model::NonLinearTimeSeries, state, step) = f(model.θ, state, step)
+function AdvancedPS.observation(model::NonLinearTimeSeries, state, step)
+    return logpdf(g(model.θ, state, step), y[step])
 end
+AdvancedPS.isdone(::NonLinearTimeSeries, step) = step > Tₘ
 
 # Here we use the particle gibbs kernel without adaptive resampling.
 model = NonLinearTimeSeries(θ₀)
@@ -117,13 +110,15 @@ pg = AdvancedPS.PG(Nₚ, 1.0)
 chains = sample(rng, model, pg, Nₛ; progress=false);
 #md nothing #hide
 
-particles = hcat([chain.trajectory.X for chain in chains]...) # Concat all sampled states
+particles = hcat([chain.trajectory.model.X for chain in chains]...) # Concat all sampled states
 mean_trajectory = mean(particles; dims=2);
 #md nothing #hide
 
 # We can now plot all the generated traces.
 # Beyond the last few timesteps all the trajectories collapse into one. Using the ancestor updating step can help with the degeneracy problem, as we show below.
-scatter(particles; label=false, opacity=1.01, color=:black, xlabel="t", ylabel="state")
+scatter(
+    particles[:, 1:50]; label=false, opacity=0.5, color=:black, xlabel="t", ylabel="state"
+)
 plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 
@@ -133,29 +128,15 @@ plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 plot_update_rate(update_rate(particles, Nₛ)[:, 1], Nₚ)
 
 # Let's see if ancestor sampling can help with the degeneracy problem. We use the same number of particles, but replace the sampler with PGAS. 
-# To use this sampler we need to define the transition and observation densities as well as the initial distribution in the following way:
-mutable struct NonLinearSSM <: AdvancedPS.AbstractStateSpaceModel
-    X::Vector{Float64}
-    θ::Parameters
-    NonLinearSSM(θ::Parameters) = new(Float64[], θ)
-end
-
-AdvancedPS.initialization(model::NonLinearSSM) = f₀(model.θ)
-AdvancedPS.transition(model::NonLinearSSM, state, step) = f(model.θ, state, step)
-function AdvancedPS.observation(model::NonLinearSSM, state, step)
-    return logpdf(g(model.θ, state, step), y[step])
-end
-AdvancedPS.isdone(::NonLinearSSM, step) = step > Tₘ
-
-# We can now sample from the model using the PGAS sampler and collect the trajectories.
 pgas = AdvancedPS.PGAS(Nₚ)
-model = NonLinearSSM(θ₀)
 chains = sample(rng, model, pgas, Nₛ; progress=false);
 particles = hcat([chain.trajectory.model.X for chain in chains]...);
 mean_trajectory = mean(particles; dims=2);
 
 # The ancestor sampling has helped with the degeneracy problem and we now have a much more diverse set of trajectories, also at earlier time periods.
-scatter(particles; label=false, opacity=0.01, color=:black, xlabel="t", ylabel="state")
+scatter(
+    particles[:, 1:50]; label=false, opacity=0.5, color=:black, xlabel="t", ylabel="state"
+)
 plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 

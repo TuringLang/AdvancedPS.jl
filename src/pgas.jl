@@ -133,7 +133,7 @@ function forkr(particle::SSMTrace)
     return newtrace
 end
 
-function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace})
+function update_ref!(ref::SSMTrace, pc::ParticleContainer{<:SSMTrace}, sampler::PGAS)
     current_step(ref) <= 2 && return nothing # At the beginning of step + 1 since we start at 1
     isdone(ref.model, current_step(ref)) && return nothing
 

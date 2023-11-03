@@ -8,6 +8,8 @@ using Random123: Random123
 
 abstract type AbstractParticleModel <: AbstractMCMC.AbstractModel end
 
+abstract type AbstractParticleSampler <: AbstractMCMC.AbstractSampler end
+
 """ Abstract type for an abstract model formulated in the state space form
 """
 abstract type AbstractStateSpaceModel <: AbstractParticleModel end
@@ -17,8 +19,8 @@ include("resampling.jl")
 include("rng.jl")
 include("model.jl")
 include("container.jl")
-include("pgas.jl")
 include("smc.jl")
+include("pgas.jl")
 
 if !isdefined(Base, :get_extension)
     using Requires
