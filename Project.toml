@@ -1,7 +1,7 @@
 name = "AdvancedPS"
 uuid = "576499cb-2369-40b2-a588-c64705576edc"
 authors = ["TuringLang"]
-version = "0.5.2"
+version = "0.5.3"
 
 [deps]
 AbstractMCMC = "80f14c24-f653-4e6a-9b94-39d6b0f70001"
