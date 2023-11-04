@@ -62,8 +62,8 @@ end
 Update reference trajectory. Defaults to `nothing`
 """
 function update_ref!(
-    particle::Trace, pc::ParticleContainer, sampler::AbstractParticleSampler
-)
+    particle::Trace, pc::ParticleContainer, sampler::T
+) where {T<:AbstractMCMC.AbstractSampler}
     return nothing
 end
 
@@ -171,11 +171,11 @@ of the particle `weights`. For Particle Gibbs sampling, one can provide a refere
 function resample_propagate!(
     ::Random.AbstractRNG,
     pc::ParticleContainer,
-    sampler::AbstractParticleSampler,
+    sampler::T,
     randcat=DEFAULT_RESAMPLER,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
-)
+) where {T<:AbstractMCMC.AbstractSampler}
     # sample ancestor indices
     n = length(pc)
     nresamples = ref === nothing ? n : n - 1
@@ -233,11 +233,11 @@ end
 function resample_propagate!(
     rng::Random.AbstractRNG,
     pc::ParticleContainer,
-    sampler::AbstractParticleSampler,
+    sampler::T,
     resampler::ResampleWithESSThreshold,
     ref::Union{Particle,Nothing}=nothing;
     weights=getweights(pc),
-)
+) where {T<:AbstractMCMC.AbstractSampler}
     # Compute the effective sample size ``1 / ∑ wᵢ²`` with normalized weights ``wᵢ``
     ess = inv(sum(abs2, weights))
 
