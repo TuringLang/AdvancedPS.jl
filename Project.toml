@@ -6,6 +6,7 @@ version = "0.5.3"
 [deps]
 AbstractMCMC = "80f14c24-f653-4e6a-9b94-39d6b0f70001"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Random123 = "74087812-796a-5b5d-8853-05524746bad3"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
