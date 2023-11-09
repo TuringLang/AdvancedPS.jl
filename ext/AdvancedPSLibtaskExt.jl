@@ -32,8 +32,13 @@ function AdvancedPS.LibtaskModel(
     )
 end
 
+"""
+    copy(model::AdvancedPS.LibtaskModel)
+
+The task is copied (forked) and the inner model is deepcopied.
+"""
 function Base.copy(model::AdvancedPS.LibtaskModel)
-    return AdvancedPS.LibtaskModel(model.f, copy(model.ctask))
+    return AdvancedPS.LibtaskModel(deepcopy(model.f), copy(model.ctask))
 end
 
 const LibtaskTrace{R} = AdvancedPS.Trace{<:AdvancedPS.LibtaskModel,R}
