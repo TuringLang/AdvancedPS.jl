@@ -321,7 +321,6 @@ function sweep!(
     observations::AbstractVector,
     ref::Union{Particle,Nothing}=nothing,
 )
-    
     log_evidence = 0.0
 
     for (t, y) in enumerate(observations)

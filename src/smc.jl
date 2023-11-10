@@ -122,7 +122,9 @@ function AbstractMCMC.step(
 
     # Perform a particle sweep.
     reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = sweep!(rng, particles, sampler.resampler, sampler, observations, reference)
+    logevidence = sweep!(
+        rng, particles, sampler.resampler, sampler, observations, reference
+    )
 
     # Pick a particle to be retained.
     newtrajectory = rand(particles.rng, particles)

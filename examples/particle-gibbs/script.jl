@@ -96,11 +96,15 @@ function SSMProblems.transition!!(rng::AbstractRNG, model::StochasticVolatilityM
     return rand(rng, f₀(model))
 end
 
-function SSMProblems.transition!!(rng::AbstractRNG, model::StochasticVolatilityModel, state::Float64, ::Int)
+function SSMProblems.transition!!(
+    rng::AbstractRNG, model::StochasticVolatilityModel, state::Float64, ::Int
+)
     return rand(rng, f(state, model))
 end
 
-function SSMProblems.emission_logdensity(model::StochasticVolatilityModel, state::Float64, observation::Float64, ::Int)
+function SSMProblems.emission_logdensity(
+    model::StochasticVolatilityModel, state::Float64, observation::Float64, ::Int
+)
     return logpdf(g(state, model), observation)
 end
 

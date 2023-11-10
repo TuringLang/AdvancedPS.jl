@@ -68,7 +68,9 @@ function advance!(particle::SSMTrace, y, isref::Bool=false)
             new_state = SSMProblems.transition!!(particle.rng, model) # Generate initial state, maybe fallback to 0 if initialization is not defined
         else
             current_state = model.X[running_step - 1]
-            new_state = SSMProblems.transition!!(particle.rng, model, current_state, running_step)
+            new_state = SSMProblems.transition!!(
+                particle.rng, model, current_state, running_step
+            )
         end
     else
         new_state = model.X[running_step] # We need the current state from the reference particle
