@@ -1,32 +1,4 @@
-"""
-    initialization(model::AbstractStateSpaceModel)
-
-Define the distribution of the initial state of the State Space Model
-"""
-function initialization end
-
-"""
-    transition(model::AbstractStateSpaceModel, state, step)
-
-Define the transition density of the State Space Model
-Must return `nothing` if it consumed all the data
-"""
-function transition end
-
-"""
-    observation(model::AbstractStateSpaceModel, state, step)
-
-Return the log-likelihood of the observed measurement conditional on the current state of the model.
-Must return `nothing` if it consumed all the data
-"""
-function observation end
-
-"""
-    isdone(model::AbstractStateSpaceModel, step)
-
-Return `true` if model reached final state else `false`
-"""
-function isdone end
+using SSMProblems
 
 """
     previous_state(trace::SSMTrace)
@@ -84,25 +56,25 @@ end
 
 Return the log-probability of the transition nothing if done
 """
-function advance!(particle::SSMTrace, isref::Bool=false)
+# TODO: need a type for the observation
+function advance!(particle::SSMTrace, y, isref::Bool=false)
     isref ? load_state!(particle.rng) : save_state!(particle.rng)
 
     model = particle.model
     running_step = current_step(particle)
-    isdone(model, running_step) && return nothing
 
     if !isref
         if running_step == 1
-            new_state = rand(particle.rng, initialization(model)) # Generate initial state, maybe fallback to 0 if initialization is not defined
+            new_state = SSMProblems.transition!!(particle.rng, model) # Generate initial state, maybe fallback to 0 if initialization is not defined
         else
             current_state = model.X[running_step - 1]
-            new_state = rand(particle.rng, transition(model, current_state, running_step))
+            new_state = SSMProblems.transition!!(particle.rng, model, current_state, running_step)
         end
     else
         new_state = model.X[running_step] # We need the current state from the reference particle
     end
 
-    score = observation(model, new_state, running_step)
+    score = SSMProblems.emission_logdensity(model, new_state, y, running_step)
 
     # accept transition
     !isref && push!(model.X, new_state)

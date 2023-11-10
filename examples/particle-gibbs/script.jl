@@ -1,5 +1,6 @@
 # # Particle Gibbs for non-linear models
 using AdvancedPS
+using SSMProblems
 using Random
 using Distributions
 using Plots
@@ -51,18 +52,19 @@ end
 # ```
 # with the initial distribution $f_0(x) = \mathcal{N}(0, q^2)$.
 # Here we assume the static parameters $\theta = (q^2, r^2)$ are known and we are only interested in sampling from the latent state $x_t$. 
-Parameters = @NamedTuple begin
+
+Base.@kwdef struct StochasticVolatilityModel <: AbstractStateSpaceModel
     a::Float64
     q::Float64
-    T::Int
 end
 
-f(θ::Parameters, state, t) = Normal(θ.a * state, θ.q)
-g(θ::Parameters, state, t) = Normal(0, exp(0.5 * state))
-f₀(θ::Parameters) = Normal(0, θ.q)
+f₀(model::StochasticVolatilityModel) = Normal(0, model.q)
+f(x::Float64, model::StochasticVolatilityModel) = Normal(model.a * x, model.q)
+g(x::Float64, ::StochasticVolatilityModel) = Normal(0, exp(0.5 * x))
 #md nothing #hide
 
 # Let's simulate some data
+T = 150   # Number of time steps
 a = 0.9   # State Variance
 q = 0.5   # Observation variance
 Tₘ = 200  # Number of observation
@@ -70,17 +72,17 @@ Nₚ = 20   # Number of particles
 Nₛ = 200  # Number of samples
 seed = 1  # Reproduce everything
 
-θ₀ = Parameters((a, q, Tₘ))
 rng = Random.MersenneTwister(seed)
+model = StochasticVolatilityModel(a, q)
 
 x = zeros(Tₘ)
 y = zeros(Tₘ)
 x[1] = 0
 for t in 1:Tₘ
     if t < Tₘ
-        x[t + 1] = rand(rng, f(θ₀, x[t], t))
+        x[t + 1] = rand(rng, f(x[t], model))
     end
-    y[t] = rand(rng, g(θ₀, x[t], t))
+    y[t] = rand(rng, g(x[t], model))
 end
 
 # Here are the latent and observation series:
@@ -89,25 +91,21 @@ plot(x; label="x", xlabel="t")
 # 
 plot(y; label="y", xlabel="t")
 
-# Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
-mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractStateSpaceModel
-    X::Vector{Float64}
-    θ::Parameters
-    NonLinearTimeSeries(θ::Parameters) = new(Float64[], θ)
+# Define the model dynamics
+function SSMProblems.transition!!(rng::AbstractRNG, model::StochasticVolatilityModel)
+    return rand(rng, f₀(model))
 end
 
-# The dynamics of the model is defined through the `AbstractStateSpaceModel` interface:
-AdvancedPS.initialization(model::NonLinearTimeSeries) = f₀(model.θ)
-AdvancedPS.transition(model::NonLinearTimeSeries, state, step) = f(model.θ, state, step)
-function AdvancedPS.observation(model::NonLinearTimeSeries, state, step)
-    return logpdf(g(model.θ, state, step), y[step])
+function SSMProblems.transition!!(rng::AbstractRNG, model::StochasticVolatilityModel, state::Float64, ::Int)
+    return rand(rng, f(state, model))
 end
-AdvancedPS.isdone(::NonLinearTimeSeries, step) = step > Tₘ
 
-# Here we use the particle gibbs kernel without adaptive resampling.
-model = NonLinearTimeSeries(θ₀)
+function SSMProblems.emission_logdensity(model::StochasticVolatilityModel, state::Float64, observation::Float64, ::Int)
+    return logpdf(g(state, model), observation)
+end
+
 pg = AdvancedPS.PG(Nₚ, 1.0)
-chains = sample(rng, model, pg, Nₛ; progress=false);
+chains = sample(rng, model, pg, Nₛ; observations=y, progress=false);
 #md nothing #hide
 
 particles = hcat([chain.trajectory.model.X for chain in chains]...) # Concat all sampled states

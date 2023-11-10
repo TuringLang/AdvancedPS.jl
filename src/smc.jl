@@ -104,6 +104,12 @@ function AbstractMCMC.step(
     nparticles = sampler.nparticles
     isref = !isnothing(state)
 
+    # Extract observation from keyword arguments.
+    if !haskey(kwargs, :observations)
+        error("missing keyword argument `observations`")
+    end
+    observations = kwargs[:observations]
+
     traces = map(1:nparticles) do i
         if i == nparticles && isref
             # Create reference trajectory.
@@ -116,7 +122,7 @@ function AbstractMCMC.step(
 
     # Perform a particle sweep.
     reference = isref ? particles.vals[nparticles] : nothing
-    logevidence = sweep!(rng, particles, sampler.resampler, sampler, reference)
+    logevidence = sweep!(rng, particles, sampler.resampler, sampler, observations, reference)
 
     # Pick a particle to be retained.
     newtrajectory = rand(particles.rng, particles)

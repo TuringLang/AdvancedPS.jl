@@ -256,12 +256,12 @@ end
 Check if the final time step is reached, and otherwise reweight the particles by
 considering the next observation.
 """
-function reweight!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
+function reweight!(pc::ParticleContainer, y, ref::Union{Particle,Nothing}=nothing)
     n = length(pc)
 
     particles = collect(pc)
     numdone = 0
-    for i in 1:n
+    for i in eachindex(particles)
         p = particles[i]
 
         # Obtain ``\\log p(yₜ | y₁, …, yₜ₋₁, x₁, …, xₜ, θ₁, …, θₜ)``, or `nothing` if the
@@ -269,7 +269,7 @@ function reweight!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
         # Here ``yᵢ`` are observations, ``xᵢ`` variables of the particle filter, and
         # ``θᵢ`` are variables of other samplers.
         isref = p === ref
-        score = advance!(p, isref)
+        score = advance!(p, y, isref)
 
         if score === nothing
             numdone += 1
@@ -318,39 +318,25 @@ function sweep!(
     pc::ParticleContainer,
     resampler,
     sampler::AbstractMCMC.AbstractSampler,
+    observations::AbstractVector,
     ref::Union{Particle,Nothing}=nothing,
 )
-    # Initial step:
-    # Resample and propagate particles.
-    resample_propagate!(rng, pc, sampler, resampler, ref)
+    
+    log_evidence = 0.0
 
-    # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
-    # weights.
-    # Usually it is equal to the number of particles in the beginning but this
-    # implementation covers also the unlikely case of a particle container that is
-    # initialized with non-zero logarithmic weights.
-    logZ0 = logZ(pc)
-
-    # Reweight the particles by including the first observation ``y₁``.
-    isdone = reweight!(pc, ref)
-
-    # Compute the normalizing constant ``Z₁`` after reweighting.
-    logZ1 = logZ(pc)
-
-    # Compute the estimate of the log evidence ``\\log p(y₁)``.
-    logevidence = logZ1 - logZ0
-
-    # For observations ``y₂, …, yₜ``:
-    while !isdone
+    for (t, y) in enumerate(observations)
         # Resample and propagate particles.
         resample_propagate!(rng, pc, sampler, resampler, ref)
 
         # Compute the current normalizing constant ``Z₀`` of the unnormalized logarithmic
         # weights.
+        # Usually it is equal to the number of particles in the beginning but this
+        # implementation covers also the unlikely case of a particle container that is
+        # initialized with non-zero logarithmic weights.
         logZ0 = logZ(pc)
 
         # Reweight the particles by including the next observation ``yₜ``.
-        isdone = reweight!(pc, ref)
+        reweight!(pc, y, ref)
 
         # Compute the normalizing constant ``Z₁`` after reweighting.
         logZ1 = logZ(pc)
