@@ -3,6 +3,7 @@ module AdvancedPS
 using AbstractMCMC: AbstractMCMC
 using Distributions: Distributions
 using Random: Random
+using SSMProblems: AbstractStateSpaceModel
 using StatsFuns: StatsFuns
 using Random123: Random123
 
@@ -12,7 +13,7 @@ abstract type AbstractParticleSampler <: AbstractMCMC.AbstractSampler end
 
 """ Abstract type for an abstract model formulated in the state space form
 """
-abstract type AbstractStateSpaceModel <: AbstractParticleModel end
+# abstract type AbstractStateSpaceModel <: AbstractParticleModel end
 abstract type AbstractGenericModel <: AbstractParticleModel end
 
 include("resampling.jl")
