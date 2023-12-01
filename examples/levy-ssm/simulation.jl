@@ -1,6 +1,5 @@
 # # Code for simulating Levy processes
 using Distributions
-using Plots
 
 abstract type LevyPointProcess end
 
@@ -97,25 +96,3 @@ function simulate(uf::UnivariateFiniteSDE, res::Int)
     end
     return samples, NVM_jumps, jump_times, subordinator_jumps
 end
-
-# Test
-μ_W = 0.0
-σ_W = 1.0
-β = 0.1
-T = 10.0
-C = 0.1
-N = 100
-
-ngp = NormalGammaProcess(μ_W, σ_W, β, C, T)
-samples, NVM_jumps, jump_times, subordinator_jumps = simulate(ngp, N)
-ts = range(0, T, length=N)
-plot(ts, samples)
-
-A = -1.0
-h = 1.0
-X0 = 0.0
-
-SDE = UnivariateFiniteSDE(A, h, T, X0, ngp)
-samples, NVM_jumps, jump_times, subordinator_jumps = simulate(SDE, N)
-plot(ts, samples)
-
