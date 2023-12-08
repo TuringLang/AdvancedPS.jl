@@ -42,7 +42,6 @@ N_s = 100  # Number of samples
 # Simulate data
 # TODO: pass in RNG
 ngp = NormalGammaProcess(μ_W, σ_W, β, C, T)
-samples, NVM_jumps, jump_times, subordinator_jumps = simulate(ngp, res)
 ts = range(0, T, length=res)
 SDE = UnivariateFiniteSDE(A, h, T, X0, ngp)
 x, __... = simulate(SDE, res)
