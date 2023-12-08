@@ -42,7 +42,7 @@ N_s = 100  # Number of samples
 # Simulate data
 # TODO: pass in RNG
 ngp = NormalGammaProcess(μ_W, σ_W, β, C, T)
-ts = range(0, T, length=res)
+ts = range(0, T; length=res)
 SDE = UnivariateFiniteSDE(A, h, T, X0, ngp)
 x, __... = simulate(SDE, res)
 y = x + σ_n * randn(rng, res)
@@ -81,8 +81,6 @@ particles = hcat([chain.trajectory.model.X for chain in chains]...)
 mean_trajectory = mean(particles; dims=2);
 
 # Plot mean trajectories
-scatter(
-    particles; label=false, opacity=0.5, color=:black, xlabel="t", ylabel="state"
-)
+scatter(particles; label=false, opacity=0.5, color=:black, xlabel="t", ylabel="state")
 plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
