@@ -90,7 +90,7 @@ dyn = LangevinDynamics(A, L, θ, H, σe)
 start, finish = 0, 100
 N = 200
 ts = range(start, finish; length=N)
-seed = 1
+seed = 4
 rng = Random.MersenneTwister(seed)
 Np = 10
 Ns = 10
@@ -161,7 +161,7 @@ function AdvancedPS.transition(model::LevyLangevin, state, step)
 end
 
 function AdvancedPS.observation(model::LevyLangevin, state, step)
-    return logpdf(Normal(transpose(H) * X[step, :], σe), Y[step])
+    return logpdf(Normal(transpose(H) * state, σe), Y[step])
 end
 AdvancedPS.isdone(::LevyLangevin, step) = step > length(ts)
 
