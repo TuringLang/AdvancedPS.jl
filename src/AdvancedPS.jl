@@ -5,9 +5,9 @@ using Distributions: Distributions
 using Random: Random
 using StatsFuns: StatsFuns
 using Random123: Random123
+using SSMProblems: SSMProblems
 
-abstract type AbstractParticleModel <: AbstractMCMC.AbstractModel end
-
+abstract type AbstractParticleModel <: SSMProblems.AbstractStateSpaceModel end
 abstract type AbstractParticleSampler <: AbstractMCMC.AbstractSampler end
 
 """ Abstract type for an abstract model formulated in the state space form
