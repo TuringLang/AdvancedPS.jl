@@ -43,7 +43,7 @@ function simulate(
         truncated = last_jump < truncation
         while !truncated
             t += rand(Exponential(1.0 / rate))
-            xi = 1.0 / (beta * (exp(t) / C - 1))
+            xi = 1.0 / (beta * (exp(t / C) - 1))
             prob = (1.0 + beta * xi) * exp(-beta * xi)
             if rand() < prob
                 push!(jumps, xi)
