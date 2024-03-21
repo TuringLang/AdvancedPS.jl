@@ -206,7 +206,7 @@ end
 AdvancedPS.isdone(::LevyLangevin, step) = step > length(ts)
 
 model = LevyLangevin(θ₀)
-pg = AdvancedPS.PG(Np)
+pg = AdvancedPS.PGAS(Np)
 chains = sample(rng, model, pg, Ns; progress=false);
 
 # Concat all sampled states
@@ -244,14 +244,17 @@ plot(
 mean_trajectory = transpose(hcat(mean(marginal_states; dims=2)...))
 std_trajectory = dropdims(std(stack(marginal_states); dims=3); dims=3)
 
-plot(
-    mean_trajectory;
-    ribbon=std_trajectory',
-    color=:darkorange,
-    label="Mean trajectory",
-    opacity=0.3,
-    title="Inference Quality",
-)
-plot!(
-    mean_trajectory; color=:dodgerblue, label="Original Trajectory", title="Path Degeneracy"
-)
+ps = []
+for d in 1:2
+    p = plot(
+        mean_trajectory[:, d];
+        ribbon=2 * std_trajectory[:, d]',
+        color=:darkorange,
+        label="Mean Trajectory (±2σ)",
+        fillalpha=0.2,
+        title="Marginal State Trajectories (X$d)",
+    )
+    plot!(p, X[:, d]; color=:dodgerblue, label="True Trajectory")
+    push!(ps, p)
+end
+plot(ps...; layout=(2, 1), size=(600, 600))
