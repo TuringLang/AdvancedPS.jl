@@ -1,4 +1,19 @@
-# # Levy-SSM 
+"""
+An implementation of the Levy State Space Model introduced in [1] using AdvancedPS.jl.
+
+Unlike the efficient Rao-Blackwellised implementation described in the original paper,
+this implementation does not marginalise over the conditionally Gaussian states, instead
+sampling from the combined jump and state space using a partice filter.
+
+The model is illustrated using the simple example of a normal variance mean process subordinated
+by a gamma process (also known as a variance gamma process). Simulation of the gamma process is
+performed using the rejection method described in [2], ignoring jumps below a certain size threshold.
+
+The NVM process is used to drive a (linear) Langevin dynamics model.
+
+[1] Godsill, et al. "The Lévy state space model." IEEE, 2019.
+[2] Rosiński, ‘Series Representations of Lévy Processes from the Perspective of Point Processes’.
+"""
 using Random
 using Plots
 using Distributions
