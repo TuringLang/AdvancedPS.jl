@@ -11,10 +11,20 @@
         BaseModel(params::Params) = new(Vector{Float64}(), params)
     end
 
-    SSMProblems.transition!!(rng::AbstractRNG, model::BaseModel) = rand(rng, Normal(0, model.θ.q))
-    SSMProblems.transition!!(rng::AbstractRNG, model::BaseModel, state, step) = rand(rng, Normal(model.θ.a * state, model.θ.q))
-    SSMProblems.emission_logdensity(model::BaseModel, state, step) = logpdf(Distributions.Normal(state, model.θ.r), 0)
-    SSMProblems.transition_logdensity(model::BaseModel, prev_state, current_state, step) = logpdf(Normal(model.θ.a * prev_state, model.θ.q), current_state)
+    function SSMProblems.transition!!(rng::AbstractRNG, model::BaseModel)
+        return rand(rng, Normal(0, model.θ.q))
+    end
+    function SSMProblems.transition!!(rng::AbstractRNG, model::BaseModel, state, step)
+        return rand(rng, Normal(model.θ.a * state, model.θ.q))
+    end
+    function SSMProblems.emission_logdensity(model::BaseModel, state, step)
+        return logpdf(Distributions.Normal(state, model.θ.r), 0)
+    end
+    function SSMProblems.transition_logdensity(
+        model::BaseModel, prev_state, current_state, step
+    )
+        return logpdf(Normal(model.θ.a * prev_state, model.θ.q), current_state)
+    end
 
     AdvancedPS.isdone(::BaseModel, step) = step > 3
 
@@ -80,7 +90,7 @@
         seed = 10
         rng = Random.MersenneTwister(seed)
 
-        for sampler in [AdvancedPS.PGAS(10)]
+        for sampler in [AdvancedPS.PGAS(10), AdvancedPS.PG(10)]
             Random.seed!(rng, seed)
             chain1 = sample(rng, model, sampler, 10)
             vals1 = hcat([chain.trajectory.model.X for chain in chain1]...)
