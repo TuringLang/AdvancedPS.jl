@@ -96,8 +96,8 @@ N = 200
 ts = range(start, finish; length=N)
 seed = 4
 rng = Random.MersenneTwister(seed)
-Np = 10
-Ns = 10
+Np = 50
+Ns = 100
 
 f(dt, θ) = exp(θ * dt)
 function Base.exp(dyn::LangevinDynamics, dt::Real)
@@ -242,6 +242,7 @@ std_trajectory = dropdims(std(stack(marginal_states); dims=3); dims=3)
 ps = []
 for d in 1:2
     p = plot(
+        ts,
         mean_trajectory[:, d];
         ribbon=2 * std_trajectory[:, d]',
         color=:darkorange,
@@ -249,7 +250,7 @@ for d in 1:2
         fillalpha=0.2,
         title="Marginal State Trajectories (X$d)",
     )
-    plot!(p, X[:, d]; color=:dodgerblue, label="True Trajectory")
+    plot!(p, ts, X[:, d]; color=:dodgerblue, label="True Trajectory")
     push!(ps, p)
 end
 plot(ps...; layout=(2, 1), size=(600, 600))
