@@ -5,6 +5,7 @@ using Distributions: Distributions
 using Random: Random
 using StatsFuns: StatsFuns
 using Random123: Random123
+using SSMProblems: SSMProblems
 
 abstract type AbstractParticleModel <: AbstractMCMC.AbstractModel end
 

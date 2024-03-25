@@ -4,6 +4,7 @@ using Distributions
 using Libtask
 using Random
 using Test
+using SSMProblems
 
 @testset "AdvancedPS.jl" begin
     @testset "Resampling tests" begin

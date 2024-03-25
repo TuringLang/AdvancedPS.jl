@@ -7,12 +7,19 @@ mutable struct Trace{F,R}
 end
 
 const Particle = Trace
-const SSMTrace{R} = Trace{<:AbstractStateSpaceModel,R}
+const SSMTrace{R} = Trace{<:SSMProblems.AbstractStateSpaceModel,R}
 const GenericTrace{R} = Trace{<:AbstractGenericModel,R}
 
 reset_logprob!(::AdvancedPS.Particle) = nothing
 reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing
+
+"""
+    isdone(model::SSMProblems.AbstractStateSpaceModel, step)
+
+Returns `true` if we reached the end of the model execution
+"""
+function isdone end
 
 """
 	copy(trace::Trace)

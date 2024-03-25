@@ -4,6 +4,7 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Random123 = "74087812-796a-5b5d-8853-05524746bad3"
+SSMProblems = "26aad666-b158-4e64-9d35-0e672562fa48"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]

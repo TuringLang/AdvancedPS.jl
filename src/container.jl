@@ -269,7 +269,7 @@ function reweight!(pc::ParticleContainer, ref::Union{Particle,Nothing}=nothing)
         # Here ``yᵢ`` are observations, ``xᵢ`` variables of the particle filter, and
         # ``θᵢ`` are variables of other samplers.
         isref = p === ref
-        score = advance!(p, isref)
+        score = advance!(p, isref) # SSMProblems.transition!!
 
         if score === nothing
             numdone += 1
