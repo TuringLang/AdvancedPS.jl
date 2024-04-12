@@ -19,9 +19,7 @@ function test_algorithm(rng, algorithm, model, N_SAMPLES, Xf)
     particles = hcat([chain.trajectory.model.X for chain in chains]...)
     final_particles = particles[:, end]
 
-    test = ExactOneSampleKSTest(
-        final_particles, Normal(Xf.x[end].μ[1], sqrt(Xf.x[end].Σ[1, 1]))
-    )
+    test = ExactOneSampleKSTest(final_particles, Normal(Xf.x[end].μ, sqrt(Xf.x[end].Σ)))
     return pvalue(test)
 end
 
@@ -30,18 +28,18 @@ end
     N_PARTICLES = 20
     N_SAMPLES = 50
 
-    # Model dynamics (in matrix form, despite being one-dimensional, to work with Kalman.jl)
-    Φ = [0.5;;]
-    b = [0.2]
-    Q = [0.1;;]
-    E = LinearEvolution(Φ, Gaussian(b, Q))
+    # Model dynamics
+    a = 0.5
+    b = 0.2
+    q = 0.1
+    E = LinearEvolution(a, Gaussian(b, q))
 
-    H = [1.0;;]
-    R = [0.1;;]
+    H = 1.0
+    R = 0.1
     Obs = LinearObservationModel(H, R)
 
-    x0 = [0.0]
-    P0 = [1.0;;]
+    x0 = 0.0
+    P0 = 1.0
     G0 = Gaussian(x0, P0)
 
     M = LinearStateSpaceModel(E, Obs)
@@ -86,7 +84,7 @@ end
 
     AdvancedPS.isdone(::LinearGaussianModel, step) = step > T
 
-    params = LinearGaussianParams(Φ[1, 1], b[1], Q[1, 1], H[1, 1], R[1, 1], x0[1], P0[1, 1])
+    params = LinearGaussianParams(a, b, q, H, R, x0, P0)
     model = LinearGaussianModel(params)
 
     @testset "PGAS" begin
