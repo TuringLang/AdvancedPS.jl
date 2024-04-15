@@ -25,7 +25,7 @@ end
 
 @testset "linear-gaussian.jl" begin
     T = 3
-    N_PARTICLES = 20
+    N_PARTICLES = 100
     N_SAMPLES = 50
 
     # Model dynamics
@@ -48,7 +48,7 @@ end
     # Simulate from model
     rng = StableRNG(1234)
     initial = rand(rng, StateObs(G0, M.obs))
-    trajectory = trace(DynamicIterators.Sampled(M), 1 => initial, endtime(T))
+    trajectory = trace(DynamicIterators.Sampled(M, rng), 1 => initial, endtime(T))
     y_pairs = collect(t => y for (t, (x, y)) in pairs(trajectory))
     ys = [y for (t, (x, y)) in pairs(trajectory)]
 
