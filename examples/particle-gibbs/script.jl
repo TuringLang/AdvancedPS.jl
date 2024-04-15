@@ -5,6 +5,7 @@ using Distributions
 using Plots
 using AbstractMCMC
 using Random123
+using SSMProblems
 
 """
     plot_update_rate(update_rate, N)
@@ -90,22 +91,41 @@ plot(x; label="x", xlabel="t")
 plot(y; label="y", xlabel="t")
 
 # Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
-mutable struct NonLinearTimeSeries <: AdvancedPS.AbstractStateSpaceModel
+mutable struct NonLinearTimeSeries <: SSMProblems.AbstractStateSpaceModel
     X::Vector{Float64}
+    observations::Vector{Float64}
     θ::Parameters
     NonLinearTimeSeries(θ::Parameters) = new(Float64[], θ)
+    NonLinearTimeSeries(y::Vector{Float64}, θ::Parameters) = new(Float64[], y, θ)
 end
 
 # The dynamics of the model is defined through the `AbstractStateSpaceModel` interface:
-AdvancedPS.initialization(model::NonLinearTimeSeries) = f₀(model.θ)
-AdvancedPS.transition(model::NonLinearTimeSeries, state, step) = f(model.θ, state, step)
-function AdvancedPS.observation(model::NonLinearTimeSeries, state, step)
-    return logpdf(g(model.θ, state, step), y[step])
+function SSMProblems.transition!!(rng::AbstractRNG, model::NonLinearTimeSeries)
+    return rand(rng, f₀(model.θ))
 end
+function SSMProblems.transition!!(
+    rng::AbstractRNG, model::NonLinearTimeSeries, state::Float64, step::Int
+)
+    return rand(rng, f(model.θ, state, step))
+end
+
+function SSMProblems.emission_logdensity(
+    modeL::NonLinearTimeSeries, state::Float64, step::Int
+)
+    return logpdf(g(model.θ, state, step), model.observations[step])
+end
+function SSMProblems.transition_logdensity(
+    model::NonLinearTimeSeries, prev_state, current_state, step
+)
+    return logpdf(f(model.θ, prev_state, step), current_state)
+end
+
+# We need to tell AdvancedPS when to stop the execution of the model
+# TODO
 AdvancedPS.isdone(::NonLinearTimeSeries, step) = step > Tₘ
 
 # Here we use the particle gibbs kernel without adaptive resampling.
-model = NonLinearTimeSeries(θ₀)
+model = NonLinearTimeSeries(y, θ₀)
 pg = AdvancedPS.PG(Nₚ, 1.0)
 chains = sample(rng, model, pg, Nₛ; progress=false);
 #md nothing #hide

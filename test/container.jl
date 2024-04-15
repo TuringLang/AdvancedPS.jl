@@ -1,14 +1,17 @@
 @testset "container.jl" begin
 
     # Since the extension would hide the low level function call API
-    mutable struct LogPModel{T} <: AdvancedPS.AbstractStateSpaceModel
+    mutable struct LogPModel{T} <: SSMProblems.AbstractStateSpaceModel
         logp::T
         X::Array{T}
     end
 
-    AdvancedPS.initialization(model::LogPModel) = Uniform()
-    AdvancedPS.transition(model::LogPModel, state, step) = Uniform()
-    AdvancedPS.observation(model::LogPModel, state, step) = model.logp
+    SSMProblems.transition!!(rng::AbstractRNG, model::LogPModel) = rand(rng, Uniform())
+    function SSMProblems.transition!!(rng::AbstractRNG, model::LogPModel, state, step)
+        return rand(rng, Uniform())
+    end
+    SSMProblems.emission_logdensity(model::LogPModel, state, step) = model.logp
+
     AdvancedPS.isdone(model::LogPModel, step) = false
 
     @testset "copy particle container" begin

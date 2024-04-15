@@ -3,6 +3,7 @@ using AdvancedPS
 using Random
 using Distributions
 using Plots
+using SSMProblems
 
 # We consider the following linear state-space model with Gaussian innovations. The latent state is a simple gaussian random walk
 # and the observation is linear in the latent states, namely:
@@ -33,16 +34,18 @@ Parameters = @NamedTuple begin
     r::Float64
 end
 
-mutable struct LinearSSM <: AdvancedPS.AbstractStateSpaceModel
+mutable struct LinearSSM <: SSMProblems.AbstractStateSpaceModel
     X::Vector{Float64}
+    observations::Vector{Float64}
     θ::Parameters
     LinearSSM(θ::Parameters) = new(Vector{Float64}(), θ)
+    LinearSSM(y::Vector, θ::Parameters) = new(Vector{Float64}(), y, θ)
 end
 
 # and the densities defined above.
-f(m::LinearSSM, state, t) = Normal(m.θ.a * state, m.θ.q) # Transition density
-g(m::LinearSSM, state, t) = Normal(state, m.θ.r)         # Observation density
-f₀(m::LinearSSM) = Normal(0, m.θ.q^2 / (1 - m.θ.a^2))    # Initial state density
+f(θ::Parameters, state, t) = Normal(θ.a * state, θ.q) # Transition density
+g(θ::Parameters, state, t) = Normal(state, θ.r)         # Observation density
+f₀(θ::Parameters) = Normal(0, θ.q^2 / (1 - θ.a^2))    # Initial state density
 #md nothing #hide
 
 # We also need to specify the dynamics of the system through the transition equations:
@@ -50,15 +53,26 @@ f₀(m::LinearSSM) = Normal(0, m.θ.q^2 / (1 - m.θ.a^2))    # Initial state den
 # - `AdvancedPS.transition`: the state transition density
 # - `AdvancedPS.observation`: the observation score given the observed data
 # - `AdvancedPS.isdone`: signals the end of the execution for the model
-AdvancedPS.initialization(model::LinearSSM) = f₀(model)
-AdvancedPS.transition(model::LinearSSM, state, step) = f(model, state, step)
-function AdvancedPS.observation(model::LinearSSM, state, step)
-    return logpdf(g(model, state, step), y[step])
+SSMProblems.transition!!(rng::AbstractRNG, model::LinearSSM) = rand(rng, f₀(model.θ))
+function SSMProblems.transition!!(
+    rng::AbstractRNG, model::LinearSSM, state::Float64, step::Int
+)
+    return rand(rng, f(model.θ, state, step))
 end
+
+function SSMProblems.emission_logdensity(modeL::LinearSSM, state::Float64, step::Int)
+    return logpdf(g(model.θ, state, step), model.observations[step])
+end
+function SSMProblems.transition_logdensity(
+    model::LinearSSM, prev_state, current_state, step
+)
+    return logpdf(f(model.θ, prev_state, step), current_state)
+end
+
+# We need to think seriously about how the data is handled
 AdvancedPS.isdone(::LinearSSM, step) = step > Tₘ
 
 # Everything is now ready to simulate some data. 
-
 a = 0.9   # Scale
 q = 0.32  # State variance
 r = 1     # Observation variance
@@ -72,14 +86,12 @@ rng = Random.MersenneTwister(seed)
 
 x = zeros(Tₘ)
 y = zeros(Tₘ)
-
-reference = LinearSSM(θ₀)
-x[1] = rand(rng, f₀(reference))
+x[1] = rand(rng, f₀(θ₀))
 for t in 1:Tₘ
     if t < Tₘ
-        x[t + 1] = rand(rng, f(reference, x[t], t))
+        x[t + 1] = rand(rng, f(θ₀, x[t], t))
     end
-    y[t] = rand(rng, g(reference, x[t], t))
+    y[t] = rand(rng, g(θ₀, x[t], t))
 end
 
 # Here are the latent and obseravation timeseries
@@ -88,7 +100,7 @@ plot!(y; seriestype=:scatter, label="y", xlabel="t", mc=:red, ms=2, ma=0.5)
 
 # `AdvancedPS` subscribes to the `AbstractMCMC` API. To sample we just need to define a Particle Gibbs kernel
 # and a model interface. 
-model = LinearSSM(θ₀)
+model = LinearSSM(y, θ₀)
 pgas = AdvancedPS.PGAS(Nₚ)
 chains = sample(rng, model, pgas, Nₛ; progress=false);
 #md nothing #hide
