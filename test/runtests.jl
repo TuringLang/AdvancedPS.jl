@@ -3,6 +3,7 @@ using AbstractMCMC
 using Distributions
 using Libtask
 using Random
+using StableRNGs
 using Test
 using SSMProblems
 
@@ -21,5 +22,8 @@ using SSMProblems
     end
     @testset "PG-AS" begin
         include("pgas.jl")
+    end
+    @testset "Linear Gaussian SSM tests" begin
+        include("linear-gaussian.jl")
     end
 end
