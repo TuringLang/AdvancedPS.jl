@@ -5,6 +5,7 @@ using Libtask
 using Random
 using StableRNGs
 using Test
+using SSMProblems
 
 @testset "AdvancedPS.jl" begin
     @testset "Resampling tests" begin

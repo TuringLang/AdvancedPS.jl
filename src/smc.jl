@@ -26,12 +26,17 @@ struct SMCSample{P,W,L}
     logevidence::L
 end
 
-function AbstractMCMC.sample(model::AbstractStateSpaceModel, sampler::SMC; kwargs...)
+function AbstractMCMC.sample(
+    model::SSMProblems.AbstractStateSpaceModel, sampler::SMC; kwargs...
+)
     return AbstractMCMC.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
 end
 
 function AbstractMCMC.sample(
-    rng::Random.AbstractRNG, model::AbstractStateSpaceModel, sampler::SMC; kwargs...
+    rng::Random.AbstractRNG,
+    model::SSMProblems.AbstractStateSpaceModel,
+    sampler::SMC;
+    kwargs...,
 )
     if !isempty(kwargs)
         @warn "keyword arguments $(keys(kwargs)) are not supported by `SMC`"
@@ -95,7 +100,7 @@ PGAS(nparticles::Int) = PGAS(nparticles, ResampleWithESSThreshold(1.0))
 
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
-    model::AbstractStateSpaceModel,
+    model::SSMProblems.AbstractStateSpaceModel,
     sampler::Union{PGAS,PG},
     state::Union{PGState,Nothing}=nothing;
     kwargs...,

@@ -6,6 +6,7 @@ using AbstractGPs
 using Plots
 using Distributions
 using Libtask
+using SSMProblems
 
 Parameters = @NamedTuple begin
     a::Float64
@@ -13,11 +14,13 @@ Parameters = @NamedTuple begin
     kernel
 end
 
-mutable struct GPSSM <: AdvancedPS.AbstractStateSpaceModel
+mutable struct GPSSM <: SSMProblems.AbstractStateSpaceModel
     X::Vector{Float64}
+    observations::Vector{Float64}
     θ::Parameters
 
     GPSSM(params::Parameters) = new(Vector{Float64}(), params)
+    GPSSM(y::Vector{Float64}, params::Parameters) = new(Vector{Float64}(), y, params)
 end
 
 seed = 1
@@ -29,21 +32,20 @@ q = 0.5
 
 params = Parameters((a, q, SqExponentialKernel()))
 
-f(model::GPSSM, x, t) = Normal(model.θ.a * x, model.θ.q)
-h(model::GPSSM) = Normal(0, model.θ.q)
-g(model::GPSSM, x, t) = Normal(0, exp(0.5 * x)^2)
+f(θ::Parameters, x, t) = Normal(θ.a * x, θ.q)
+h(θ::Parameters) = Normal(0, θ.q)
+g(θ::Parameters, x, t) = Normal(0, exp(0.5 * x)^2)
 
 rng = Random.MersenneTwister(seed)
-ref_model = GPSSM(params)
 
 x = zeros(T)
 y = similar(x)
-x[1] = rand(rng, h(ref_model))
+x[1] = rand(rng, h(params))
 for t in 1:T
     if t < T
-        x[t + 1] = rand(rng, f(ref_model, x[t], t))
+        x[t + 1] = rand(rng, f(params, x[t], t))
     end
-    y[t] = rand(rng, g(ref_model, x[t], t))
+    y[t] = rand(rng, g(params, x[t], t))
 end
 
 function gp_update(model::GPSSM, state, step)
@@ -54,12 +56,21 @@ function gp_update(model::GPSSM, state, step)
     return Normal(μ[1], σ[1])
 end
 
-AdvancedPS.initialization(::GPSSM) = h(model)
-AdvancedPS.transition(model::GPSSM, state, step) = gp_update(model, state, step)
-AdvancedPS.observation(model::GPSSM, state, step) = logpdf(g(model, state, step), y[step])
+SSMProblems.transition!!(rng::AbstractRNG, model::GPSSM) = rand(rng, h(model.θ))
+function SSMProblems.transition!!(rng::AbstractRNG, model::GPSSM, state, step)
+    return rand(rng, gp_update(model, state, step))
+end
+
+function SSMProblems.emission_logdensity(model::GPSSM, state, step)
+    return logpdf(g(model.θ, state, step), model.observations[step])
+end
+function SSMProblems.transition_logdensity(model::GPSSM, prev_state, current_state, step)
+    return logpdf(gp_update(model, prev_state, step), current_state)
+end
+
 AdvancedPS.isdone(::GPSSM, step) = step > T
 
-model = GPSSM(params)
+model = GPSSM(y, params)
 pg = AdvancedPS.PGAS(Nₚ)
 chains = sample(rng, model, pg, Nₛ)
 
