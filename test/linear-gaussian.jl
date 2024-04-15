@@ -50,7 +50,7 @@ end
     initial = rand(rng, StateObs(G0, M.obs))
     trajectory = trace(DynamicIterators.Sampled(M), 1 => initial, endtime(T))
     y_pairs = collect(t => y for (t, (x, y)) in pairs(trajectory))
-    ys = stack(y for (t, (x, y)) in pairs(trajectory))
+    ys = [y for (t, (x, y)) in pairs(trajectory)]
 
     # Ground truth smoothing
     Xf, ll = kalmanfilter(M, 1 => G0, y_pairs)
