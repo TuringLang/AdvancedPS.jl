@@ -26,7 +26,7 @@ end
 @testset "linear-gaussian.jl" begin
     T = 3
     N_PARTICLES = 100
-    N_SAMPLES = 50
+    N_SAMPLES = 200
 
     # Model dynamics
     a = 0.5
@@ -100,12 +100,14 @@ end
     @testset "PGAS" begin
         pgas = AdvancedPS.PGAS(N_PARTICLES)
         p = test_algorithm(rng, pgas, model, N_SAMPLES, Xf)
+        @info p
         @test p > 0.05
     end
 
     @testset "PG" begin
         pg = AdvancedPS.PG(N_PARTICLES)
         p = test_algorithm(rng, pg, model, N_SAMPLES, Xf)
+        @info p
         @test p > 0.05
     end
 end
