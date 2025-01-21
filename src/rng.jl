@@ -36,8 +36,9 @@ Base.rand(rng::TracedRNG, ::Type{T}) where {T} = Base.rand(rng.rng, T)
 Split `key` into `n` new keys
 """
 function split(key::Integer, n::Integer=1)
-    T = typeof(key) # Make sure the type of `key` is consistent on W32 and W64 systems.
-    return T[hash(key, i) for i in UInt(1):UInt(n)]
+    T = typeof(key)
+    inner_rng = Random.MersenneTwister(key)
+    return rand(inner_rng, T, n)
 end
 
 """
