@@ -72,5 +72,3 @@ makedocs(;
         r"(Array{.+,\s?2}|Matrix{.+})",
     ],
 )
-
-deploydocs(; repo="github.com/TuringLang/AdvancedPS.jl.git", push_preview=true)
