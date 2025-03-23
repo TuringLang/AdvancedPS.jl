@@ -49,7 +49,7 @@ end
 function AdvancedPS.advance!(trace::LibtaskTrace, isref::Bool=false)
     # Where is the RNG ?
     # isref ? AdvancedPS.load_state!(trace.rng) : AdvancedPS.save_state!(trace.model.ctask.dynamic_scope) # Nasty
-    isref ? AdvancedPS.load_state!(trace.rng) : AdvancedPS.save_state!(trace.rng) 
+    isref ? AdvancedPS.load_state!(trace.rng) : AdvancedPS.save_state!(trace.rng)
     AdvancedPS.inc_counter!(trace.rng)
 
     Libtask.set_dynamic_scope!(trace.model.ctask, trace.rng)
