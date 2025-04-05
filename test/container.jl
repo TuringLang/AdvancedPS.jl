@@ -121,7 +121,7 @@
             val::Ref{Int}
         end
 
-        function (model::Model)(rng::Random.AbstractRNG)
+        function (model::Model)()
             t = [0]
             while true
                 model.val[] += 1
@@ -149,7 +149,7 @@
     @testset "current trace" begin
         struct TaskIdModel <: AdvancedPS.AbstractGenericModel end
 
-        function (model::TaskIdModel)(rng::Random.AbstractRNG)
+        function (model::TaskIdModel)()
             # Just print the task it's running in
             id = objectid(AdvancedPS.current_trace())
             return Libtask.produce(id)

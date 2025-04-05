@@ -28,14 +28,16 @@
             NormalModel() = new()
         end
 
-        function (m::NormalModel)(rng::Random.AbstractRNG)
+        function (m::NormalModel)()
             # First latent variable.
+            rng = Libtask.get_dynamic_scope()
             m.a = a = rand(rng, Normal(4, 5))
 
             # First observation.
             AdvancedPS.observe(Normal(a, 2), 3)
 
             # Second latent variable.
+            rng = Libtask.get_dynamic_scope()
             m.b = b = rand(rng, Normal(a, 1))
 
             # Second observation.
@@ -52,8 +54,11 @@
             FailSMCModel() = new()
         end
 
-        function (m::FailSMCModel)(rng::Random.AbstractRNG)
+        function (m::FailSMCModel)()
+            rng = Libtask.get_dynamic_scope()
             m.a = a = rand(rng, Normal(4, 5))
+
+            rng = Libtask.get_dynamic_scope()
             m.b = b = rand(rng, Normal(a, 1))
             if a >= 4
                 AdvancedPS.observe(Normal(b, 2), 1.5)
@@ -75,8 +80,9 @@
             TestModel() = new()
         end
 
-        function (m::TestModel)(rng::Random.AbstractRNG)
+        function (m::TestModel)()
             # First hidden variables.
+            rng = Libtask.get_dynamic_scope()
             m.a = rand(rng, Normal(0, 1))
             m.x = x = rand(rng, Bernoulli(1))
             m.b = rand(rng, Gamma(2, 3))
@@ -85,6 +91,7 @@
             AdvancedPS.observe(Bernoulli(x / 2), 1)
 
             # Second hidden variable.
+            rng = Libtask.get_dynamic_scope()
             m.c = rand(rng, Beta())
 
             # Second observation.
@@ -159,10 +166,12 @@
             DummyModel() = new()
         end
 
-        function (m::DummyModel)(rng)
+        function (m::DummyModel)()
+            rng = Libtask.get_dynamic_scope()
             m.a = rand(rng, Normal())
             AdvancedPS.observe(Normal(), m.a)
 
+            rng = Libtask.get_dynamic_scope()
             m.b = rand(rng, Normal())
             return AdvancedPS.observe(Normal(), m.b)
         end
