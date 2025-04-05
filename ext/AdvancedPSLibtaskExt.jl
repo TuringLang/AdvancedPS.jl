@@ -48,7 +48,6 @@ end
 # return the log probability of the transition (or nothing if done)
 function AdvancedPS.advance!(trace::LibtaskTrace, isref::Bool=false)
     # Where is the RNG ?
-    # isref ? AdvancedPS.load_state!(trace.rng) : AdvancedPS.save_state!(trace.model.ctask.dynamic_scope) # Nasty
     isref ? AdvancedPS.load_state!(trace.rng) : AdvancedPS.save_state!(trace.rng)
     AdvancedPS.inc_counter!(trace.rng)
 
