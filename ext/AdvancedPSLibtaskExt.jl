@@ -87,7 +87,7 @@ end
 # PG requires keeping all randomness for the reference particle
 # Create new task and copy randomness
 function AdvancedPS.forkr(trace::LibtaskTrace)
-    newf = AdvancedPS.reset_model(trace.model.ctask.fargs[1])
+    newf = AdvancedPS.reset_model(trace.model.f)
     Random123.set_counter!(trace.rng, 1)
 
     ctask = Libtask.TapedTask(trace.rng, newf)
@@ -109,7 +109,8 @@ AdvancedPS.update_ref!(::LibtaskTrace) = nothing
 Observe sample `x` from distribution `dist` and yield its log-likelihood value.
 """
 function AdvancedPS.observe(dist::Distributions.Distribution, x)
-    return Libtask.produce(Distributions.loglikelihood(dist, x))
+    Libtask.produce(Distributions.loglikelihood(dist, x))
+    return nothing
 end
 
 """
@@ -149,7 +150,7 @@ function AbstractMCMC.step(
 
     replayed = AdvancedPS.replay(newtrajectory)
     return AdvancedPS.PGSample(replayed.model.f, logevidence),
-    AdvancedPS.PGState(newtrajectory)
+    AdvancedPS.PGState(replayed)
 end
 
 function AbstractMCMC.sample(
