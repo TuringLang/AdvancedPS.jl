@@ -206,12 +206,12 @@ function resample_propagate!(
 
             Random.seed!(p.rng, seeds[1])
 
-            children[j+=1] = p
+            children[j += 1] = p
             # fork additional children
             for k in 2:ni
                 part = fork(p, isref)
                 Random.seed!(part.rng, seeds[k])
-                children[j+=1] = part
+                children[j += 1] = part
             end
         end
     end

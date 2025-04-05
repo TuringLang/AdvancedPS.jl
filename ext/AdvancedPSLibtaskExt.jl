@@ -149,8 +149,7 @@ function AbstractMCMC.step(
     newtrajectory = rand(rng, particles)
 
     replayed = AdvancedPS.replay(newtrajectory)
-    return AdvancedPS.PGSample(replayed.model.f, logevidence),
-    AdvancedPS.PGState(replayed)
+    return AdvancedPS.PGSample(replayed.model.f, logevidence), AdvancedPS.PGState(replayed)
 end
 
 function AbstractMCMC.sample(
