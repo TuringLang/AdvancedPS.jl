@@ -51,7 +51,7 @@ function AdvancedPS.advance!(trace::LibtaskTrace, isref::Bool=false)
     isref ? AdvancedPS.load_state!(trace.rng) : AdvancedPS.save_state!(trace.rng)
     AdvancedPS.inc_counter!(trace.rng)
 
-    Libtask.set_dynamic_scope!(trace.model.ctask, trace.rng)
+    Libtask.set_taped_globals!(trace.model.ctask, trace.rng)
 
     # Move to next step
     return Libtask.consume(trace.model.ctask)
@@ -70,7 +70,7 @@ end
 function AdvancedPS.update_rng!(trace::LibtaskTrace)
     new_rng = deepcopy(trace.rng)
     trace.rng = new_rng
-    Libtask.set_dynamic_scope!(trace.model.ctask, trace.rng)
+    Libtask.set_taped_globals!(trace.model.ctask, trace.rng)
     return trace
 end
 
@@ -96,7 +96,7 @@ function AdvancedPS.forkr(trace::LibtaskTrace)
     newtrace = AdvancedPS.Trace(new_tapedmodel, trace.rng)
     AdvancedPS.gen_refseed!(newtrace)
 
-    Libtask.set_dynamic_scope!(ctask, trace.rng) # Sync trace and rng
+    Libtask.set_taped_globals!(ctask, trace.rng) # Sync trace and rng
     return newtrace
 end
 
