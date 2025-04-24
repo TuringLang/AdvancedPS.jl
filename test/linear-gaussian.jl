@@ -56,46 +56,41 @@ end
     Xf, ll = kalmanfilter(M, 1 => G0, y_pairs)
 
     # Define AdvancedPS model
-    mutable struct LinearGaussianParams
-        a::Float64
-        b::Float64
-        q::Float64
-        h::Float64
-        r::Float64
-        x0::Float64
-        p0::Float64
+    struct LinearGaussianDynamics{T<:Real} <: LatentDynamics{T,T}
+        a::T
+        b::T
+        q::T
     end
 
-    mutable struct LinearGaussianModel <: SSMProblems.AbstractStateSpaceModel
-        X::Vector{Float64}
-        observations::Vector{Float64}
-        θ::LinearGaussianParams
-        function LinearGaussianModel(y::Vector{Float64}, θ::LinearGaussianParams)
-            return new(Vector{Float64}(), y, θ)
-        end
+    function SSMProblems.distribution(proc::LinearGaussianDynamics; kwargs...)
+        return Normal(convert(T, x0), convert(T, p0))
     end
 
-    function SSMProblems.transition!!(rng::AbstractRNG, model::LinearGaussianModel)
-        return rand(rng, Normal(model.θ.x0, model.θ.p0))
-    end
-    function SSMProblems.transition!!(
-        rng::AbstractRNG, model::LinearGaussianModel, state, step
+    function SSMProblems.distribution(
+        proc::LinearGaussianDynamics, step::Int, state; kwargs...
     )
-        return rand(rng, Normal(model.θ.a * state + model.θ.b, model.θ.q))
+        return Normal(proc.a * state + proc.b, proc.q)
     end
-    function SSMProblems.transition_logdensity(
-        model::LinearGaussianModel, prev_state, current_state, step
+
+    struct LinearGaussianObservation{T<:Real} <: ObservationProcess{T,T}
+        h::T
+        r::T
+    end
+
+    function SSMProblems.distribution(
+        proc::LinearGaussianObservation, step::Int, state; kwargs...
     )
-        return logpdf(Normal(model.θ.a * prev_state + model.θ.b, model.θ.q), current_state)
-    end
-    function SSMProblems.emission_logdensity(model::LinearGaussianModel, state, step)
-        return logpdf(Normal(model.θ.h * state, model.θ.r), model.observations[step])
+        return Normal(proc.h * state, proc.r)
     end
 
-    AdvancedPS.isdone(::LinearGaussianModel, step) = step > T
+    function LinearGaussianStateSpaceModel(a, b, q, h, r)
+        dyn = LinearGaussianDynamics(a, b, q)
+        obs = LinearGaussianObservation(h, r)
+        return StateSpaceModel(dyn, obs)
+    end
 
-    params = LinearGaussianParams(a, b, q, H, R, x0, P0)
-    model = LinearGaussianModel(ys, params)
+    lgssm = LinearGaussianStateSpaceModel(a, b, q, H, R)
+    model = lgssm(ys)
 
     @testset "PGAS" begin
         pgas = AdvancedPS.PGAS(N_PARTICLES)

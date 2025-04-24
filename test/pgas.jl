@@ -1,35 +1,40 @@
 @testset "pgas.jl" begin
-    mutable struct Params
-        a::Float64
-        q::Float64
-        r::Float64
+    mutable struct Params{T<:Real}
+        a::T
+        q::T
+        r::T
     end
 
-    mutable struct BaseModel <: SSMProblems.AbstractStateSpaceModel
-        X::Vector{Float64}
-        θ::Params
-        BaseModel(params::Params) = new(Vector{Float64}(), params)
+    struct BaseModelDynamics{T<:Real} <: LatentDynamics{T,T}
+        a::T
+        q::T
     end
 
-    function SSMProblems.transition!!(rng::AbstractRNG, model::BaseModel)
-        return rand(rng, Normal(0, model.θ.q))
-    end
-    function SSMProblems.transition!!(rng::AbstractRNG, model::BaseModel, state, step)
-        return rand(rng, Normal(model.θ.a * state, model.θ.q))
-    end
-    function SSMProblems.emission_logdensity(model::BaseModel, state, step)
-        return logpdf(Distributions.Normal(state, model.θ.r), 0)
-    end
-    function SSMProblems.transition_logdensity(
-        model::BaseModel, prev_state, current_state, step
-    )
-        return logpdf(Normal(model.θ.a * prev_state, model.θ.q), current_state)
+    function SSMProblems.distribution(dyn::BaseModelDynamics{T}) where {T<:Real}
+        return Normal(zero(T), dyn.q)
     end
 
-    AdvancedPS.isdone(::BaseModel, step) = step > 3
+    function SSMProblems.distribution(dyn::BaseModelDynamics, step::Int, state)
+        return Normal(dyn.a * state, dyn.q)
+    end
+
+    struct BaseModelObservation{T<:Real} <: ObservationProcess{T,T}
+        r::T
+    end
+
+    function SSMProblems.distribution(obs::BaseModelObservation, step::Int, state)
+        return Normal(state, obs.r)
+    end
+
+    function BaseModel(θ::Params{T}) where {T<:Real}
+        dyn = BaseModelDynamics(θ.a, θ.q)
+        obs = BaseModelObservation(θ.r)
+        ssm = StateSpaceModel(dyn, obs)
+        return ssm(zeros(T, 3))
+    end
 
     @testset "fork reference" begin
-        model = BaseModel(Params(0.9, 0.32, 1))
+        model = BaseModel(Params(0.9, 0.32, 1.0))
         part = AdvancedPS.Trace(model, AdvancedPS.TracedRNG())
 
         AdvancedPS.advance!(part)
@@ -50,7 +55,7 @@
     @testset "update reference" begin
         base_rng = Random.MersenneTwister(31)
         particles = [
-            AdvancedPS.Trace(BaseModel(Params(0.9, 0.31, 1)), AdvancedPS.TracedRNG()) for
+            AdvancedPS.Trace(BaseModel(Params(0.9, 0.31, 1.0)), AdvancedPS.TracedRNG()) for
             _ in 1:3
         ]
         sampler = AdvancedPS.PGAS(3)
@@ -86,7 +91,7 @@
     end
 
     @testset "rng stability" begin
-        model = BaseModel(Params(0.9, 0.32, 1))
+        model = BaseModel(Params(0.9, 0.32, 1.0))
         seed = 10
         rng = Random.MersenneTwister(seed)
 
@@ -117,7 +122,7 @@
 
     # Smoke test mostly
     @testset "smc sampler" begin
-        model = BaseModel(Params(0.9, 0.32, 1))
+        model = BaseModel(Params(0.9, 0.32, 1.0))
         npart = 10
 
         sampler = AdvancedPS.SMC(npart)

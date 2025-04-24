@@ -28,71 +28,46 @@ using SSMProblems
 # as well as the initial distribution $f_0(x) = \mathcal{N}(0, q^2/(1-a^2))$.
 
 # To use `AdvancedPS` we first need to define a model type that subtypes `AdvancedPS.AbstractStateSpaceModel`.
-Parameters = @NamedTuple begin
-    a::Float64
-    q::Float64
-    r::Float64
+mutable struct Parameters{T<:Real}
+    a::T
+    q::T
+    r::T
 end
 
-mutable struct LinearSSM <: SSMProblems.AbstractStateSpaceModel
-    X::Vector{Float64}
-    observations::Vector{Float64}
-    θ::Parameters
-    LinearSSM(θ::Parameters) = new(Vector{Float64}(), θ)
-    LinearSSM(y::Vector, θ::Parameters) = new(Vector{Float64}(), y, θ)
+struct LinearGaussianDynamics{T<:Real} <: SSMProblems.LatentDynamics{T,T}
+    a::T
+    q::T
 end
 
-# and the densities defined above.
-f(θ::Parameters, state, t) = Normal(θ.a * state, θ.q) # Transition density
-g(θ::Parameters, state, t) = Normal(state, θ.r)         # Observation density
-f₀(θ::Parameters) = Normal(0, θ.q^2 / (1 - θ.a^2))    # Initial state density
-#md nothing #hide
+function SSMProblems.distribution(dyn::LinearGaussianDynamics{T}; kwargs...) where {T<:Real}
+    return Normal(zero(T), sqrt(dyn.q^2 / (1 - dyn.a^2)))
+end
 
-# We also need to specify the dynamics of the system through the transition equations:
-# - `AdvancedPS.initialization`: the initial state density
-# - `AdvancedPS.transition`: the state transition density
-# - `AdvancedPS.observation`: the observation score given the observed data
-# - `AdvancedPS.isdone`: signals the end of the execution for the model
-SSMProblems.transition!!(rng::AbstractRNG, model::LinearSSM) = rand(rng, f₀(model.θ))
-function SSMProblems.transition!!(
-    rng::AbstractRNG, model::LinearSSM, state::Float64, step::Int
+function SSMProblems.distribution(dyn::LinearGaussianDynamics, step::Int, state; kwargs...)
+    return Normal(dyn.a * state, dyn.q)
+end
+
+struct LinearGaussianObservation{T<:Real} <: SSMProblems.ObservationProcess{T,T}
+    r::T
+end
+
+function SSMProblems.distribution(
+    obs::LinearGaussianObservation, step::Int, state; kwargs...
 )
-    return rand(rng, f(model.θ, state, step))
+    return Normal(state, obs.r)
 end
 
-function SSMProblems.emission_logdensity(modeL::LinearSSM, state::Float64, step::Int)
-    return logpdf(g(model.θ, state, step), model.observations[step])
+function LinearGaussianStateSpaceModel(θ::Parameters)
+    dyn = LinearGaussianDynamics(θ.a, θ.q)
+    obs = LinearGaussianObservation(θ.r)
+    return SSMProblems.StateSpaceModel(dyn, obs)
 end
-function SSMProblems.transition_logdensity(
-    model::LinearSSM, prev_state, current_state, step
-)
-    return logpdf(f(model.θ, prev_state, step), current_state)
-end
-
-# We need to think seriously about how the data is handled
-AdvancedPS.isdone(::LinearSSM, step) = step > Tₘ
 
 # Everything is now ready to simulate some data. 
-a = 0.9   # Scale
-q = 0.32  # State variance
-r = 1     # Observation variance
-Tₘ = 200  # Number of observation
-Nₚ = 20   # Number of particles
-Nₛ = 500  # Number of samples
-seed = 1  # Reproduce everything
-
-θ₀ = Parameters((a, q, r))
-rng = Random.MersenneTwister(seed)
-
-x = zeros(Tₘ)
-y = zeros(Tₘ)
-x[1] = rand(rng, f₀(θ₀))
-for t in 1:Tₘ
-    if t < Tₘ
-        x[t + 1] = rand(rng, f(θ₀, x[t], t))
-    end
-    y[t] = rand(rng, g(θ₀, x[t], t))
-end
+rng = Random.MersenneTwister(1234)
+θ = Parameters(0.9, 0.32, 1.0)
+true_model = LinearGaussianStateSpaceModel(θ)
+_, x, y = sample(rng, true_model, 200);
 
 # Here are the latent and obseravation timeseries
 plot(x; label="x", xlabel="t")
@@ -100,9 +75,8 @@ plot!(y; seriestype=:scatter, label="y", xlabel="t", mc=:red, ms=2, ma=0.5)
 
 # `AdvancedPS` subscribes to the `AbstractMCMC` API. To sample we just need to define a Particle Gibbs kernel
 # and a model interface. 
-model = LinearSSM(y, θ₀)
-pgas = AdvancedPS.PGAS(Nₚ)
-chains = sample(rng, model, pgas, Nₛ; progress=false);
+pgas = AdvancedPS.PGAS(20)
+chains = sample(rng, true_model(y), pgas, 500; progress=false);
 #md nothing #hide
 
 # 
@@ -118,7 +92,7 @@ plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 # We used a particle gibbs kernel with the ancestor updating step which should help with the particle 
 # degeneracy problem and improve the mixing. 
 # We can compute the update rate of $x_t$ vs $t$ defined as the proportion of times $t$ where $x_t$ gets updated:
-update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / Nₛ
+update_rate = sum(abs.(diff(particles; dims=2)) .> 0; dims=2) / length(chains)
 #md nothing #hide
 
 # and compare it to the theoretical value of $1 - 1/Nₚ$. 
@@ -130,4 +104,4 @@ plot(
     xlabel="Iteration",
     ylabel="Update rate",
 )
-hline!([1 - 1 / Nₚ]; label="N: $(Nₚ)")
+hline!([1 - 1 / length(chains)]; label="N: $(length(chains))")

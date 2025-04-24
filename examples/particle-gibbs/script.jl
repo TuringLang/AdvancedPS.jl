@@ -37,7 +37,7 @@ end
 # We consider the following stochastic volatility model:
 # 
 # ```math
-#  x_{t+1} = a x_t + v_t \quad v_{t} \sim \mathcal{N}(0, r^2)
+#  x_{t+1} = a x_t + v_t \quad v_{t} \sim \mathcal{N}(0, q^2)
 # ```
 # ```math
 #  y_{t} = e_t \exp(\frac{1}{2}x_t) \quad e_t \sim \mathcal{N}(0, 1) 
@@ -45,44 +45,43 @@ end
 #
 # We can reformulate the above in terms of transition and observation densities:
 # ```math
-#  x_{t+1} \sim f_{\theta}(x_{t+1}|x_t) = \mathcal{N}(a x_t, r^2)
+#  x_{t+1} \sim f_{\theta}(x_{t+1}|x_t) = \mathcal{N}(a x_t, q^2)
 # ```
 # ```math
 #  y_t \sim g_{\theta}(y_t|x_t) = \mathcal{N}(0, \exp(\frac{1}{2}x_t)^2)
 # ```
 # with the initial distribution $f_0(x) = \mathcal{N}(0, q^2)$.
-# Here we assume the static parameters $\theta = (q^2, r^2)$ are known and we are only interested in sampling from the latent state $x_t$. 
-Parameters = @NamedTuple begin
-    a::Float64
-    q::Float64
-    T::Int
+# Here we assume the static parameters $\theta = (a^2, q^2)$ are known and we are only interested in sampling from the latent state $x_t$. 
+struct LinearGaussianDynamics{T<:Real} <: SSMProblems.LatentDynamics{T,T}
+    a::T
+    q::T
 end
 
-f(θ::Parameters, state, t) = Normal(θ.a * state, θ.q)
-g(θ::Parameters, state, t) = Normal(0, exp(0.5 * state))
-f₀(θ::Parameters) = Normal(0, θ.q)
+function SSMProblems.distribution(dyn::LinearGaussianDynamics{T}) where {T<:Real}
+    return Normal(zero(T), dyn.q)
+end
+
+function SSMProblems.distribution(dyn::LinearGaussianDynamics, ::Int, state)
+    return Normal(dyn.a * state, dyn.q)
+end
+
+struct StochasticVolatility{T<:Real} <: SSMProblems.ObservationProcess{T,T} end
+
+function SSMProblems.distribution(::StochasticVolatility{T}, ::Int, state) where {T<:Real}
+    return Normal(zero(T), exp((1 / 2) * state))
+end
+
+function LinearGaussianStochasticVolatilityModel(a::T, q::T) where {T<:Real}
+    dyn = LinearGaussianDynamics(a, q)
+    obs = StochasticVolatility{T}()
+    return SSMProblems.StateSpaceModel(dyn, obs)
+end
 #md nothing #hide
 
 # Let's simulate some data
-a = 0.9   # State Variance
-q = 0.5   # Observation variance
-Tₘ = 200  # Number of observation
-Nₚ = 20   # Number of particles
-Nₛ = 200  # Number of samples
-seed = 1  # Reproduce everything
-
-θ₀ = Parameters((a, q, Tₘ))
-rng = Random.MersenneTwister(seed)
-
-x = zeros(Tₘ)
-y = zeros(Tₘ)
-x[1] = 0
-for t in 1:Tₘ
-    if t < Tₘ
-        x[t + 1] = rand(rng, f(θ₀, x[t], t))
-    end
-    y[t] = rand(rng, g(θ₀, x[t], t))
-end
+rng = Random.MersenneTwister(1234)
+true_model = LinearGaussianStochasticVolatilityModel(0.9, 0.5)
+_, x, y = sample(rng, true_model, 200);
 
 # Here are the latent and observation series:
 plot(x; label="x", xlabel="t")
@@ -90,44 +89,10 @@ plot(x; label="x", xlabel="t")
 # 
 plot(y; label="y", xlabel="t")
 
-# Each model takes an `AbstractRNG` as input and generates the logpdf of the current transition:
-mutable struct NonLinearTimeSeries <: SSMProblems.AbstractStateSpaceModel
-    X::Vector{Float64}
-    observations::Vector{Float64}
-    θ::Parameters
-    NonLinearTimeSeries(θ::Parameters) = new(Float64[], θ)
-    NonLinearTimeSeries(y::Vector{Float64}, θ::Parameters) = new(Float64[], y, θ)
-end
-
-# The dynamics of the model is defined through the `AbstractStateSpaceModel` interface:
-function SSMProblems.transition!!(rng::AbstractRNG, model::NonLinearTimeSeries)
-    return rand(rng, f₀(model.θ))
-end
-function SSMProblems.transition!!(
-    rng::AbstractRNG, model::NonLinearTimeSeries, state::Float64, step::Int
-)
-    return rand(rng, f(model.θ, state, step))
-end
-
-function SSMProblems.emission_logdensity(
-    modeL::NonLinearTimeSeries, state::Float64, step::Int
-)
-    return logpdf(g(model.θ, state, step), model.observations[step])
-end
-function SSMProblems.transition_logdensity(
-    model::NonLinearTimeSeries, prev_state, current_state, step
-)
-    return logpdf(f(model.θ, prev_state, step), current_state)
-end
-
-# We need to tell AdvancedPS when to stop the execution of the model
-# TODO
-AdvancedPS.isdone(::NonLinearTimeSeries, step) = step > Tₘ
-
 # Here we use the particle gibbs kernel without adaptive resampling.
-model = NonLinearTimeSeries(y, θ₀)
-pg = AdvancedPS.PG(Nₚ, 1.0)
-chains = sample(rng, model, pg, Nₛ; progress=false);
+model = true_model(y)
+pg = AdvancedPS.PG(20, 1.0)
+chains = sample(rng, model, pg, 200; progress=false);
 #md nothing #hide
 
 particles = hcat([chain.trajectory.model.X for chain in chains]...) # Concat all sampled states
@@ -145,11 +110,11 @@ plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 # We can also check the mixing as defined in the Gaussian State Space model example. As seen on the
 # scatter plot above, we are mostly left with a single trajectory before timestep 150. The orange 
 # bar is the optimal mixing rate for the number of particles we use.
-plot_update_rate(update_rate(particles, Nₛ)[:, 1], Nₚ)
+plot_update_rate(update_rate(particles, 200)[:, 1], 20)
 
 # Let's see if ancestor sampling can help with the degeneracy problem. We use the same number of particles, but replace the sampler with PGAS. 
-pgas = AdvancedPS.PGAS(Nₚ)
-chains = sample(rng, model, pgas, Nₛ; progress=false);
+pgas = AdvancedPS.PGAS(20)
+chains = sample(rng, model, pgas, 200; progress=false);
 particles = hcat([chain.trajectory.model.X for chain in chains]...);
 mean_trajectory = mean(particles; dims=2);
 
@@ -161,4 +126,4 @@ plot!(x; color=:darkorange, label="Original Trajectory")
 plot!(mean_trajectory; color=:dodgerblue, label="Mean trajectory", opacity=0.9)
 
 # The update rate is now much higher throughout time.
-plot_update_rate(update_rate(particles, Nₛ)[:, 1], Nₚ)
+plot_update_rate(update_rate(particles, 200)[:, 1], 20)

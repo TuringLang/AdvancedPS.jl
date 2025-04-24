@@ -1,18 +1,20 @@
 @testset "container.jl" begin
 
     # Since the extension would hide the low level function call API
-    mutable struct LogPModel{T} <: SSMProblems.AbstractStateSpaceModel
+    struct LogPDynamics{T} <: LatentDynamics{T,T} end
+    struct LogPObservation{T} <: ObservationProcess{T,T}
         logp::T
-        X::Array{T}
     end
 
-    SSMProblems.transition!!(rng::AbstractRNG, model::LogPModel) = rand(rng, Uniform())
-    function SSMProblems.transition!!(rng::AbstractRNG, model::LogPModel, state, step)
-        return rand(rng, Uniform())
-    end
-    SSMProblems.emission_logdensity(model::LogPModel, state, step) = model.logp
+    SSMProblems.logdensity(proc::LogPObservation, ::Int, state, observation) = proc.logp
+    SSMProblems.distribution(proc::LogPDynamics, ::Int, state) = Uniform()
+    SSMProblems.distribution(::LogPDynamics) = Uniform()
 
-    AdvancedPS.isdone(model::LogPModel, step) = false
+    function LogPModel(logp::T) where {T<:Real}
+        ssm = StateSpaceModel(LogPDynamics{T}(), LogPObservation(logp))
+        # pick some arbitrarily large observables
+        return ssm(ones(T, 10))
+    end
 
     @testset "copy particle container" begin
         pc = AdvancedPS.ParticleContainer(AdvancedPS.Trace[])
@@ -27,13 +29,13 @@
         logps = [0.0, -1.0, -2.0]
         particles = map(logps) do logp
             trng = AdvancedPS.TracedRNG()
-            AdvancedPS.Trace(LogPModel(logp, []), trng)
+            AdvancedPS.Trace(LogPModel(logp), trng)
         end
         pc = AdvancedPS.ParticleContainer(particles)
 
         # Push!
         pc2 = deepcopy(pc)
-        particle = AdvancedPS.Trace(LogPModel(0, []), AdvancedPS.TracedRNG())
+        particle = AdvancedPS.Trace(LogPModel(0.0), AdvancedPS.TracedRNG())
         push!(pc2, particle)
         @test length(pc2.vals) == 4
         @test pc2.logWs ≈ zeros(4)
@@ -67,7 +69,7 @@
         # Resample and propagate particles with reference particle
         particles_ref = map(logps) do logp
             trng = AdvancedPS.TracedRNG()
-            AdvancedPS.Trace(LogPModel(logp, []), trng)
+            AdvancedPS.Trace(LogPModel(logp), trng)
         end
         pc_ref = AdvancedPS.ParticleContainer(particles_ref)
 
@@ -168,7 +170,7 @@
 
         particles = map(1:n) do _
             trng = AdvancedPS.TracedRNG()
-            AdvancedPS.Trace(LogPModel(1.0, []), trng)
+            AdvancedPS.Trace(LogPModel(1.0), trng)
         end
         pc = AdvancedPS.ParticleContainer(particles, AdvancedPS.TracedRNG())
 
@@ -193,7 +195,7 @@
     @testset "seed history" begin
         # Test task copy version of trace
         trng = AdvancedPS.TracedRNG()
-        tr = AdvancedPS.Trace(LogPModel(1.0, []), trng)
+        tr = AdvancedPS.Trace(LogPModel(1.0), trng)
 
         AdvancedPS.advance!(tr)
         AdvancedPS.advance!(tr)
