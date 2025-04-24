@@ -29,18 +29,18 @@ end
     N_SAMPLES = 200
 
     # Model dynamics
-    a = 0.5
-    b = 0.2
-    q = 0.1
-    E = LinearEvolution(a, Gaussian(b, q))
+    A = 0.5
+    B = 0.2
+    Q = 0.1
+    E = LinearEvolution(A, Gaussian(B, Q))
 
     H = 1.0
     R = 0.1
     Obs = LinearObservationModel(H, R)
 
-    x0 = 0.0
+    X0 = 0.0
     P0 = 1.0
-    G0 = Gaussian(x0, P0)
+    G0 = Gaussian(X0, P0)
 
     M = LinearStateSpaceModel(E, Obs)
     O = LinearObservation(E, H, R)
@@ -62,8 +62,8 @@ end
         q::T
     end
 
-    function SSMProblems.distribution(proc::LinearGaussianDynamics; kwargs...)
-        return Normal(convert(T, x0), convert(T, p0))
+    function SSMProblems.distribution(proc::LinearGaussianDynamics{T}; kwargs...) where {T}
+        return Normal(convert(T, X0), convert(T, P0))
     end
 
     function SSMProblems.distribution(
@@ -89,7 +89,7 @@ end
         return StateSpaceModel(dyn, obs)
     end
 
-    lgssm = LinearGaussianStateSpaceModel(a, b, q, H, R)
+    lgssm = LinearGaussianStateSpaceModel(A, B, Q, H, R)
     model = lgssm(ys)
 
     @testset "PGAS" begin
