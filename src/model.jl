@@ -31,8 +31,8 @@ mutable struct TracedSSM{SSM,XT,YT} <: SSMProblems.AbstractStateSpaceModel
 end
 
 (model::SSMProblems.StateSpaceModel)(Y::AbstractVector) = TracedSSM(model, Y)
-dynamics(ssm::TracedSSM) = ssm.model.dyn
-observation(ssm::TracedSSM) = ssm.model.obs
+dynamics(ssm::TracedSSM, step::Int) = ssm.model.dyn
+observation(ssm::TracedSSM, step::Int) = ssm.model.obs
 
 isdone(ssm::TracedSSM, step::Int) = step > length(ssm.Y)
 

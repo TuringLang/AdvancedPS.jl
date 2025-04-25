@@ -26,7 +26,7 @@ Get the log weight of the transition from previous state of `model` to `x`
 function transition_logweight(particle::SSMTrace, x; kwargs...)
     iter = current_step(particle) - 1
     score = SSMProblems.logdensity(
-        dynamics(particle.model), iter, particle.model.X[iter - 1], x, kwargs...
+        dynamics(particle.model, iter), iter, particle.model.X[iter - 1], x, kwargs...
     )
     return score
 end
@@ -59,11 +59,11 @@ function advance!(particle::SSMTrace, isref::Bool=false)
 
     if !isref
         if running_step == 1
-            new_state = SSMProblems.simulate(particle.rng, dynamics(model))
+            new_state = SSMProblems.simulate(particle.rng, dynamics(model, running_step))
         else
             current_state = model.X[running_step - 1]
             new_state = SSMProblems.simulate(
-                particle.rng, dynamics(model), running_step, current_state
+                particle.rng, dynamics(model, running_step), running_step, current_state
             )
         end
     else
@@ -72,7 +72,7 @@ function advance!(particle::SSMTrace, isref::Bool=false)
     end
 
     score = SSMProblems.logdensity(
-        observation(model), running_step, new_state, model.Y[running_step]
+        observation(model, running_step), running_step, new_state, model.Y[running_step]
     )
 
     # Accept transition and move the time index/rng counter
