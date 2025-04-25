@@ -1,3 +1,6 @@
+using Pkg
+Pkg.activate("/sftwr/user-pkg/m1cak00/julia/dev/AdvancedPS/examples/gaussian-process")
+
 # # Gaussian Process State-Space Model (GP-SSM)
 using LinearAlgebra
 using Random
@@ -25,14 +28,14 @@ end
 function SSMProblems.simulate(
     rng::AbstractRNG, dyn::GaussianProcessDynamics, step::Int, state
 )
-    dyn.proc = posterior(dyn.proc(step:step), [state])
+    dyn.proc = posterior(dyn.proc(step:step, 0.1), [state])
     μ, σ = mean_and_cov(dyn.proc, [step])
     return rand(rng, Normal(μ[1], sqrt(σ[1])))
 end
 
 function SSMProblems.logdensity(dyn::GaussianProcessDynamics, step::Int, state, prev_state)
     μ, σ = mean_and_cov(dyn.proc, [step])
-    return logpdf(Normal(μ, sqrt(σ)), state)
+    return logpdf(Normal(μ[1], sqrt(σ[1])), state)
 end
 
 # Linear Gaussian dynamics used for simulation
@@ -79,7 +82,7 @@ _, x, y = sample(rng, true_model, 100);
 gpssm = GaussianProcessStateSpaceModel(0.5, SqExponentialKernel())
 model = gpssm(y)
 pg = AdvancedPS.PGAS(20)
-chains = sample(rng, model, pg, 250)
+chains = sample(rng, model, pg, 50)
 #md nothing #hide
 
 particles = hcat([chain.trajectory.model.X for chain in chains]...)
