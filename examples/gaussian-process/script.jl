@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate("/sftwr/user-pkg/m1cak00/julia/dev/AdvancedPS/examples/gaussian-process")
-
 # # Gaussian Process State-Space Model (GP-SSM)
 using LinearAlgebra
 using Random
