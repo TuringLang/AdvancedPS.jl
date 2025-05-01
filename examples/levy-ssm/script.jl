@@ -85,59 +85,6 @@ function meancov(
     end
 end
 
-# Gamma Process
-C = 1.0
-β = 1.0
-process = GammaProcess(C, β)
-
-# Normal Mean-Variance representation
-μw = 0.0
-σw = 1.0
-nvm = NormalMeanVariance(μw, σw)
-
-# Levy SSM with Langevin dynamics
-# ```math
-#   dx_{t} = A x_{t} dt + L dW_{t}
-# ```
-# ```math
-#   y_{t} = H x_{t} + ϵ{t}
-# ```
-θ = -0.5
-A = [
-    0.0 1.0
-    0.0 θ
-]
-L = [0.0; 1.0]
-σe = 1.0
-H = [1.0, 0]
-dyn = LangevinDynamics(A, L, θ, H, σe)
-
-# Simulation parameters
-N = 200
-ts = range(0, 100; length=N)
-
-rng = Random.MersenneTwister(seed)
-X = zeros(Float64, (N, 2))
-Y = zeros(Float64, N)
-for (i, t) in enumerate(ts)
-    if i > 1
-        s = ts[i - 1]
-        dt = t - s
-        path = simulate(rng, process, dt, s, t)
-        μ, Σ = meancov(t, dyn, path, nvm)
-        X[i, :] .= rand(rng, MultivariateNormal(exp(dyn, dt) * X[i - 1, :] + μ, Σ))
-    end
-
-    let H = dyn.H, σe = dyn.σe
-        Y[i] = transpose(H) * X[i, :] + rand(rng, Normal(0, σe))
-    end
-end
-
-# NOTE: doesn't match 1:1, but I think that's okay
-rng = Random.MersenneTwister(seed)
-_, x, y = sample(rng, levyssm, N)
-
-# TODO: this can surely be optimized
 struct LevyLangevin{T} <: LatentDynamics{T,Vector{T}}
     dt::T
     dyn::LangevinDynamics{T}
@@ -165,7 +112,11 @@ function SSMProblems.distribution(proc::LinearGaussianObservation, step::Int, st
     return Normal(transpose(proc.H) * state, proc.R)
 end
 
-function LevyModel(dt, A, L, θ, H, σe, C, β, ϵ, μw, σw)
+function LevyModel(dt, θ, σe, C, β, μw, σw; ϵ=1e-10)
+    A = [0.0 1.0; 0.0 θ]
+    L = [0.0; 1.0]
+    H = [1.0, 0]
+
     dyn = LevyLangevin(
         dt,
         LangevinDynamics(A, L, θ, H, σe),
@@ -177,8 +128,24 @@ function LevyModel(dt, A, L, θ, H, σe, C, β, ϵ, μw, σw)
     return StateSpaceModel(dyn, obs)
 end
 
-levyssm = LevyModel(0.5025125628140756, A, L, θ, H, σe, C, β, ϵ, μw, σw);
+# Levy SSM with Langevin dynamics
+# ```math
+#   dx_{t} = A x_{t} dt + L dW_{t}
+# ```
+# ```math
+#   y_{t} = H x_{t} + ϵ{t}
+# ```
 
+# Simulation parameters
+N = 200
+ts = range(0, 100; length=N)
+levyssm = LevyModel(step(ts), θ, 1.0, 1.0, 1.0, 0.0, 1.0);
+
+# Simulate data
+rng = Random.MersenneTwister(1234);
+_, X, Y = sample(rng, levyssm, N);
+
+# Run sampler
 pg = AdvancedPS.PGAS(50);
 chains = sample(rng, levyssm(Y), pg, 100);
 
@@ -221,7 +188,7 @@ for d in 1:2
         fillalpha=0.2,
         title="Marginal State Trajectories (X$d)",
     )
-    plot!(p, ts, X[:, d]; color=:dodgerblue, label="True Trajectory")
+    plot!(p, ts, getindex.(X, d); color=:dodgerblue, label="True Trajectory")
     push!(ps, p)
 end
 plot(ps...; layout=(2, 1), size=(600, 600))
