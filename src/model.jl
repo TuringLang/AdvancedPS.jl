@@ -22,12 +22,6 @@ mutable struct TracedSSM{SSM,XT,YT} <: SSMProblems.AbstractStateSpaceModel
         @assert eltype(OP) == YT
         return new{SSMProblems.StateSpaceModel{T,LD,OP},XT,YT}(model, Vector{XT}(), Y)
     end
-
-    function TracedSSM(model::SSMProblems.StateSpaceModel{T,LD,OP}) where {T,LD,OP}
-        XT = eltype(LD)
-        YT = eltype(OP)
-        return new{SSMProblems.StateSpaceModel{T,LD,OP},XT,YT}(model, Vector{YT}())
-    end
 end
 
 (model::SSMProblems.StateSpaceModel)(Y::AbstractVector) = TracedSSM(model, Y)
