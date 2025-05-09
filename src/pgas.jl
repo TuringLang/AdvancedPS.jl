@@ -23,12 +23,10 @@ current_step(trace::SSMTrace) = trace.rng.count
 
 Get the log weight of the transition from previous state of `model` to `x`
 """
-function transition_logweight(particle::SSMTrace, x)
-    score = SSMProblems.transition_logdensity(
-        particle.model,
-        particle.model.X[current_step(particle) - 2],
-        x,
-        current_step(particle) - 1,
+function transition_logweight(particle::SSMTrace, x; kwargs...)
+    iter = current_step(particle) - 1
+    score = SSMProblems.logdensity(
+        dynamics(particle.model, iter), iter, particle.model.X[iter - 1], x, kwargs...
     )
     return score
 end
@@ -61,22 +59,25 @@ function advance!(particle::SSMTrace, isref::Bool=false)
 
     if !isref
         if running_step == 1
-            new_state = SSMProblems.transition!!(particle.rng, model)
+            new_state = SSMProblems.simulate(particle.rng, dynamics(model, running_step))
         else
             current_state = model.X[running_step - 1]
-            new_state = SSMProblems.transition!!(
-                particle.rng, model, current_state, running_step
+            new_state = SSMProblems.simulate(
+                particle.rng, dynamics(model, running_step), running_step, current_state
             )
         end
     else
-        new_state = model.X[running_step] # We need the current state from the reference particle
+        # We need the current state from the reference particle
+        new_state = model.X[running_step]
     end
 
-    score = SSMProblems.emission_logdensity(model, new_state, running_step)
+    score = SSMProblems.logdensity(
+        observation(model, running_step), running_step, new_state, model.Y[running_step]
+    )
 
-    # accept transition
+    # Accept transition and move the time index/rng counter
     !isref && push!(model.X, new_state)
-    inc_counter!(particle.rng) # Increase rng counter, we use it as the model `time` index instead of handling two distinct counters
+    inc_counter!(particle.rng)
 
     return score
 end
