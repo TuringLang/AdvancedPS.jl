@@ -10,6 +10,26 @@ const Particle = Trace
 const SSMTrace{R} = Trace{<:SSMProblems.AbstractStateSpaceModel,R}
 const GenericTrace{R} = Trace{<:AbstractGenericModel,R}
 
+mutable struct TracedSSM{SSM,XT,YT} <: SSMProblems.AbstractStateSpaceModel
+    model::SSM
+    X::Vector{XT}
+    Y::Vector{YT}
+
+    function TracedSSM(
+        model::SSMProblems.StateSpaceModel{T,LD,OP}, Y::Vector{YT}
+    ) where {T,LD,OP,YT}
+        XT = eltype(LD)
+        @assert eltype(OP) == YT
+        return new{SSMProblems.StateSpaceModel{T,LD,OP},XT,YT}(model, Vector{XT}(), Y)
+    end
+end
+
+(model::SSMProblems.StateSpaceModel)(Y::AbstractVector) = TracedSSM(model, Y)
+dynamics(ssm::TracedSSM, step::Int) = ssm.model.dyn
+observation(ssm::TracedSSM, step::Int) = ssm.model.obs
+
+isdone(ssm::TracedSSM, step::Int) = step > length(ssm.Y)
+
 reset_logprob!(::AdvancedPS.Particle) = nothing
 reset_model(f) = deepcopy(f)
 delete_retained!(f) = nothing

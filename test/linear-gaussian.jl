@@ -29,18 +29,18 @@ end
     N_SAMPLES = 200
 
     # Model dynamics
-    a = 0.5
-    b = 0.2
-    q = 0.1
-    E = LinearEvolution(a, Gaussian(b, q))
+    A = 0.5
+    B = 0.2
+    Q = 0.1
+    E = LinearEvolution(A, Gaussian(B, Q))
 
     H = 1.0
     R = 0.1
     Obs = LinearObservationModel(H, R)
 
-    x0 = 0.0
+    X0 = 0.0
     P0 = 1.0
-    G0 = Gaussian(x0, P0)
+    G0 = Gaussian(X0, P0)
 
     M = LinearStateSpaceModel(E, Obs)
     O = LinearObservation(E, H, R)
@@ -56,46 +56,41 @@ end
     Xf, ll = kalmanfilter(M, 1 => G0, y_pairs)
 
     # Define AdvancedPS model
-    mutable struct LinearGaussianParams
-        a::Float64
-        b::Float64
-        q::Float64
-        h::Float64
-        r::Float64
-        x0::Float64
-        p0::Float64
+    struct LinearGaussianDynamics{T<:Real} <: LatentDynamics{T,T}
+        a::T
+        b::T
+        q::T
     end
 
-    mutable struct LinearGaussianModel <: SSMProblems.AbstractStateSpaceModel
-        X::Vector{Float64}
-        observations::Vector{Float64}
-        θ::LinearGaussianParams
-        function LinearGaussianModel(y::Vector{Float64}, θ::LinearGaussianParams)
-            return new(Vector{Float64}(), y, θ)
-        end
+    function SSMProblems.distribution(proc::LinearGaussianDynamics{T}; kwargs...) where {T}
+        return Normal(convert(T, X0), convert(T, P0))
     end
 
-    function SSMProblems.transition!!(rng::AbstractRNG, model::LinearGaussianModel)
-        return rand(rng, Normal(model.θ.x0, model.θ.p0))
-    end
-    function SSMProblems.transition!!(
-        rng::AbstractRNG, model::LinearGaussianModel, state, step
+    function SSMProblems.distribution(
+        proc::LinearGaussianDynamics, step::Int, state; kwargs...
     )
-        return rand(rng, Normal(model.θ.a * state + model.θ.b, model.θ.q))
+        return Normal(proc.a * state + proc.b, proc.q)
     end
-    function SSMProblems.transition_logdensity(
-        model::LinearGaussianModel, prev_state, current_state, step
+
+    struct LinearGaussianObservation{T<:Real} <: ObservationProcess{T,T}
+        h::T
+        r::T
+    end
+
+    function SSMProblems.distribution(
+        proc::LinearGaussianObservation, step::Int, state; kwargs...
     )
-        return logpdf(Normal(model.θ.a * prev_state + model.θ.b, model.θ.q), current_state)
-    end
-    function SSMProblems.emission_logdensity(model::LinearGaussianModel, state, step)
-        return logpdf(Normal(model.θ.h * state, model.θ.r), model.observations[step])
+        return Normal(proc.h * state, proc.r)
     end
 
-    AdvancedPS.isdone(::LinearGaussianModel, step) = step > T
+    function LinearGaussianStateSpaceModel(a, b, q, h, r)
+        dyn = LinearGaussianDynamics(a, b, q)
+        obs = LinearGaussianObservation(h, r)
+        return StateSpaceModel(dyn, obs)
+    end
 
-    params = LinearGaussianParams(a, b, q, H, R, x0, P0)
-    model = LinearGaussianModel(ys, params)
+    lgssm = LinearGaussianStateSpaceModel(A, B, Q, H, R)
+    model = lgssm(ys)
 
     @testset "PGAS" begin
         pgas = AdvancedPS.PGAS(N_PARTICLES)
