@@ -16,6 +16,17 @@ else
     using ..Libtask: Libtask
 end
 
+# In Libtask.TapedTask.taped_globals, this extension sometimes needs to store an RNG,
+# and sometimes both an RNG and other information. In Turing.jl this other information
+# is a VarInfo. This struct puts those in a single struct. Note the abstract type of
+# the second field. This is okay, because `get_taped_globals` needs a type assertion anyway.
+struct TapedGlobals{RngType}
+    rng::RngType
+    other::Any
+end
+
+TapedGlobals(rng::Random.AbstractRNG) = TapedGlobals(rng, nothing)
+
 """
     LibtaskModel{F}
 
@@ -24,7 +35,7 @@ State wrapper to hold `Libtask.CTask` model initiated from `f`.
 function AdvancedPS.LibtaskModel(
     f::AdvancedPS.AbstractGenericModel, rng::Random.AbstractRNG, args...
 ) # Changed the API, need to take care of the RNG properly
-    return AdvancedPS.LibtaskModel(f, Libtask.TapedTask(rng, f, args...))
+    return AdvancedPS.LibtaskModel(f, Libtask.TapedTask(TapedGlobals(rng), f, args...))
 end
 
 """
@@ -47,30 +58,30 @@ end
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
 function AdvancedPS.advance!(trace::LibtaskTrace, isref::Bool=false)
-    # Where is the RNG ?
-    isref ? AdvancedPS.load_state!(trace.rng) : AdvancedPS.save_state!(trace.rng)
-    AdvancedPS.inc_counter!(trace.rng)
+    taped_globals = trace.model.ctask.taped_globals
+    rng = taped_globals.rng
+    isref ? AdvancedPS.load_state!(rng) : AdvancedPS.save_state!(rng)
+    AdvancedPS.inc_counter!(rng)
 
-    Libtask.set_taped_globals!(trace.model.ctask, trace.rng)
+    Libtask.set_taped_globals!(trace.model.ctask, TapedGlobals(rng, taped_globals.other))
+    trace.rng = rng
 
     # Move to next step
     return Libtask.consume(trace.model.ctask)
 end
 
 # create a backward reference in task_local_storage
-function AdvancedPS.addreference!(task::Task, trace::LibtaskTrace)
-    if task.storage === nothing
-        task.storage = IdDict()
-    end
-    task.storage[:__trace] = trace
-
+function AdvancedPS.addreference!(task::Libtask.TapedTask, trace::LibtaskTrace)
+    rng = task.taped_globals.rng
+    Libtask.set_taped_globals!(task, TapedGlobals(rng, trace))
     return task
 end
 
 function AdvancedPS.update_rng!(trace::LibtaskTrace)
-    new_rng = deepcopy(trace.rng)
+    taped_globals = trace.model.ctask.taped_globals
+    new_rng = deepcopy(taped_globals.rng)
     trace.rng = new_rng
-    Libtask.set_taped_globals!(trace.model.ctask, trace.rng)
+    Libtask.set_taped_globals!(trace.model.ctask, TapedGlobals(new_rng, taped_globals.other))
     return trace
 end
 
@@ -86,17 +97,18 @@ end
 # PG requires keeping all randomness for the reference particle
 # Create new task and copy randomness
 function AdvancedPS.forkr(trace::LibtaskTrace)
+    taped_globals = trace.model.ctask.taped_globals
+    rng = taped_globals.rng
     newf = AdvancedPS.reset_model(trace.model.f)
-    Random123.set_counter!(trace.rng, 1)
+    Random123.set_counter!(rng, 1)
+    trace.rng = rng
 
-    ctask = Libtask.TapedTask(trace.rng, newf)
+    ctask = Libtask.TapedTask(TapedGlobals(rng, taped_globals.other), newf)
     new_tapedmodel = AdvancedPS.LibtaskModel(newf, ctask)
 
     # add backward reference
-    newtrace = AdvancedPS.Trace(new_tapedmodel, trace.rng)
+    newtrace = AdvancedPS.Trace(new_tapedmodel, rng)
     AdvancedPS.gen_refseed!(newtrace)
-
-    Libtask.set_taped_globals!(ctask, trace.rng) # Sync trace and rng
     return newtrace
 end
 

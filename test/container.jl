@@ -148,17 +148,18 @@
         @test consume(a.model.ctask) == 4
     end
 
-    @testset "current trace" begin
+    @testset "Back-reference" begin
         struct TaskIdModel <: AdvancedPS.AbstractGenericModel end
 
         function (model::TaskIdModel)()
             # Just print the task it's running in
-            id = objectid(AdvancedPS.current_trace())
+            trace = Libtask.get_taped_globals(Any).other
+            id = objectid(trace)
             return Libtask.produce(id)
         end
 
         trace = AdvancedPS.Trace(TaskIdModel(), AdvancedPS.TracedRNG())
-        AdvancedPS.addreference!(trace.model.ctask.task, trace)
+        AdvancedPS.addreference!(trace.model.ctask, trace)
 
         @test AdvancedPS.advance!(trace, false) === objectid(trace)
     end
