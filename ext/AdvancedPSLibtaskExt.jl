@@ -16,6 +16,17 @@ else
     using ..Libtask: Libtask
 end
 
+# In Libtask.TapedTask.taped_globals, this extension sometimes needs to store an RNG,
+# and sometimes both an RNG and other information. In Turing.jl this other information
+# is a VarInfo. This struct puts those in a single struct. Note the abstract type of
+# the second field. This is okay, because `get_taped_globals` needs a type assertion anyway.
+struct TapedGlobals{RngType}
+    rng::RngType
+    other::Any
+end
+
+TapedGlobals(rng::Random.AbstractRNG) = TapedGlobals(rng, nothing)
+
 """
     LibtaskModel{F}
 
@@ -24,12 +35,7 @@ State wrapper to hold `Libtask.CTask` model initiated from `f`.
 function AdvancedPS.LibtaskModel(
     f::AdvancedPS.AbstractGenericModel, rng::Random.AbstractRNG, args...
 ) # Changed the API, need to take care of the RNG properly
-    return AdvancedPS.LibtaskModel(
-        f,
-        Libtask.TapedTask(
-            f, rng, args...; deepcopy_types=Union{AdvancedPS.TracedRNG,typeof(f)}
-        ),
-    )
+    return AdvancedPS.LibtaskModel(f, Libtask.TapedTask(TapedGlobals(rng), f, args...))
 end
 
 """
@@ -51,27 +57,31 @@ end
 
 # step to the next observe statement and
 # return the log probability of the transition (or nothing if done)
-function AdvancedPS.advance!(t::LibtaskTrace, isref::Bool=false)
-    isref ? AdvancedPS.load_state!(t.rng) : AdvancedPS.save_state!(t.rng)
-    AdvancedPS.inc_counter!(t.rng)
+function AdvancedPS.advance!(trace::LibtaskTrace, isref::Bool=false)
+    taped_globals = trace.model.ctask.taped_globals
+    rng = taped_globals.rng
+    isref ? AdvancedPS.load_state!(rng) : AdvancedPS.save_state!(rng)
+    AdvancedPS.inc_counter!(rng)
+
+    Libtask.set_taped_globals!(trace.model.ctask, TapedGlobals(rng, taped_globals.other))
+    trace.rng = rng
 
     # Move to next step
-    return Libtask.consume(t.model.ctask)
+    return Libtask.consume(trace.model.ctask)
 end
 
 # create a backward reference in task_local_storage
-function AdvancedPS.addreference!(task::Task, trace::LibtaskTrace)
-    if task.storage === nothing
-        task.storage = IdDict()
-    end
-    task.storage[:__trace] = trace
-
+function AdvancedPS.addreference!(task::Libtask.TapedTask, trace::LibtaskTrace)
+    rng = task.taped_globals.rng
+    Libtask.set_taped_globals!(task, TapedGlobals(rng, trace))
     return task
 end
 
 function AdvancedPS.update_rng!(trace::LibtaskTrace)
-    rng, = trace.model.ctask.args
-    trace.rng = rng
+    taped_globals = trace.model.ctask.taped_globals
+    new_rng = deepcopy(taped_globals.rng)
+    trace.rng = new_rng
+    Libtask.set_taped_globals!(trace.model.ctask, TapedGlobals(new_rng, taped_globals.other))
     return trace
 end
 
@@ -81,26 +91,23 @@ function AdvancedPS.fork(trace::LibtaskTrace, isref::Bool=false)
     AdvancedPS.update_rng!(newtrace)
     isref && AdvancedPS.delete_retained!(newtrace.model.f)
     isref && delete_seeds!(newtrace)
-
-    # add backward reference
-    AdvancedPS.addreference!(newtrace.model.ctask.task, newtrace)
     return newtrace
 end
 
 # PG requires keeping all randomness for the reference particle
 # Create new task and copy randomness
 function AdvancedPS.forkr(trace::LibtaskTrace)
+    taped_globals = trace.model.ctask.taped_globals
+    rng = taped_globals.rng
     newf = AdvancedPS.reset_model(trace.model.f)
-    Random123.set_counter!(trace.rng, 1)
+    Random123.set_counter!(rng, 1)
+    trace.rng = rng
 
-    ctask = Libtask.TapedTask(
-        newf, trace.rng; deepcopy_types=Union{AdvancedPS.TracedRNG,typeof(trace.model.f)}
-    )
+    ctask = Libtask.TapedTask(TapedGlobals(rng, taped_globals.other), newf)
     new_tapedmodel = AdvancedPS.LibtaskModel(newf, ctask)
 
     # add backward reference
-    newtrace = AdvancedPS.Trace(new_tapedmodel, trace.rng)
-    AdvancedPS.addreference!(ctask.task, newtrace)
+    newtrace = AdvancedPS.Trace(new_tapedmodel, rng)
     AdvancedPS.gen_refseed!(newtrace)
     return newtrace
 end
@@ -113,11 +120,12 @@ AdvancedPS.update_ref!(::LibtaskTrace) = nothing
 Observe sample `x` from distribution `dist` and yield its log-likelihood value.
 """
 function AdvancedPS.observe(dist::Distributions.Distribution, x)
-    return Libtask.produce(Distributions.loglikelihood(dist, x))
+    Libtask.produce(Distributions.loglikelihood(dist, x))
+    return nothing
 end
 
 """
-AbstractMCMC interface. We need libtask to sample from arbitrary callable AbstractModel
+AbstractMCMC interface. We need libtask to sample from arbitrary callable AbstractModelext
 """
 
 function AbstractMCMC.step(
@@ -138,7 +146,6 @@ function AbstractMCMC.step(
         else
             trng = AdvancedPS.TracedRNG()
             trace = AdvancedPS.Trace(deepcopy(model), trng)
-            AdvancedPS.addreference!(trace.model.ctask.task, trace) # TODO: Do we need it here ?
             trace
         end
     end
@@ -153,8 +160,7 @@ function AbstractMCMC.step(
     newtrajectory = rand(rng, particles)
 
     replayed = AdvancedPS.replay(newtrajectory)
-    return AdvancedPS.PGSample(replayed.model.f, logevidence),
-    AdvancedPS.PGState(newtrajectory)
+    return AdvancedPS.PGSample(replayed.model.f, logevidence), AdvancedPS.PGState(replayed)
 end
 
 function AbstractMCMC.sample(
@@ -176,7 +182,6 @@ function AbstractMCMC.sample(
     traces = map(1:(sampler.nparticles)) do i
         trng = AdvancedPS.TracedRNG()
         trace = AdvancedPS.Trace(deepcopy(model), trng)
-        AdvancedPS.addreference!(trace.model.ctask.task, trace) # Do we need it here ?
         trace
     end
 
