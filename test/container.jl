@@ -159,7 +159,6 @@
         end
 
         trace = AdvancedPS.Trace(TaskIdModel(), AdvancedPS.TracedRNG())
-        AdvancedPS.addreference!(trace)
 
         @test AdvancedPS.advance!(trace, false) === objectid(trace)
     end

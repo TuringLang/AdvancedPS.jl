@@ -49,6 +49,12 @@ end
 
 const LibtaskTrace{R} = AdvancedPS.Trace{<:AdvancedPS.LibtaskModel,R}
 
+function Base.copy(trace::LibtaskTrace)
+    newtrace = AdvancedPS.Trace(copy(trace.model), deepcopy(trace.rng))
+    set_other_global!(newtrace, newtrace)
+    return newtrace
+end
+
 """Get the RNG from a `LibtaskTrace`."""
 function get_rng(trace::LibtaskTrace)
     return trace.model.ctask.taped_globals.rng
@@ -75,7 +81,11 @@ get_other_global(trace::LibtaskTrace) = trace.model.ctask.taped_globals.other
 function AdvancedPS.Trace(
     model::AdvancedPS.AbstractGenericModel, rng::Random.AbstractRNG, args...
 )
-    return AdvancedPS.Trace(AdvancedPS.LibtaskModel(model, rng, args...), rng)
+    trace = AdvancedPS.Trace(AdvancedPS.LibtaskModel(model, rng, args...), rng)
+    # Set a backreference so that the TapedTask in `trace` stores the `trace` itself in its
+    # taped globals.
+    set_other_global!(trace, trace)
+    return trace
 end
 
 # step to the next observe statement and
@@ -88,22 +98,12 @@ function AdvancedPS.advance!(trace::LibtaskTrace, isref::Bool=false)
     return Libtask.consume(trace.model.ctask)
 end
 
-"""
-Set a backreference so that the TapedTask in `trace` stores the `trace` itself in the
-taped globals.
-"""
-function AdvancedPS.addreference!(trace::LibtaskTrace)
-    set_other_global!(trace, trace)
-    return trace
-end
-
 # Task copying version of fork for Trace.
 function AdvancedPS.fork(trace::LibtaskTrace, isref::Bool=false)
     newtrace = copy(trace)
     set_rng!(newtrace, deepcopy(get_rng(newtrace)))
     isref && AdvancedPS.delete_retained!(newtrace.model.f)
     isref && delete_seeds!(newtrace)
-    AdvancedPS.addreference!(newtrace)
     return newtrace
 end
 
