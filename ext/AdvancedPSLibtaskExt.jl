@@ -84,7 +84,6 @@ function AdvancedPS.advance!(trace::LibtaskTrace, isref::Bool=false)
     rng = get_rng(trace)
     isref ? AdvancedPS.load_state!(rng) : AdvancedPS.save_state!(rng)
     AdvancedPS.inc_counter!(rng)
-    set_rng!(trace, rng)
     # Move to next step
     return Libtask.consume(trace.model.ctask)
 end
@@ -98,15 +97,10 @@ function AdvancedPS.addreference!(trace::LibtaskTrace)
     return trace
 end
 
-function AdvancedPS.update_rng!(trace::LibtaskTrace)
-    set_rng!(trace, deepcopy(get_rng(trace)))
-    return trace
-end
-
 # Task copying version of fork for Trace.
 function AdvancedPS.fork(trace::LibtaskTrace, isref::Bool=false)
     newtrace = copy(trace)
-    AdvancedPS.update_rng!(newtrace)
+    set_rng!(newtrace, deepcopy(get_rng(newtrace)))
     isref && AdvancedPS.delete_retained!(newtrace.model.f)
     isref && delete_seeds!(newtrace)
     AdvancedPS.addreference!(newtrace)
@@ -119,7 +113,6 @@ function AdvancedPS.forkr(trace::LibtaskTrace)
     rng = get_rng(trace)
     newf = AdvancedPS.reset_model(trace.model.f)
     Random123.set_counter!(rng, 1)
-    trace.rng = rng
 
     ctask = Libtask.TapedTask(TapedGlobals(rng, get_other_global(trace)), newf)
     new_tapedmodel = AdvancedPS.LibtaskModel(newf, ctask)
@@ -143,7 +136,7 @@ function AdvancedPS.observe(dist::Distributions.Distribution, x)
 end
 
 """
-AbstractMCMC interface. We need libtask to sample from arbitrary callable AbstractModelext
+AbstractMCMC interface. We need libtask to sample from arbitrary callable AbstractModel
 """
 
 function AbstractMCMC.step(
