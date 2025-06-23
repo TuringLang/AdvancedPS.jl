@@ -62,8 +62,8 @@ end
 
 """Set the RNG for a `LibtaskTrace`."""
 function set_rng!(trace::LibtaskTrace, rng::Random.AbstractRNG)
-    taped_globals = trace.model.ctask.taped_globals
-    Libtask.set_taped_globals!(trace.model.ctask, TapedGlobals(rng, taped_globals.other))
+    other = Libtask.get_other_global(trace.model.ctask)
+    Libtask.set_taped_globals!(trace.model.ctask, TapedGlobals(rng, other))
     trace.rng = rng
     return trace
 end
