@@ -62,9 +62,6 @@ end
 # in an extension, we just define dummy in the main module and implement them in the extension. 
 function observe end
 function replay end
-function addreference! end
-
-current_trace() = current_task().storage[:__trace]
 
 # We need this one to be visible outside of the extension for dispatching (Turing.jl).
 struct LibtaskModel{F,T}
