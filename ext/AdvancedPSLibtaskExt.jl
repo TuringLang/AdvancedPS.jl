@@ -35,7 +35,32 @@ State wrapper to hold `Libtask.CTask` model initiated from `f`.
 function AdvancedPS.LibtaskModel(
     f::AdvancedPS.AbstractGenericModel, rng::Random.AbstractRNG, args...
 ) # Changed the API, need to take care of the RNG properly
-    return AdvancedPS.LibtaskModel(f, Libtask.TapedTask(TapedGlobals(rng), f, args...))
+    return AdvancedPS.LibtaskModel(
+        f, Libtask.TapedTask(TapedGlobals(rng), f, args...)
+    )
+end
+# TODO: Upstream this to Turing
+function AdvancedPS.LibtaskModel(
+    f::AdvancedPS.AbstractTuringLibtaskModel, rng::Random.AbstractRNG
+)
+    return AdvancedPS.LibtaskModel(
+        f, Libtask.TapedTask(TapedGlobals(rng), f.fargs...; f.kwargs...)
+    )
+end
+
+const LibtaskTrace{R} = AdvancedPS.Trace{<:AdvancedPS.LibtaskModel,R}
+
+function to_tapedtask(
+    newf::AdvancedPS.AbstractGenericModel, trace::LibtaskTrace, rng::Random.AbstractRNG
+)
+    return Libtask.TapedTask(TapedGlobals(rng, get_other_global(trace)), newf)
+end
+function to_tapedtask(
+    newf::AdvancedPS.AbstractTuringLibtaskModel, trace::LibtaskTrace, rng::Random.AbstractRNG
+)
+    return Libtask.TapedTask(
+        TapedGlobals(rng, get_other_global(trace)), newf.fargs...; newf.kwargs...
+    )
 end
 
 """
@@ -46,8 +71,6 @@ The task is copied (forked) and the inner model is deepcopied.
 function Base.copy(model::AdvancedPS.LibtaskModel)
     return AdvancedPS.LibtaskModel(deepcopy(model.f), copy(model.ctask))
 end
-
-const LibtaskTrace{R} = AdvancedPS.Trace{<:AdvancedPS.LibtaskModel,R}
 
 function Base.copy(trace::LibtaskTrace)
     newtrace = AdvancedPS.Trace(copy(trace.model), deepcopy(trace.rng))
@@ -114,7 +137,7 @@ function AdvancedPS.forkr(trace::LibtaskTrace)
     newf = AdvancedPS.reset_model(trace.model.f)
     Random123.set_counter!(rng, 1)
 
-    ctask = Libtask.TapedTask(TapedGlobals(rng, get_other_global(trace)), newf)
+    ctask = to_tapedtask(newf, trace, rng)
     new_tapedmodel = AdvancedPS.LibtaskModel(newf, ctask)
 
     # add backward reference
