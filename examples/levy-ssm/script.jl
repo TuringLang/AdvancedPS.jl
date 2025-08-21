@@ -61,8 +61,6 @@ function meancov(t, dyn::LangevinDynamics, path::GammaPath, dist::Normal)
     fts = exp.(Ref(dyn), (t .- path.times)) .* Ref(dyn.L)
     μ = sum(@. fts * mean(dist) * path.jumps)
     Σ = sum(@. fts * transpose(fts) * var(dist) * path.jumps)
-
-    # Guarantees positive semi-definiteness
     return μ, Σ + eltype(Σ)(1e-6) * I
 end
 
@@ -148,7 +146,6 @@ plot!(
     label="Marginal State (x2)",
 )
 
-# TODO: collect jumps from the model
 p2 = scatter([], []; color=:darkorange, label="Jumps")
 
 plot(

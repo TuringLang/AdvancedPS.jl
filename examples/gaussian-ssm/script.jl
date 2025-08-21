@@ -34,7 +34,7 @@ mutable struct Parameters{AT<:Real,QT<:Real,RT<:Real}
     r::RT
 end
 
-struct GaussianPrior <: SSMProblems.StatePrior
+struct GaussianPrior{ΣT<:Real} <: SSMProblems.StatePrior
     σ::ΣT
 end
 
@@ -43,7 +43,7 @@ struct LinearGaussianDynamics{AT<:Real,QT<:Real} <: SSMProblems.LatentDynamics
     q::QT
 end
 
-function SSMProblems.distribution(dyn::GaussianPrior; kwargs...)
+function SSMProblems.distribution(prior::GaussianPrior; kwargs...)
     return Normal(0, prior.σ)
 end
 
@@ -65,7 +65,7 @@ function LinearGaussianStateSpaceModel(θ::Parameters)
     prior = GaussianPrior(sqrt(θ.q^2 / (1 - θ.a^2)))
     dyn = LinearGaussianDynamics(θ.a, θ.q)
     obs = LinearGaussianObservation(θ.r)
-    return SSMProblems.StateSpaceModel(dyn, obs)
+    return SSMProblems.StateSpaceModel(prior, dyn, obs)
 end
 
 # Everything is now ready to simulate some data. 
@@ -81,7 +81,7 @@ plot!(y; seriestype=:scatter, label="y", xlabel="t", mc=:red, ms=2, ma=0.5)
 # `AdvancedPS` subscribes to the `AbstractMCMC` API. To sample we just need to define a Particle Gibbs kernel
 # and a model interface. 
 pgas = AdvancedPS.PGAS(20)
-chains = sample(rng, true_model(y), pgas, 500; progress=false);
+chains = sample(rng, AdvancedPS.TracedSSM(true_model, y), pgas, 500; progress=false);
 #md nothing #hide
 
 # 
