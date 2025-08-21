@@ -36,7 +36,7 @@
         dyn = BaseModelDynamics(θ.a, θ.q)
         obs = BaseModelObservation(θ.r)
         ssm = StateSpaceModel(prior, dyn, obs)
-        return ssm(zeros(T, 3))
+        return AdvancedPS.TracedSSM(ssm, zeros(T, 3))
     end
 
     @testset "fork reference" begin

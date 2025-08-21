@@ -21,7 +21,6 @@ mutable struct TracedSSM{SSM} <: SSMProblems.AbstractStateSpaceModel
     end
 end
 
-(model::SSMProblems.StateSpaceModel)(Y::AbstractVector) = TracedSSM(model, Y)
 prior(ssm::TracedSSM) = ssm.model.prior
 dynamics(ssm::TracedSSM, step::Int) = ssm.model.dyn
 observation(ssm::TracedSSM, step::Int) = ssm.model.obs

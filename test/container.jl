@@ -8,13 +8,13 @@
     end
 
     SSMProblems.logdensity(proc::LogPObservation, ::Int, state, observation) = proc.logp
-    SSMProblems.distribution(proc::LogPDynamics, ::Int, state) = Uniform()
+    SSMProblems.distribution(::LogPDynamics, ::Int, state) = Uniform()
     SSMProblems.distribution(::LogPPrior) = Uniform()
 
     function LogPModel(logp::T) where {T<:Real}
         ssm = StateSpaceModel(LogPPrior(), LogPDynamics(), LogPObservation(logp))
         # pick some arbitrarily large observables
-        return ssm(ones(T, 10))
+        return AdvancedPS.TracedSSM(ssm, ones(T, 10))
     end
 
     @testset "copy particle container" begin

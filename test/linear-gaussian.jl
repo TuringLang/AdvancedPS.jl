@@ -94,7 +94,7 @@ end
     end
 
     lgssm = LinearGaussianStateSpaceModel(X0, P0, A, B, Q, H, R)
-    model = lgssm(ys)
+    model = AdvancedPS.TracedSSM(lgssm, ys)
 
     @testset "PGAS" begin
         pgas = AdvancedPS.PGAS(N_PARTICLES)
