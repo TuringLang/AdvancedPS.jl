@@ -80,7 +80,8 @@ plot!(y; seriestype=:scatter, label="y", xlabel="t", mc=:red, ms=2, ma=0.5)
 
 # `AdvancedPS` subscribes to the `AbstractMCMC` API. To sample we just need to define a Particle Gibbs kernel
 # and a model interface. 
-pgas = AdvancedPS.PGAS(20)
+N = 20
+pgas = AdvancedPS.PGAS(N)
 chains = sample(rng, AdvancedPS.TracedSSM(true_model, y), pgas, 500; progress=false);
 #md nothing #hide
 
@@ -109,4 +110,4 @@ plot(
     xlabel="Iteration",
     ylabel="Update rate",
 )
-hline!([1 - 1 / length(chains)]; label="N: $(length(chains))")
+hline!([1 - 1 / N]; label="N: $(N)")
