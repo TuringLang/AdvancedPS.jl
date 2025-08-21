@@ -130,7 +130,7 @@ pg = AdvancedPS.PGAS(50);
 chains = sample(rng, AdvancedPS.TracedSSM(levyssm, Y), pg, 100; progress=false);
 
 # Concat all sampled states
-marginal_states = hcat([chain.trajectory.model.X for chain in chains]...)
+marginal_states = hcat([chain.trajectory.model.X for chain in chains]...);
 
 # Plot marginal state and jump intensities for one trajectory
 p1 = plot(
