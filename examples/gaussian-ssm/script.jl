@@ -28,27 +28,31 @@ using SSMProblems
 # as well as the initial distribution $f_0(x) = \mathcal{N}(0, q^2/(1-a^2))$.
 
 # To use `AdvancedPS` we first need to define a model type that subtypes `AdvancedPS.AbstractStateSpaceModel`.
-mutable struct Parameters{T<:Real}
-    a::T
-    q::T
-    r::T
+mutable struct Parameters{AT<:Real,QT<:Real,RT<:Real}
+    a::AT
+    q::QT
+    r::RT
 end
 
-struct LinearGaussianDynamics{T<:Real} <: SSMProblems.LatentDynamics{T,T}
-    a::T
-    q::T
+struct GaussianPrior <: SSMProblems.StatePrior
+    σ::ΣT
 end
 
-function SSMProblems.distribution(dyn::LinearGaussianDynamics{T}; kwargs...) where {T<:Real}
-    return Normal(zero(T), sqrt(dyn.q^2 / (1 - dyn.a^2)))
+struct LinearGaussianDynamics{AT<:Real,QT<:Real} <: SSMProblems.LatentDynamics
+    a::AT
+    q::QT
+end
+
+function SSMProblems.distribution(dyn::GaussianPrior; kwargs...)
+    return Normal(0, prior.σ)
 end
 
 function SSMProblems.distribution(dyn::LinearGaussianDynamics, step::Int, state; kwargs...)
     return Normal(dyn.a * state, dyn.q)
 end
 
-struct LinearGaussianObservation{T<:Real} <: SSMProblems.ObservationProcess{T,T}
-    r::T
+struct LinearGaussianObservation{RT<:Real} <: SSMProblems.ObservationProcess
+    r::RT
 end
 
 function SSMProblems.distribution(
@@ -58,6 +62,7 @@ function SSMProblems.distribution(
 end
 
 function LinearGaussianStateSpaceModel(θ::Parameters)
+    prior = GaussianPrior(sqrt(θ.q^2 / (1 - θ.a^2)))
     dyn = LinearGaussianDynamics(θ.a, θ.q)
     obs = LinearGaussianObservation(θ.r)
     return SSMProblems.StateSpaceModel(dyn, obs)

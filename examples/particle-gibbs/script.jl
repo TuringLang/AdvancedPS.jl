@@ -52,29 +52,34 @@ end
 # ```
 # with the initial distribution $f_0(x) = \mathcal{N}(0, q^2)$.
 # Here we assume the static parameters $\theta = (a^2, q^2)$ are known and we are only interested in sampling from the latent state $x_t$. 
-struct LinearGaussianDynamics{T<:Real} <: SSMProblems.LatentDynamics{T,T}
-    a::T
-    q::T
+struct GaussianPrior{T<:Real} <: SSMProblems.StatePrior
+    σ::T
 end
 
-function SSMProblems.distribution(dyn::LinearGaussianDynamics{T}) where {T<:Real}
-    return Normal(zero(T), dyn.q)
+function SSMProblems.distribution(proc::GaussianPrior)
+    return Normal(0, proc.σ)
+end
+
+struct LinearGaussianDynamics{AT<:Real,QT<:Real} <: SSMProblems.LatentDynamics
+    a::AT
+    q::QT
 end
 
 function SSMProblems.distribution(dyn::LinearGaussianDynamics, ::Int, state)
     return Normal(dyn.a * state, dyn.q)
 end
 
-struct StochasticVolatility{T<:Real} <: SSMProblems.ObservationProcess{T,T} end
+struct StochasticVolatility <: SSMProblems.ObservationProcess end
 
-function SSMProblems.distribution(::StochasticVolatility{T}, ::Int, state) where {T<:Real}
-    return Normal(zero(T), exp((1 / 2) * state))
+function SSMProblems.distribution(::StochasticVolatility, ::Int, state)
+    return Normal(0, exp(state / 2))
 end
 
-function LinearGaussianStochasticVolatilityModel(a::T, q::T) where {T<:Real}
+function LinearGaussianStochasticVolatilityModel(a, q)
+    prior = GaussianPrior(q)
     dyn = LinearGaussianDynamics(a, q)
-    obs = StochasticVolatility{T}()
-    return SSMProblems.StateSpaceModel(dyn, obs)
+    obs = StochasticVolatility()
+    return SSMProblems.StateSpaceModel(prior, dyn, obs)
 end
 #md nothing #hide
 
@@ -90,7 +95,7 @@ plot(x; label="x", xlabel="t")
 plot(y; label="y", xlabel="t")
 
 # Here we use the particle gibbs kernel without adaptive resampling.
-model = true_model(y)
+model = AdvancedPS.TracedSSM(true_model, y)
 pg = AdvancedPS.PG(20, 1.0)
 chains = sample(rng, model, pg, 200; progress=false);
 #md nothing #hide

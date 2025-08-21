@@ -8,59 +8,63 @@ using Distributions
 using Libtask
 using SSMProblems
 
-struct GaussianProcessDynamics{T<:Real,KT<:Kernel} <: LatentDynamics{T,T}
+struct GaussianProcessDynamics{T<:Real,KT<:Kernel} <: SSMProblems.LatentDynamics
     proc::GP{ZeroMean{T},KT}
     function GaussianProcessDynamics(::Type{T}, kernel::KT) where {T<:Real,KT<:Kernel}
         return new{T,KT}(GP(ZeroMean{T}(), kernel))
     end
 end
 
-struct LinearGaussianDynamics{T<:Real} <: LatentDynamics{T,T}
-    a::T
-    b::T
-    q::T
+struct GaussianPrior{ΣT<:Real} <: SSMProblems.StatePrior
+    σ::ΣT
 end
 
-function SSMProblems.distribution(proc::LinearGaussianDynamics{T}) where {T<:Real}
-    return Normal(zero(T), proc.q)
+SSMProblems.distribution(proc::GaussianPrior) = Normal(0, proc.σ)
+
+struct LinearGaussianDynamics{AT<:Real,BT<:Real,QT<:Real} <: SSMProblems.LatentDynamics
+    a::AT
+    b::BT
+    q::QT
 end
 
 function SSMProblems.distribution(proc::LinearGaussianDynamics, ::Int, state)
     return Normal(proc.a * state + proc.b, proc.q)
 end
 
-struct StochasticVolatility{T<:Real} <: ObservationProcess{T,T} end
+struct StochasticVolatility <: SSMProblems.ObservationProcess end
 
-function SSMProblems.distribution(::StochasticVolatility{T}, ::Int, state) where {T<:Real}
-    return Normal(zero(T), exp((1 / 2) * state))
+function SSMProblems.distribution(::StochasticVolatility, ::Int, state)
+    return Normal(0, exp(state / 2))
 end
 
-function LinearGaussianStochasticVolatilityModel(a::T, q::T) where {T<:Real}
-    dyn = LinearGaussianDynamics(a, zero(T), q)
-    obs = StochasticVolatility{T}()
-    return SSMProblems.StateSpaceModel(dyn, obs)
+function LinearGaussianStochasticVolatilityModel(a, q)
+    prior = GaussianPrior(q)
+    dyn = LinearGaussianDynamics(a, 0, q)
+    obs = StochasticVolatility()
+    return SSMProblems.StateSpaceModel(prior, dyn, obs)
 end
 
 function GaussianProcessStateSpaceModel(::Type{T}, kernel::KT) where {T<:Real,KT<:Kernel}
+    prior = GaussianPrior(one(T))
     dyn = GaussianProcessDynamics(T, kernel)
-    obs = StochasticVolatility{T}()
-    return SSMProblems.StateSpaceModel(dyn, obs)
+    obs = StochasticVolatility()
+    return SSMProblems.StateSpaceModel(prior, dyn, obs)
 end
 
 const GPSSM{T,KT<:Kernel} = SSMProblems.StateSpaceModel{
-    T,
-    GaussianProcessDynamics{T,KT},
-    StochasticVolatility{T}
+    <:GaussianPrior,
+    <:GaussianProcessDynamics{T,KT},
+    StochasticVolatility
 };
 
 # for non-markovian models, we can redefine dynamics to reference the trajectory
 function AdvancedPS.dynamics(
-    ssm::AdvancedPS.TracedSSM{<:GPSSM{T},T,T}, step::Int
-) where {T<:Real}
+    ssm::AdvancedPS.TracedSSM{<:GPSSM}, step::Int
+)
     prior = ssm.model.dyn.proc(1:(step - 1))
     post  = posterior(prior, ssm.X[1:(step - 1)])
     μ, σ  = mean_and_cov(post, [step])
-    return LinearGaussianDynamics(zero(T), μ[1], sqrt(σ[1]))
+    return LinearGaussianDynamics(0, μ[1], sqrt(σ[1]))
 end
 
 # Everything is now ready to simulate some data. 
@@ -70,9 +74,9 @@ _, x, y = sample(rng, true_model, 100);
 
 # Create the model and run the sampler
 gpssm = GaussianProcessStateSpaceModel(Float64, SqExponentialKernel());
-model = gpssm(y);
+model = AdvancedPS.TracedSSM(gpssm, y);
 pg = AdvancedPS.PGAS(20);
-chains = sample(rng, model, pg, 250; progress=false);
+chains = sample(rng, model, pg, 250);
 #md nothing #hide
 
 particles = hcat([chain.trajectory.model.X for chain in chains]...);
