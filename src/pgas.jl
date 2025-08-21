@@ -59,7 +59,7 @@ function advance!(particle::SSMTrace, isref::Bool=false)
 
     if !isref
         if running_step == 1
-            new_state = SSMProblems.simulate(particle.rng, dynamics(model, running_step))
+            new_state = SSMProblems.simulate(particle.rng, prior(model))
         else
             current_state = model.X[running_step - 1]
             new_state = SSMProblems.simulate(
@@ -76,7 +76,13 @@ function advance!(particle::SSMTrace, isref::Bool=false)
     )
 
     # Accept transition and move the time index/rng counter
-    !isref && push!(model.X, new_state)
+    if !isref
+        if running_step == 1
+            model.X = [new_state]
+        else
+            push!(model.X, new_state)
+        end
+    end
     inc_counter!(particle.rng)
 
     return score
