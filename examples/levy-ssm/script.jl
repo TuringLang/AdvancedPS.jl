@@ -88,7 +88,8 @@ function SSMProblems.distribution(proc::LevyLangevin, step::Int, state)
     return MvNormal(exp(proc.dyn, dt) * state + μ, Σ)
 end
 
-struct LinearGaussianObservation{HT<:AbstractVector,RT<:Real} <: SSMProblems.ObservationProcess
+struct LinearGaussianObservation{HT<:AbstractVector,RT<:Real} <:
+       SSMProblems.ObservationProcess
     H::HT
     R::RT
 end

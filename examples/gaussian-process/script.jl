@@ -52,18 +52,14 @@ function GaussianProcessStateSpaceModel(::Type{T}, kernel::KT) where {T<:Real,KT
 end
 
 const GPSSM{T,KT<:Kernel} = SSMProblems.StateSpaceModel{
-    <:GaussianPrior,
-    <:GaussianProcessDynamics{T,KT},
-    StochasticVolatility
+    <:GaussianPrior,<:GaussianProcessDynamics{T,KT},StochasticVolatility
 };
 
 # for non-markovian models, we can redefine dynamics to reference the trajectory
-function AdvancedPS.dynamics(
-    ssm::AdvancedPS.TracedSSM{<:GPSSM}, step::Int
-)
+function AdvancedPS.dynamics(ssm::AdvancedPS.TracedSSM{<:GPSSM}, step::Int)
     prior = ssm.model.dyn.proc(1:(step - 1))
-    post  = posterior(prior, ssm.X[1:(step - 1)])
-    μ, σ  = mean_and_cov(post, [step])
+    post = posterior(prior, ssm.X[1:(step - 1)])
+    μ, σ = mean_and_cov(post, [step])
     return LinearGaussianDynamics(0, μ[1], sqrt(σ[1]))
 end
 
