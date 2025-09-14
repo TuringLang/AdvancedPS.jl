@@ -1,6 +1,6 @@
 # AdvancedPS: Particle Samplers for Julia
 
-This is a lightweight package that implements particle based Monte Carlo algorithms for the [Turing](https://turing.ml/stable/) ecosystem.
+This is a lightweight package that implements particle based Monte Carlo algorithms for the [Turing](https://turinglang.org/) ecosystem.
 
 ### Installing from Julia
 
