@@ -1,36 +1,42 @@
 @testset "pgas.jl" begin
-    mutable struct Params{T<:Real}
-        a::T
-        q::T
-        r::T
+    mutable struct Params{AT<:Real,QT<:Real,RT<:Real}
+        a::AT
+        q::QT
+        r::RT
     end
 
-    struct BaseModelDynamics{T<:Real} <: LatentDynamics{T,T}
-        a::T
-        q::T
+    struct BaseModelPrior{QT<:Real} <: StatePrior
+        q::QT
     end
 
-    function SSMProblems.distribution(dyn::BaseModelDynamics{T}) where {T<:Real}
-        return Normal(zero(T), dyn.q)
+    struct BaseModelDynamics{AT<:Real,QT<:Real} <: LatentDynamics
+        a::AT
+        q::QT
+    end
+
+    function SSMProblems.distribution(prior::BaseModelPrior)
+        return Normal(0, prior.q)
     end
 
     function SSMProblems.distribution(dyn::BaseModelDynamics, step::Int, state)
         return Normal(dyn.a * state, dyn.q)
     end
 
-    struct BaseModelObservation{T<:Real} <: ObservationProcess{T,T}
-        r::T
+    struct BaseModelObservation{RT<:Real} <: ObservationProcess
+        r::RT
     end
 
     function SSMProblems.distribution(obs::BaseModelObservation, step::Int, state)
         return Normal(state, obs.r)
     end
 
-    function BaseModel(θ::Params{T}) where {T<:Real}
+    function BaseModel(θ::Params{AT,QT,RT}) where {AT<:Real,QT<:Real,RT<:Real}
+        T = promote_type(AT, QT, RT)
+        prior = BaseModelPrior(θ.q)
         dyn = BaseModelDynamics(θ.a, θ.q)
         obs = BaseModelObservation(θ.r)
-        ssm = StateSpaceModel(dyn, obs)
-        return ssm(zeros(T, 3))
+        ssm = StateSpaceModel(prior, dyn, obs)
+        return AdvancedPS.TracedSSM(ssm, zeros(T, 3))
     end
 
     @testset "fork reference" begin

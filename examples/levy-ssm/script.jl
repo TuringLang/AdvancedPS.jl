@@ -27,17 +27,16 @@ function simulate(
         t = t0
         truncated = last_jump < tolerance
         while !truncated
-            t += rand(rng, Exponential(one(T) / rate))
-            xi = one(T) / (β * (exp(t / C) - one(T)))
-            prob = (one(T) + β * xi) * exp(-β * xi)
+            t += rand(rng, Exponential(1 / rate))
+            xi = 1 / (β * (exp(t / C) - 1))
+            prob = (1 + β * xi) * exp(-β * xi)
             if rand(rng) < prob
                 push!(jumps, xi)
                 last_jump = xi
             end
             truncated = last_jump < tolerance
         end
-        times = rand(rng, Uniform(start, finish), length(jumps))
-        return GammaPath(jumps, times)
+        return GammaPath(jumps, rand(rng, Uniform(start, finish), length(jumps)))
     end
 end
 
@@ -47,85 +46,66 @@ function integral(times::Array{<:Real}, path::GammaPath)
     end
 end
 
-struct LangevinDynamics{T}
-    A::Matrix{T}
-    L::Vector{T}
-    θ::T
-    H::Vector{T}
-    σe::T
+struct LangevinDynamics{AT<:AbstractMatrix,LT<:AbstractVector,θT<:Real}
+    A::AT
+    L::LT
+    θ::θT
 end
 
-struct NormalMeanVariance{T}
-    μ::T
-    σ::T
+function Base.exp(dyn::LangevinDynamics, dt)
+    f_val = exp(dyn.θ * dt)
+    return [1 (f_val - 1)/dyn.θ; 0 f_val]
 end
 
-f(dt, θ) = exp(θ * dt)
-function Base.exp(dyn::LangevinDynamics{T}, dt::T) where {T<:Real}
-    let θ = dyn.θ
-        f_val = f(dt, θ)
-        return [one(T) (f_val - 1)/θ; zero(T) f_val]
-    end
+function meancov(t, dyn::LangevinDynamics, path::GammaPath, dist::Normal)
+    fts = exp.(Ref(dyn), (t .- path.times)) .* Ref(dyn.L)
+    μ = sum(@. fts * mean(dist) * path.jumps)
+    Σ = sum(@. fts * transpose(fts) * var(dist) * path.jumps)
+    return μ, Σ + eltype(Σ)(1e-6) * I
 end
 
-function meancov(
-    t::T, dyn::LangevinDynamics, path::GammaPath, nvm::NormalMeanVariance
-) where {T<:Real}
-    μ = zeros(T, 2)
-    Σ = zeros(T, (2, 2))
-    let times = path.times, jumps = path.jumps, μw = nvm.μ, σw = nvm.σ
-        for (v, z) in zip(times, jumps)
-            ft = exp(dyn, (t - v)) * dyn.L
-            μ += ft .* μw .* z
-            Σ += ft * transpose(ft) .* σw^2 .* z
-        end
-
-        # Guarantees positive semi-definiteness
-        return μ, Σ + T(1e-6) * I
-    end
+struct LevyPrior{XT<:AbstractVector,ΣT<:AbstractMatrix} <: StatePrior
+    μ::XT
+    Σ::ΣT
 end
 
-struct LevyLangevin{T} <: LatentDynamics{T,Vector{T}}
+SSMProblems.distribution(proc::LevyPrior) = MvNormal(proc.μ, proc.Σ)
+
+struct LevyLangevin{T<:Real,LT<:LangevinDynamics,ΓT<:GammaProcess,DT<:Normal} <:
+       SSMProblems.LatentDynamics
     dt::T
-    dyn::LangevinDynamics{T}
-    process::GammaProcess{T}
-    nvm::NormalMeanVariance{T}
+    dyn::LT
+    process::ΓT
+    dist::DT
 end
 
-function SSMProblems.distribution(proc::LevyLangevin{T}) where {T<:Real}
-    return MultivariateNormal(zeros(T, 2), I)
-end
-
-function SSMProblems.distribution(proc::LevyLangevin{T}, step::Int, state) where {T<:Real}
+function SSMProblems.distribution(proc::LevyLangevin, step::Int, state)
     dt = proc.dt
     path = simulate(rng, proc.process, dt, (step - 1) * dt, step * dt)
-    μ, Σ = meancov(step * dt, proc.dyn, path, proc.nvm)
-    return MultivariateNormal(exp(proc.dyn, dt) * state + μ, Σ)
+    μ, Σ = meancov(step * dt, proc.dyn, path, proc.dist)
+    return MvNormal(exp(proc.dyn, dt) * state + μ, Σ)
 end
 
-struct LinearGaussianObservation{T<:Real} <: ObservationProcess{T,T}
-    H::Vector{T}
-    R::T
+struct LinearGaussianObservation{HT<:AbstractVector,RT<:Real} <:
+       SSMProblems.ObservationProcess
+    H::HT
+    R::RT
 end
 
-function SSMProblems.distribution(proc::LinearGaussianObservation, step::Int, state)
+function SSMProblems.distribution(proc::LinearGaussianObservation, ::Int, state)
     return Normal(transpose(proc.H) * state, proc.R)
 end
 
-function LevyModel(dt, θ, σe, C, β, μw, σw; ϵ=1e-10)
-    A = [0.0 1.0; 0.0 θ]
-    L = [0.0; 1.0]
-    H = [1.0, 0]
-
+function LevyModel(dt, θ, σe, C, β, μw, σw; kwargs...)
     dyn = LevyLangevin(
         dt,
-        LangevinDynamics(A, L, θ, H, σe),
-        GammaProcess(C, β; ϵ),
-        NormalMeanVariance(μw, σw),
+        LangevinDynamics([0 1; 0 θ], [0; 1], θ),
+        GammaProcess(C, β; kwargs...),
+        Normal(μw, σw),
     )
 
-    obs = LinearGaussianObservation(H, σe)
-    return StateSpaceModel(dyn, obs)
+    obs = LinearGaussianObservation([1; 0], σe)
+    return SSMProblems.StateSpaceModel(LevyPrior(zeros(Bool, 2), I(2)), dyn, obs)
 end
 
 # Levy SSM with Langevin dynamics
@@ -139,7 +119,7 @@ end
 # Simulation parameters
 N = 200
 ts = range(0, 100; length=N)
-levyssm = LevyModel(step(ts), θ, 1.0, 1.0, 1.0, 0.0, 1.0);
+levyssm = LevyModel(step(ts), -0.5, 1, 1.0, 1.0, 0, 1);
 
 # Simulate data
 rng = Random.MersenneTwister(1234);
@@ -147,10 +127,10 @@ _, X, Y = sample(rng, levyssm, N);
 
 # Run sampler
 pg = AdvancedPS.PGAS(50);
-chains = sample(rng, levyssm(Y), pg, 100);
+chains = sample(rng, AdvancedPS.TracedSSM(levyssm, Y), pg, 100; progress=false);
 
 # Concat all sampled states
-marginal_states = hcat([chain.trajectory.model.X for chain in chains]...)
+marginal_states = hcat([chain.trajectory.model.X for chain in chains]...);
 
 # Plot marginal state and jump intensities for one trajectory
 p1 = plot(
@@ -166,7 +146,6 @@ plot!(
     label="Marginal State (x2)",
 )
 
-# TODO: collect jumps from the model
 p2 = scatter([], []; color=:darkorange, label="Jumps")
 
 plot(

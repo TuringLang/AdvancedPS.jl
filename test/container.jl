@@ -1,19 +1,20 @@
 @testset "container.jl" begin
 
     # Since the extension would hide the low level function call API
-    struct LogPDynamics{T} <: LatentDynamics{T,T} end
-    struct LogPObservation{T} <: ObservationProcess{T,T}
+    struct LogPPrior <: StatePrior end
+    struct LogPDynamics <: LatentDynamics end
+    struct LogPObservation{T} <: ObservationProcess
         logp::T
     end
 
     SSMProblems.logdensity(proc::LogPObservation, ::Int, state, observation) = proc.logp
-    SSMProblems.distribution(proc::LogPDynamics, ::Int, state) = Uniform()
-    SSMProblems.distribution(::LogPDynamics) = Uniform()
+    SSMProblems.distribution(::LogPDynamics, ::Int, state) = Uniform()
+    SSMProblems.distribution(::LogPPrior) = Uniform()
 
     function LogPModel(logp::T) where {T<:Real}
-        ssm = StateSpaceModel(LogPDynamics{T}(), LogPObservation(logp))
+        ssm = StateSpaceModel(LogPPrior(), LogPDynamics(), LogPObservation(logp))
         # pick some arbitrarily large observables
-        return ssm(ones(T, 10))
+        return AdvancedPS.TracedSSM(ssm, ones(T, 10))
     end
 
     @testset "copy particle container" begin

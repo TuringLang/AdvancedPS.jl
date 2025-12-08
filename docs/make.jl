@@ -48,7 +48,7 @@ DocMeta.setdocmeta!(AdvancedPS, :DocTestSetup, :(using AdvancedPS); recursive=tr
 
 makedocs(;
     sitename="AdvancedPS",
-    format=Documenter.HTML(),
+    format=Documenter.HTML(; size_threshold=1000 * 2^11), # 1Mb per page
     modules=[AdvancedPS],
     pages=[
         "Home" => "index.md",

@@ -56,14 +56,17 @@ end
     Xf, ll = kalmanfilter(M, 1 => G0, y_pairs)
 
     # Define AdvancedPS model
-    struct LinearGaussianDynamics{T<:Real} <: LatentDynamics{T,T}
-        a::T
-        b::T
-        q::T
+    struct GaussianPrior{XT,ΣT} <: StatePrior
+        μ::XT
+        σ::ΣT
     end
 
-    function SSMProblems.distribution(proc::LinearGaussianDynamics{T}; kwargs...) where {T}
-        return Normal(convert(T, X0), convert(T, P0))
+    SSMProblems.distribution(proc::GaussianPrior; kwargs...) = Normal(proc.μ, proc.σ)
+
+    struct LinearGaussianDynamics{AT<:Real,BT<:Real,QT<:Real} <: LatentDynamics
+        a::AT
+        b::BT
+        q::QT
     end
 
     function SSMProblems.distribution(
@@ -72,9 +75,9 @@ end
         return Normal(proc.a * state + proc.b, proc.q)
     end
 
-    struct LinearGaussianObservation{T<:Real} <: ObservationProcess{T,T}
-        h::T
-        r::T
+    struct LinearGaussianObservation{HT<:Real,RT<:Real} <: ObservationProcess
+        h::HT
+        r::RT
     end
 
     function SSMProblems.distribution(
@@ -83,14 +86,15 @@ end
         return Normal(proc.h * state, proc.r)
     end
 
-    function LinearGaussianStateSpaceModel(a, b, q, h, r)
+    function LinearGaussianStateSpaceModel(x0, σ0, a, b, q, h, r)
+        prior = GaussianPrior(x0, σ0)
         dyn = LinearGaussianDynamics(a, b, q)
         obs = LinearGaussianObservation(h, r)
-        return StateSpaceModel(dyn, obs)
+        return StateSpaceModel(prior, dyn, obs)
     end
 
-    lgssm = LinearGaussianStateSpaceModel(A, B, Q, H, R)
-    model = lgssm(ys)
+    lgssm = LinearGaussianStateSpaceModel(X0, P0, A, B, Q, H, R)
+    model = AdvancedPS.TracedSSM(lgssm, ys)
 
     @testset "PGAS" begin
         pgas = AdvancedPS.PGAS(N_PARTICLES)
