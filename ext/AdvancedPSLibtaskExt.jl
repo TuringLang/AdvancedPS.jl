@@ -35,9 +35,7 @@ State wrapper to hold `Libtask.CTask` model initiated from `f`.
 function AdvancedPS.LibtaskModel(
     f::AdvancedPS.AbstractGenericModel, rng::Random.AbstractRNG, args...
 ) # Changed the API, need to take care of the RNG properly
-    return AdvancedPS.LibtaskModel(
-        f, Libtask.TapedTask(TapedGlobals(rng), f, args...)
-    )
+    return AdvancedPS.LibtaskModel(f, Libtask.TapedTask(TapedGlobals(rng), f, args...))
 end
 # TODO: Upstream this to Turing
 function AdvancedPS.LibtaskModel(
@@ -56,7 +54,9 @@ function to_tapedtask(
     return Libtask.TapedTask(TapedGlobals(rng, get_other_global(trace)), newf)
 end
 function to_tapedtask(
-    newf::AdvancedPS.AbstractTuringLibtaskModel, trace::LibtaskTrace, rng::Random.AbstractRNG
+    newf::AdvancedPS.AbstractTuringLibtaskModel,
+    trace::LibtaskTrace,
+    rng::Random.AbstractRNG,
 )
     return Libtask.TapedTask(
         TapedGlobals(rng, get_other_global(trace)), newf.fargs...; newf.kwargs...
