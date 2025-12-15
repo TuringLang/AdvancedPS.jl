@@ -16,6 +16,10 @@ abstract type AbstractParticleSampler <: AbstractMCMC.AbstractSampler end
 abstract type AbstractStateSpaceModel <: AbstractParticleModel end
 abstract type AbstractGenericModel <: AbstractParticleModel end
 
+# TODO(penelopeysm): This should be upstreamed to Turing together with anything that is
+# Turing-specific in LibtaskExt.
+abstract type AbstractTuringLibtaskModel <: AbstractGenericModel end
+
 include("resampling.jl")
 include("rng.jl")
 include("model.jl")
