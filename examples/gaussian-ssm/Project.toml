@@ -10,7 +10,7 @@ StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 
 [compat]
 AbstractMCMC = "5.15.1"
-AdvancedPS = "0.7.2"
+AdvancedPS = "0.8.0"
 Distributions = "0.25.127"
 Libtask = "0.9.18"
 Literate = "2.21.0"
