@@ -27,16 +27,4 @@ include("container.jl")
 include("smc.jl")
 include("pgas.jl")
 
-if !isdefined(Base, :get_extension)
-    using Requires
-end
-
-@static if !isdefined(Base, :get_extension)
-    function __init__()
-        @require Libtask = "6f1fad26-d15e-5dc8-ae53-837a1d7b8c9f" include(
-            "../ext/AdvancedPSLibtaskExt.jl"
-        )
-    end
-end
-
 end
